@@ -37,6 +37,6 @@ nav:
     - getting_started/workflow.md
     - getting_started/rohub.md
   - Benchmark:
-    - "benchmark/plate_with_hole.md"
+    - "benchmark/plate-with-hole.md"
   - "zz_bibliography.md"
 
