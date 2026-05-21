@@ -1,22 +1,32 @@
 import json
-import os
 
-tool = "fenics"
-result_dir = "snakemake_results/" + config["benchmark"] 
-configuration_to_parameter_file = config["configuration_to_parameter_file"]
-configurations = config["configurations"]
-
-
-rule run_fenics_simulation:
-    input: 
-        script = "{tool}/run_fenics_simulation.py",
-        parameters = lambda wildcards: configuration_to_parameter_file[wildcards.configuration],
-        mesh = f"{result_dir}/mesh/mesh_{{configuration}}.msh",
+rule all:
+    input:
+        "solution_metrics.json",
+        "solution_field_data.zip"
+        
+rule create_mesh:    
+    input:
+        script = "create_mesh.py",
+        parameters = "parameters.json",
     output:
-        zip = f"{result_dir}/{{tool}}/solution_field_data_{{configuration}}.zip",
-        metrics = f"{result_dir}/{{tool}}/solution_metrics_{{configuration}}.json",
+        mesh = "mesh.msh",
+    conda: "environment_mesh.yml"
+    shell:
+        """
+        python3 {input.script} --input_parameter_file {input.parameters} --output_mesh_file {output.mesh}
+        """
+
+rule run_simulation:
+    input: 
+        script = "run_simulation.py",
+        parameters = "parameters.json",
+        mesh = "mesh.msh",
+    output:
+        zip = "solution_field_data.zip",
+        metrics = "solution_metrics.json",
     conda:
-        "environment_simulation.yml",
+        "environment_simulation.yml"
     shell:
         """
         python3 {input.script} --input_parameter_file {input.parameters} --input_mesh_file {input.mesh} --output_solution_file_zip {output.zip} --output_metrics_file {output.metrics}

@@ -8,9 +8,9 @@ import basix.ufl
 import numpy as np
 import ufl
 from dolfinx.fem.petsc import LinearProblem
-from petsc4py.PETSc import ScalarType
 from mpi4py import MPI
 from pint import UnitRegistry
+from ufl.algorithms import estimate_total_polynomial_degree
 
 # Add parent directory to sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -30,7 +30,7 @@ def run_fenics_simulation(
         gdim=2,
     )
 
-    V = df.fem.functionspace(mesh, ("CG", parameters["element-degree"], (2,)))
+    V = df.fem.functionspace(mesh, ("CG", parameters["isoparametric_element_degree"], (2,)))
 
     tags_left = facet_tags.find(1)
     tags_bottom = facet_tags.find(2)
@@ -40,38 +40,36 @@ def run_fenics_simulation(
     # Boundary conditions
     dofs_left = df.fem.locate_dofs_topological(V.sub(0), 1, tags_left)
     dofs_bottom = df.fem.locate_dofs_topological(V.sub(1), 1, tags_bottom)
-    dofs_right = df.fem.locate_dofs_topological(V, 1, tags_right)
-    dofs_top = df.fem.locate_dofs_topological(V, 1, tags_top)
 
     bc_left = df.fem.dirichletbc(0.0, dofs_left, V.sub(0))
     bc_bottom = df.fem.dirichletbc(0.0, dofs_bottom, V.sub(1))
 
     E = (
         ureg.Quantity(
-            parameters["young-modulus"]["value"], parameters["young-modulus"]["unit"]
+            parameters["youngs_modulus[Pa]"], "Pa"
         )
         .to_base_units()
         .magnitude
     )
     nu = (
         ureg.Quantity(
-            parameters["poisson-ratio"]["value"], parameters["poisson-ratio"]["unit"]
+            parameters["poissons_ratio"], ""
         )
         .to_base_units()
         .magnitude
     )
     radius = (
-        ureg.Quantity(parameters["radius"]["value"], parameters["radius"]["unit"])
+        ureg.Quantity(parameters["radius[m]"], "m")
         .to_base_units()
         .magnitude
     )
     L = (
-        ureg.Quantity(parameters["length"]["value"], parameters["length"]["unit"])
+        ureg.Quantity(parameters["length[m]"], "m")
         .to_base_units()
         .magnitude
     )
     load = (
-        ureg.Quantity(parameters["load"]["value"], parameters["load"]["unit"])
+        ureg.Quantity(parameters["load[Pa]"], "Pa")
         .to_base_units()
         .magnitude
     )
@@ -101,39 +99,44 @@ def run_fenics_simulation(
 
     dx = ufl.Measure(
         "dx",
-        metadata={
-            "quadrature_degree": parameters["quadrature-degree"],
-            "quadrature_scheme": parameters["quadrature-rule"],
-        },
     )
     ds = ufl.Measure(
         "ds",
         domain=mesh,
         subdomain_data=facet_tags,
     )
-    stress_space = df.fem.functionspace(
-        mesh, ("CG", parameters["element-degree"], (2, 2))
-    )
-    stress_function = df.fem.Function(stress_space)
 
     u = df.fem.Function(V, name="u")
-    u_prescribed = df.fem.Function(V, name="u_prescribed")
-    u_prescribed.interpolate(lambda x: analytical_solution.displacement(x))
-    u_prescribed.x.scatter_forward()
 
     u_ = ufl.TestFunction(V)
     v_ = ufl.TrialFunction(V)
     a = df.fem.form(ufl.inner(sigma(u_), eps(v_)) * dx)
 
-    # set rhs to zero
-    f = df.fem.form(ufl.inner(df.fem.Constant(mesh, np.array([0.0, 0.0])), u_) * ufl.ds)
+    # Apply Neumann tractions on right and top boundaries from analytical stress.
+    traction_right = df.fem.Function(V, name="traction_right")
+    traction_top = df.fem.Function(V, name="traction_top")
 
-    bc_right = df.fem.dirichletbc(u_prescribed, dofs_right)
-    bc_top = df.fem.dirichletbc(u_prescribed, dofs_top)
+    def traction_right_expr(x: np.ndarray) -> np.ndarray:
+        sxx, sxy, _ = analytical_solution.stress(x)
+        return np.vstack((np.asarray(sxx), np.asarray(sxy)))
+
+    def traction_top_expr(x: np.ndarray) -> np.ndarray:
+        _, sxy, syy = analytical_solution.stress(x)
+        return np.vstack((np.asarray(sxy), np.asarray(syy)))
+
+    traction_right.interpolate(traction_right_expr)
+    traction_top.interpolate(traction_top_expr)
+    traction_right.x.scatter_forward()
+    traction_top.x.scatter_forward()
+
+    f = df.fem.form(
+        ufl.inner(traction_right, u_) * ds(3) + ufl.inner(traction_top, u_) * ds(4)
+    )
+
     solver = LinearProblem(
         a,
         f,
-        bcs=[bc_left, bc_bottom, bc_right, bc_top],
+        bcs=[bc_left, bc_bottom],
         u=u,
         petsc_options={
             "ksp_type": "gmres",
@@ -142,6 +145,60 @@ def run_fenics_simulation(
         },
     )
     solver.solve()
+
+    # Support reaction on the left boundary
+    n = ufl.FacetNormal(mesh)
+    traction = ufl.dot(sigma(u), n)
+    reaction_left_x_local = df.fem.assemble_scalar(df.fem.form(traction[0] * ds(1)))
+    reaction_left_y_local = df.fem.assemble_scalar(df.fem.form(traction[1] * ds(1)))
+    reaction_left_x = MPI.COMM_WORLD.allreduce(reaction_left_x_local, op=MPI.SUM)
+    reaction_left_y = MPI.COMM_WORLD.allreduce(reaction_left_y_local, op=MPI.SUM)
+    num_dofs = V.dofmap.index_map.size_global * V.dofmap.index_map_bs
+
+
+    # Compute L2 error norm between FE displacement and analytical displacement.
+    u_analytical = df.fem.Function(V, name="u_analytical")
+
+    def analytical_displacement_expr(x: np.ndarray) -> np.ndarray:
+        ux, uy = analytical_solution.displacement(x)
+        return np.vstack((np.asarray(ux), np.asarray(uy)))
+
+    u_analytical.interpolate(analytical_displacement_expr)
+    u_analytical.x.scatter_forward()
+
+    l2_error_form = df.fem.form(ufl.inner(u - u_analytical, u - u_analytical) * dx)
+    l2_error_sq_local = df.fem.assemble_scalar(l2_error_form)
+    l2_error_sq_global = MPI.COMM_WORLD.allreduce(l2_error_sq_local, op=MPI.SUM)
+    l2_error_displacement = np.sqrt(l2_error_sq_global)
+
+    # Compute max nodal displacement error magnitude (global across MPI)
+    block_size = V.dofmap.index_map_bs
+    nodal_error = (u.x.array - u_analytical.x.array).reshape(-1, block_size)
+    max_displacement_error_nodes_local = np.max(np.linalg.norm(nodal_error, axis=1))
+    max_displacement_error_nodes = MPI.COMM_WORLD.allreduce(
+        max_displacement_error_nodes_local, op=MPI.MAX
+    )
+
+    # Evaluate displacement at the specified evaluation point
+    displacement_eval_point = np.array(
+        [[1.0, 1.0, 0.0]],
+        dtype=np.float64,
+    )
+    tree = df.geometry.bb_tree(mesh, mesh.topology.dim)
+    cell_candidates = df.geometry.compute_collisions_points(
+        tree, displacement_eval_point
+    )
+    colliding_cells = df.geometry.compute_colliding_cells(
+        mesh, cell_candidates, displacement_eval_point
+    )
+    local_displacement = None
+    if len(colliding_cells.links(0)) > 0:
+        cell = colliding_cells.links(0)[0]
+        # u.eval returns a 2D array: shape (num_points, value_size)
+        local_displacement = u.eval(
+            displacement_eval_point, np.array([cell], dtype=np.int32)
+        ).tolist()  # [ux, uy]
+
 
     def project(
         v: df.fem.Function | ufl.core.expr.Expr,
@@ -171,10 +228,10 @@ def run_fenics_simulation(
         return uh
 
     plot_space_stress = df.fem.functionspace(
-        mesh, ("DG", parameters["element-degree"] - 1, (2, 2))
+       mesh, ("DG", parameters["isoparametric_element_degree"] - 1, (2, 2))
     )
     plot_space_mises = df.fem.functionspace(
-        mesh, ("DG", parameters["element-degree"] - 1, (1,))
+        mesh, ("DG", parameters["isoparametric_element_degree"] - 1, (1,))
     )
     stress_nodes_red = project(sigma(u), plot_space_stress, dx)
     stress_nodes_red.name = "stress"
@@ -217,14 +274,13 @@ def run_fenics_simulation(
     ) as vtk:
         vtk.write_function(mises_stress_nodes, 0.0)
 
-    # extract maximum von Mises stress
-    max_mises_stress_nodes = np.max(mises_stress_nodes.x.array)
 
     # Compute von Mises stress at quadrature (Gauss) points and extract maximum (global across MPI)
     quad_element = basix.ufl.quadrature_element(
         mesh.topology.cell_name(),
         value_shape=(1,),
-        degree=parameters["quadrature-degree"],
+        scheme="default",
+        degree=estimate_total_polynomial_degree(u_),
     )
 
     Q_mises = df.fem.functionspace(mesh, quad_element)
@@ -234,10 +290,33 @@ def run_fenics_simulation(
     max_mises_stress_gauss_points = MPI.COMM_WORLD.allreduce(
         np.max(mises_qp.x.array), op=MPI.MAX
     )
+    
+    displacement_at_evaluation_point = None
+    if MPI.COMM_WORLD.rank == 0:
+        displacement_candidates = (
+            MPI.COMM_WORLD.gather(local_displacement, root=0) or []
+        )
+        for value in displacement_candidates:
+            if value is not None:
+                displacement_at_evaluation_point = value
+                break
+
+        if displacement_at_evaluation_point is None:
+            raise ValueError(
+                "Could not evaluate displacement at the configured evaluation point."
+            )
+    else:
+        MPI.COMM_WORLD.gather(local_displacement, root=0)
+
     # Save metrics
     metrics = {
-        "max_von_mises_stress_nodes": max_mises_stress_nodes,
-        "max_von_mises_stress_gauss_points": max_mises_stress_gauss_points,
+        "number_of_dofs[-]": num_dofs,
+        "max_von_mises_stress[Pa]": max_mises_stress_gauss_points,
+        "l2_error_displacement[m]": l2_error_displacement,
+        "max_displacement_error[m]": max_displacement_error_nodes,
+        "reaction_force_left_boundary_x[N]": reaction_left_x,
+        "reaction_force_left_boundary_y[N]": reaction_left_y,
+        "displacement_top_right_corner[m]": displacement_at_evaluation_point,  # [ux, uy]
     }
 
     if MPI.COMM_WORLD.rank == 0:
@@ -299,3 +378,5 @@ if __name__ == "__main__":
         args.output_solution_file_zip,
         args.output_metrics_file,
     )
+#python3 run_fenics_simulation.py --input_parameter_file parameters_1.json --input_mesh_file mesh_1.msh --output_solution_file_zip results/solution_field_data.zip --output_metrics_file results/solution_metrics.json
+#conda activate /home/dtyagi/NFDI4IngModelValidationPlatform/examples/linear-elastic-plate-with-hole/fenics/conda_envs/68782c9259a7e25569f1ab0241a766c5_

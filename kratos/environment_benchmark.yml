@@ -1,0 +1,9 @@
+name: kratos-model-validation
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - snakemake
+  - pip
+  - pip:
+      - "git+https://github.com/izus-fokus/snakemake-report-plugin-metadata4ing@v1.2.6#egg=snakemake-report-plugin-metadata4ing"
