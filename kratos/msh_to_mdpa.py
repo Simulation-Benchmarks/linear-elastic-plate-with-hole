@@ -13,7 +13,7 @@ def msh_to_mdpa(parameter_file: str, mesh_file: str, mdpa_file: str):
     - The element types are replaced with SmallDisplacementElement2D3N and SmallDisplacementElement2D6N
        since meshio only converts to Triangle2D3 and Triangle2D6 which only describe the geometry but
        not the finite elements.
-    - The Line2D entities are converted into line load conditions that can be used for Neumann boundary conditions.
+    - The Line2D elements are removed since they are not used in Kratos.
     - The gmsh:dim_tags are removed since they are not used in Kratos.
     - SubModelParts for the boundary conditions are created.
 
@@ -24,12 +24,12 @@ def msh_to_mdpa(parameter_file: str, mesh_file: str, mdpa_file: str):
     with open(parameter_file) as f:
         parameters = json.load(f)
     radius = (
-        ureg.Quantity(parameters["radius[m]"], "m")
+        ureg.Quantity(parameters["radius"]["value"], parameters["radius"]["unit"])
         .to_base_units()
         .magnitude
     )
     L = (
-        ureg.Quantity(parameters["length[m]"], "m")
+        ureg.Quantity(parameters["length"]["value"], parameters["length"]["unit"])
         .to_base_units()
         .magnitude
     )
@@ -44,40 +44,6 @@ def msh_to_mdpa(parameter_file: str, mesh_file: str, mdpa_file: str):
 
     meshio.write(mdpa_file, mesh)
 
-    boundary_condition_ids = {
-        "boundary_left": [],
-        "boundary_bottom": [],
-        "boundary_right": [],
-        "boundary_top": [],
-    }
-    conditions_2n = []
-    conditions_3n = []
-    condition_id = 1
-    tol = 1e-10 * max(1.0, L)
-
-    for cell_block in mesh.cells:
-        if cell_block.type not in ("line", "line3"):
-            continue
-        for conn in cell_block.data:
-            node_ids = (np.asarray(conn, dtype=int) + 1).tolist()
-            coords = mesh.points[np.asarray(conn, dtype=int), :2]
-
-            if np.all(np.isclose(coords[:, 0], x0, atol=tol)):
-                boundary_condition_ids["boundary_left"].append(condition_id)
-            elif np.all(np.isclose(coords[:, 1], y0, atol=tol)):
-                boundary_condition_ids["boundary_bottom"].append(condition_id)
-            elif np.all(np.isclose(coords[:, 0], x2, atol=tol)):
-                boundary_condition_ids["boundary_right"].append(condition_id)
-            elif np.all(np.isclose(coords[:, 1], y2, atol=tol)):
-                boundary_condition_ids["boundary_top"].append(condition_id)
-
-            if cell_block.type == "line":
-                conditions_2n.append((condition_id, node_ids))
-            else:
-                conditions_3n.append((condition_id, node_ids))
-
-            condition_id += 1
-
     with open(mdpa_file, "r") as f:
         # replace all occurences of Triangle with SmallStrainElement
         text = f.read()
@@ -85,11 +51,7 @@ def msh_to_mdpa(parameter_file: str, mesh_file: str, mdpa_file: str):
         text = text.replace("Triangle2D3", "SmallDisplacementElement2D3N")
         text = text.replace("Triangle2D6", "SmallDisplacementElement2D6N")
 
-        text = re.sub(
-            r"Begin\s+Elements\s+Line2D\d+[\s\S]*?End\s+Elements\n?",
-            "",
-            text,
-        )
+        text = re.sub(r"Begin\s+Elements\s+Line2D[\n\s\d]*End\s+Elements", "", text)
 
         mesh_tags = np.array(
             re.findall(
@@ -111,38 +73,41 @@ def msh_to_mdpa(parameter_file: str, mesh_file: str, mdpa_file: str):
             flags=re.DOTALL,
         )
 
-    if conditions_2n:
-        append = "\nBegin Conditions LineLoadCondition2D2N\n"
-        for cid, node_ids in conditions_2n:
-            append += f" {cid} 0  " + " ".join(map(str, node_ids)) + "\n"
-        append += "End Conditions\n"
-        text += append
+    append = "\nBegin SubModelPart boundary_left\n"
+    append += "    Begin SubModelPartNodes\n        "
+    nodes = np.argwhere(np.isclose(mesh.points[:, 0], x0)).flatten() + 1
+    append += "\n        ".join(map(str, nodes)) + "\n"
+    append += "    End SubModelPartNodes\n"
+    append += "End SubModelPart\n"
 
-    if conditions_3n:
-        append = "\nBegin Conditions LineLoadCondition2D3N\n"
-        for cid, node_ids in conditions_3n:
-            append += f" {cid} 0  " + " ".join(map(str, node_ids)) + "\n"
-        append += "End Conditions\n"
-        text += append
+    text += append
 
-    boundary_nodes = {
-        "boundary_left": np.argwhere(np.isclose(mesh.points[:, 0], x0, atol=tol)).flatten() + 1,
-        "boundary_bottom": np.argwhere(np.isclose(mesh.points[:, 1], y0, atol=tol)).flatten() + 1,
-        "boundary_right": np.argwhere(np.isclose(mesh.points[:, 0], x2, atol=tol)).flatten() + 1,
-        "boundary_top": np.argwhere(np.isclose(mesh.points[:, 1], y2, atol=tol)).flatten() + 1,
-    }
+    append = "\nBegin SubModelPart boundary_bottom\n"
+    append += "    Begin SubModelPartNodes\n        "
+    nodes = np.argwhere(np.isclose(mesh.points[:, 1], y0)).flatten() + 1
+    append += "\n        ".join(map(str, nodes)) + "\n"
+    append += "    End SubModelPartNodes\n"
+    append += "End SubModelPart\n"
 
-    for name in ("boundary_left", "boundary_bottom", "boundary_right", "boundary_top"):
-        append = f"\nBegin SubModelPart {name}\n"
-        append += "    Begin SubModelPartNodes\n        "
-        append += "\n        ".join(map(str, boundary_nodes[name])) + "\n"
-        append += "    End SubModelPartNodes\n"
-        append += "    Begin SubModelPartConditions\n"
-        for cid in boundary_condition_ids[name]:
-            append += f"        {cid}\n"
-        append += "    End SubModelPartConditions\n"
-        append += "End SubModelPart\n"
-        text += append
+    text += append
+
+    append = "\nBegin SubModelPart boundary_right\n"
+    append += "    Begin SubModelPartNodes\n        "
+    nodes = np.argwhere(np.isclose(mesh.points[:, 0], x2)).flatten() + 1
+    append += "\n        ".join(map(str, nodes)) + "\n"
+    append += "    End SubModelPartNodes\n"
+    append += "End SubModelPart\n"
+
+    text += append
+
+    append = "\nBegin SubModelPart boundary_top\n"
+    append += "    Begin SubModelPartNodes\n        "
+    nodes = np.argwhere(np.isclose(mesh.points[:, 1], y2)).flatten() + 1
+    append += "\n        ".join(map(str, nodes)) + "\n"
+    append += "    End SubModelPartNodes\n"
+    append += "End SubModelPart\n"
+
+    text += append
     with open(mdpa_file, "w") as f:
         f.write(text)
 
