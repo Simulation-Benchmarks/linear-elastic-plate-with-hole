@@ -20,6 +20,5 @@ dependencies:
   - pint
   - pip:
     - mkdocs-include-dir-to-nav
-    - -e .
 
 
