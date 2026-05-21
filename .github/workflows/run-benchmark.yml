@@ -1,4 +1,4 @@
-name: CI
+name: Examples-CI
 on:
   push:
 
@@ -14,11 +14,9 @@ on:
 
 env:
   CACHE_NUMBER: 1  # increase to reset cache manually
-  SNAKEMAKE_RESULT_FILE: metadata4ing_provenance
-  PROVENANACE_FILE_NAME: element_size_vs_max_mises_stress.pdf
 
 jobs:
-  run-simulation:
+  run-examples:
     runs-on: ubuntu-latest
     steps:
       - name: checkout repo content
@@ -28,133 +26,39 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
             miniforge-version: latest
-            activate-environment: model-validation 
             use-mamba: true
 
       - name: Set strict channel priority
         run: conda config --set channel_priority strict
         
-      - name: Update environment
-        run: mamba env update -n model-validation -f environment_benchmarks.yml
+      - name: Create fenics environment
+        run: mamba env create -n fenics-model-validation -f fenics/environment_benchmark.yml
 
-      - name: generate-config-files
+      - name: Run linear-elastic-plate-with-hole using fenics
         shell: bash -l {0}
         run: |
-          cd $GITHUB_WORKSPACE
-          python generate_config.py
+          cd $GITHUB_WORKSPACE/fenics/
+          conda run -n fenics-model-validation python run_benchmark.py
 
-      - name: run_linear-elastic-plate-with-hole-benchmarks_snakemake
+      - name: Create kratos environment
+        run: mamba env create -n kratos-model-validation -f kratos/environment_benchmark.yml
+
+      - name: Run linear-elastic-plate-with-hole using kratos
         shell: bash -l {0}
         run: |
-          cd $GITHUB_WORKSPACE
-          snakemake --use-conda --force --cores 'all'
-          snakemake --use-conda --force --cores all \
-            --reporter metadata4ing \
-            --report-metadata4ing-paramscript common/parameter_extractor.py \
-            --report-metadata4ing-config metadata4ing.config \
-            --report-metadata4ing-filename $SNAKEMAKE_RESULT_FILE
+          cd $GITHUB_WORKSPACE/kratos/
+          conda run -n kratos-model-validation python run_benchmark.py
 
-      - name: run_linear-elastic-plate-with-hole-benchmarks_nextflow
-        shell: bash -l {0}
-        run: |
-          cd $GITHUB_WORKSPACE
-          nextflow run main.nf -params-file workflow_config.json -c common/nextflow.config -plugins nf-prov@1.4.0
-
-      - name: Archive Linear Elastic plate with a hole benchmark data for snakemake
+      - name: Archive results of the fenics run of linear-elastic-plate-with-hole
         uses: actions/upload-artifact@v4
         with:
-            name: snakemake_results_linear-elastic-plate-with-hole
+            name: fenics_results_linear-elastic-plate-with-hole
             path: |
-              ${{ env.SNAKEMAKE_RESULT_FILE }}.zip
+              fenics/results/
 
-      - name: Archive Linear Elastic plate with a hole benchmark data for nextflow
+      - name: Archive results of the kratos run of linear-elastic-plate-with-hole
         uses: actions/upload-artifact@v4
         with:
-            name: nextflow_results_linear-elastic-plate-with-hole
+            name: kratos_results_linear-elastic-plate-with-hole
             path: |
-              nextflow_results/
-
-  process-artifacts:
-    runs-on: ubuntu-latest
-    needs: run-simulation
-    steps:
-      - name: Checkout repo content
-        uses: actions/checkout@v2
-
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: snakemake_results_linear-elastic-plate-with-hole
-          path: ./artifact_files
-
-      - name: Unzip Snakemake Result File
-        run: |
-          mkdir -p ./$SNAKEMAKE_RESULT_FILE
-          unzip -o ./artifact_files/$SNAKEMAKE_RESULT_FILE.zip -d ./$SNAKEMAKE_RESULT_FILE
-
-      - name: Setup Mambaforge with postprocessing env
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-            miniforge-version: latest
-            activate-environment: postprocessing 
-            use-mamba: true
-            environment-file: environment_postprocessing.yml
-      
-      - name: Validate Snakemake Result File
-        shell: bash -l {0}
-        run: |
-          python common/validate_provenance.py \
-            --provenance_folderpath "./$SNAKEMAKE_RESULT_FILE" 
-
-      - name: Run plotting script
-        shell: bash -l {0}
-        run: |
-          python plot_metrics.py \
-            --provenance_folderpath "./$SNAKEMAKE_RESULT_FILE" \
-            --output_file $PROVENANACE_FILE_NAME
-
-      - name: Upload snakemake results file as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: element-size-vs-stress-plot
-          path: ${{ env.PROVENANACE_FILE_NAME }}
-      
-      - name: Re-zip snakemake result folder
-        run: |
-          cd "./${SNAKEMAKE_RESULT_FILE}"
-          zip -r "../${SNAKEMAKE_RESULT_FILE}.zip" .
-
-      - name: Upload RoCrate Zip file onto RoHub
-        id: rohub_upload
-        shell: bash -l {0}
-        continue-on-error: true
-        run: |
-          LOG_FILE="${GITHUB_WORKSPACE}/rohub_upload_error.log"
-
-          # Run Python and capture stdout+stderr
-          OUTPUT="$(
-            python common/upload_provenance.py \
-              --provenance_folderpath "./${SNAKEMAKE_RESULT_FILE}.zip" \
-              --benchmark_name "linear-elastic-plate-with-hole" \
-              --username "${{ secrets.ROHUB_USERNAME }}" \
-              --password "${{ secrets.ROHUB_PASSWORD }}" \
-            2>&1
-          )"
-          PYTHON_EXIT_CODE=$?
-
-          # Standard convention: 0 = success, non-zero = failure
-          if [ "$PYTHON_EXIT_CODE" -eq 0 ]; then
-            echo "RoHub upload succeeded"
-            rm -f "$LOG_FILE" || true
-          else
-            echo "=== RoHub upload failed — writing log to $LOG_FILE ==="
-            printf '%s\n' "$OUTPUT" | tee "$LOG_FILE"
-          fi
-
-      - name: Upload RoHub error log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: rohub-upload-error-log
-          path: ${{ github.workspace }}/rohub_upload_error.log
-          if-no-files-found: ignore
+              kratos/results/

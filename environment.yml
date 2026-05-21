@@ -1,0 +1,25 @@
+name: model-validation-platform-docs
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.10
+  - mkdocs
+  - mkdocs-bibtex
+  - python-markdown-math
+  - mkdocs-jupyter
+  #- markdown-checklist
+  - pymdown-extensions
+  - sympy
+  - pyvista
+  - tqdm
+  - pip
+  - meshio
+  - fenics-dolfinx>=0.9.0
+  - libadios2=2.10.1
+  - matplotlib
+  - pint
+  - pip:
+    - mkdocs-include-dir-to-nav
+    - -e .
+
+
