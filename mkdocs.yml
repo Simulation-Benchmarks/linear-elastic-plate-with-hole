@@ -1,6 +1,6 @@
 site_name: Linear Elastic Plate with Hole Benchmark
 
-repo_url: https://github.com/BAMresearch/NFDI4IngModelValidationPlatform
+repo_url: https://github.com/Simulation-Benchmarks/linear-elastic-plate-with-hole
 edit_uri: blob/main/docs/
 
 theme:
