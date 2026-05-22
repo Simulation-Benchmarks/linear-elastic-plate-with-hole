@@ -53,25 +53,23 @@ tool_version = "10.3.1"
 for file in root_unzipped_benchmark_dir.glob("parameters_*.json"):
     with open(file, "r") as f:
         data = json.load(f)
-        if data.get("element_size[m]") >= 0.025:
 
-            # Create output directory for the configuration
-            output_dir = root_unzipped_benchmark_dir / "results" / data.get("configuration")
-            output_dir.mkdir(parents=True, exist_ok=True) 
+        # Create output directory for the configuration
+        output_dir = root_unzipped_benchmark_dir / "results" / data.get("configuration")
+        output_dir.mkdir(parents=True, exist_ok=True) 
             
-            # Copy the selected parameter file to the output directory with a standardised name
-            with open(output_dir / "parameters.json", "w") as outfile:
-                json.dump(data, outfile, indent=2)
+        # Copy the selected parameter file to the output directory with a standardised name
+        with open(output_dir / "parameters.json", "w") as outfile:
+            json.dump(data, outfile, indent=2)
 
-            # Copy files from benchmark_dir to output_dir, excluding non-matching parameter files.
-            for item in root_unzipped_benchmark_dir.iterdir():
-                if item.is_file():
-                    if item.name.startswith("parameters_") and item.suffix == ".json":
-                        continue
-                    else:
-                        shutil.copy(item, output_dir / item.name)
+        # Copy files from benchmark_dir to output_dir, excluding non-matching parameter files.
+        for item in root_unzipped_benchmark_dir.iterdir():
+            if item.is_file():
+                if item.name.startswith("parameters_") and item.suffix == ".json":
+                    continue
+                else:
+                    shutil.copy(item, output_dir / item.name)
                               
-            # Run the Snakemake workflow for the configuration
-            subprocess.run(["snakemake", "--snakefile", "Snakefile.smk", "--use-conda", "--force", "--cores", "all", "--conda-prefix", str(shared_env_dir)], check=True, cwd=output_dir)
-            print("Workflow executed successfully.")            
-        
+        # Run the Snakemake workflow for the configuration
+        subprocess.run(["snakemake", "--snakefile", "Snakefile.smk", "--use-conda", "--force", "--cores", "all", "--conda-prefix", str(shared_env_dir), "--configfile", str(file)], check=True, cwd=output_dir)
+        print("Workflow executed successfully.")            

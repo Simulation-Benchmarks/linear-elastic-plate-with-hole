@@ -8,7 +8,7 @@ rule all:
 rule create_mesh:    
     input:
         script = "create_mesh.py",
-        parameters = "parameters.json",
+        parameters = workflow.configfiles[0],
     output:
         mesh = "mesh.msh",
     conda: "environment_mesh.yml"
@@ -20,7 +20,7 @@ rule create_mesh:
 rule run_simulation:
     input: 
         script = "run_simulation.py",
-        parameters = "parameters.json",
+        parameters = workflow.configfiles[0],
         mesh = "mesh.msh",
     output:
         zip = "solution_field_data.zip",

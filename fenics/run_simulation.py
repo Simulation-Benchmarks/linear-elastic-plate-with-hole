@@ -26,7 +26,7 @@ def run_fenics_simulation(
 
     mesh, cell_tags, facet_tags = df.io.gmshio.read_from_msh(
         mesh_file,
-        comm=MPI.COMM_WORLD,
+        comm=MPI.COMM_SELF,
         gdim=2,
     )
 
@@ -149,10 +149,8 @@ def run_fenics_simulation(
     # Support reaction on the left boundary
     n = ufl.FacetNormal(mesh)
     traction = ufl.dot(sigma(u), n)
-    reaction_left_x_local = df.fem.assemble_scalar(df.fem.form(traction[0] * ds(1)))
-    reaction_left_y_local = df.fem.assemble_scalar(df.fem.form(traction[1] * ds(1)))
-    reaction_left_x = MPI.COMM_WORLD.allreduce(reaction_left_x_local, op=MPI.SUM)
-    reaction_left_y = MPI.COMM_WORLD.allreduce(reaction_left_y_local, op=MPI.SUM)
+    reaction_left_x = df.fem.assemble_scalar(df.fem.form(traction[0] * ds(1)))
+    reaction_left_y = df.fem.assemble_scalar(df.fem.form(traction[1] * ds(1)))
     num_dofs = V.dofmap.index_map.size_global * V.dofmap.index_map_bs
 
 
@@ -167,17 +165,13 @@ def run_fenics_simulation(
     u_analytical.x.scatter_forward()
 
     l2_error_form = df.fem.form(ufl.inner(u - u_analytical, u - u_analytical) * dx)
-    l2_error_sq_local = df.fem.assemble_scalar(l2_error_form)
-    l2_error_sq_global = MPI.COMM_WORLD.allreduce(l2_error_sq_local, op=MPI.SUM)
+    l2_error_sq_global = df.fem.assemble_scalar(l2_error_form)
     l2_error_displacement = np.sqrt(l2_error_sq_global)
 
     # Compute max nodal displacement error magnitude (global across MPI)
     block_size = V.dofmap.index_map_bs
     nodal_error = (u.x.array - u_analytical.x.array).reshape(-1, block_size)
-    max_displacement_error_nodes_local = np.max(np.linalg.norm(nodal_error, axis=1))
-    max_displacement_error_nodes = MPI.COMM_WORLD.allreduce(
-        max_displacement_error_nodes_local, op=MPI.MAX
-    )
+    max_displacement_error_nodes = np.max(np.linalg.norm(nodal_error, axis=1))
 
     # Evaluate displacement at the specified evaluation point
     displacement_eval_point = np.array(
@@ -191,13 +185,19 @@ def run_fenics_simulation(
     colliding_cells = df.geometry.compute_colliding_cells(
         mesh, cell_candidates, displacement_eval_point
     )
-    local_displacement = None
+    
+    displacement_at_evaluation_point = None
     if len(colliding_cells.links(0)) > 0:
         cell = colliding_cells.links(0)[0]
         # u.eval returns a 2D array: shape (num_points, value_size)
-        local_displacement = u.eval(
+        displacement_at_evaluation_point = u.eval(
             displacement_eval_point, np.array([cell], dtype=np.int32)
         ).tolist()  # [ux, uy]
+        
+    if displacement_at_evaluation_point is None:
+        raise ValueError(
+            "Could not evaluate displacement at the configured evaluation point."
+        )
 
 
     def project(
@@ -248,7 +248,7 @@ def run_fenics_simulation(
     # Write each function to its own VTK file on all ranks
     output_dir = Path(solution_file_zip).parent
     with df.io.VTKFile(
-        MPI.COMM_WORLD,
+        MPI.COMM_SELF,
         str(
             output_dir
             / f"solution_field_data_displacements_{parameters['configuration']}.vtk"
@@ -257,7 +257,7 @@ def run_fenics_simulation(
     ) as vtk:
         vtk.write_function(u, 0.0)
     with df.io.VTKFile(
-        MPI.COMM_WORLD,
+        MPI.COMM_SELF,
         str(
             output_dir / f"solution_field_data_stress_{parameters['configuration']}.vtk"
         ),
@@ -265,7 +265,7 @@ def run_fenics_simulation(
     ) as vtk:
         vtk.write_function(stress_nodes_red, 0.0)
     with df.io.VTKFile(
-        MPI.COMM_WORLD,
+        MPI.COMM_SELF,
         str(
             output_dir
             / f"solution_field_data_mises_stress_{parameters['configuration']}.vtk"
@@ -287,26 +287,7 @@ def run_fenics_simulation(
     mises_qp = df.fem.Function(Q_mises, name="von_mises_stress_qp")
     expr_qp = df.fem.Expression(mises_stress(u), Q_mises.element.interpolation_points())
     mises_qp.interpolate(expr_qp)
-    max_mises_stress_gauss_points = MPI.COMM_WORLD.allreduce(
-        np.max(mises_qp.x.array), op=MPI.MAX
-    )
-    
-    displacement_at_evaluation_point = None
-    if MPI.COMM_WORLD.rank == 0:
-        displacement_candidates = (
-            MPI.COMM_WORLD.gather(local_displacement, root=0) or []
-        )
-        for value in displacement_candidates:
-            if value is not None:
-                displacement_at_evaluation_point = value
-                break
-
-        if displacement_at_evaluation_point is None:
-            raise ValueError(
-                "Could not evaluate displacement at the configured evaluation point."
-            )
-    else:
-        MPI.COMM_WORLD.gather(local_displacement, root=0)
+    max_mises_stress_gauss_points = np.max(mises_qp.x.array)
 
     # Save metrics
     metrics = {
@@ -319,32 +300,31 @@ def run_fenics_simulation(
         "displacement_top_right_corner[m]": displacement_at_evaluation_point,  # [ux, uy]
     }
 
-    if MPI.COMM_WORLD.rank == 0:
-        with open(metrics_file, "w") as f:
-            json.dump(metrics, f, indent=4)
-        # store all .vtu, .pvtu and .vtk files for this configuration in the zip file
-        import zipfile
+    with open(metrics_file, "w") as f:
+        json.dump(metrics, f, indent=4)
+    # store all .vtu, .pvtu and .vtk files for this configuration in the zip file
+    import zipfile
 
-        config = parameters["configuration"]
-        file_patterns = [
-            str(output_dir / f"solution_field_data_displacements_{config}*"),
-            str(output_dir / f"solution_field_data_stress_{config}*"),
-            str(output_dir / f"solution_field_data_mises_stress_{config}*"),
-        ]
+    config = parameters["configuration"]
+    file_patterns = [
+        str(output_dir / f"solution_field_data_displacements_{config}*"),
+        str(output_dir / f"solution_field_data_stress_{config}*"),
+        str(output_dir / f"solution_field_data_mises_stress_{config}*"),
+    ]
 
-        files_to_store = []
-        for pattern in file_patterns:
-            files_to_store.extend(
-                filter(
-                    # filter for all file endings because this is not possible with glob
-                    lambda path: path.suffix in [".vtk", ".vtu", ".pvtu"],
-                    Path().glob(pattern),
-                )
+    files_to_store = []
+    for pattern in file_patterns:
+        files_to_store.extend(
+            filter(
+                # filter for all file endings because this is not possible with glob
+                lambda path: path.suffix in [".vtk", ".vtu", ".pvtu"],
+                Path().glob(pattern),
             )
-            # files_to_store.extend(Path().glob(pattern))
-        with zipfile.ZipFile(solution_file_zip, "w") as zipf:
-            for filepath in files_to_store:
-                zipf.write(filepath, arcname=filepath.name)
+        )
+        # files_to_store.extend(Path().glob(pattern))
+    with zipfile.ZipFile(solution_file_zip, "w") as zipf:
+        for filepath in files_to_store:
+            zipf.write(filepath, arcname=filepath.name)
 
 
 if __name__ == "__main__":
@@ -378,5 +358,3 @@ if __name__ == "__main__":
         args.output_solution_file_zip,
         args.output_metrics_file,
     )
-#python3 run_fenics_simulation.py --input_parameter_file parameters_1.json --input_mesh_file mesh_1.msh --output_solution_file_zip results/solution_field_data.zip --output_metrics_file results/solution_metrics.json
-#conda activate /home/dtyagi/NFDI4IngModelValidationPlatform/examples/linear-elastic-plate-with-hole/fenics/conda_envs/68782c9259a7e25569f1ab0241a766c5_

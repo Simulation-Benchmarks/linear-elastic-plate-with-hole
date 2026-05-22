@@ -53,33 +53,33 @@ tool_version = "0.9.0"
 for file in root_unzipped_benchmark_dir.glob("parameters_*.json"):
     with open(file, "r") as f:
         data = json.load(f)
-        if data.get("element_size[m]") >= 0.025:
 
-            # Create output directory for the configuration
-            output_dir = root_unzipped_benchmark_dir / "results" / data.get("configuration")
-            output_dir.mkdir(parents=True, exist_ok=True) 
-            
-            # Copy the selected parameter file to the output directory with a standardised name
-            with open(output_dir / "parameters.json", "w") as outfile:
-                json.dump(data, outfile, indent=2)
 
-            # Copy files from benchmark_dir to output_dir, excluding non-matching parameter files.
-            for item in root_unzipped_benchmark_dir.iterdir():
-                if item.is_file():
-                    if item.name.startswith("parameters_") and item.suffix == ".json":
-                        continue
-                    else:
-                        shutil.copy(item, output_dir / item.name)
-                            
-            # Run the Snakemake workflow for the configuration
-            subprocess.run(["snakemake", "--use-conda", "--force", "--cores", "all", "--conda-prefix", str(shared_env_dir)], check=True, cwd=output_dir)
-            print("Workflow executed successfully.")
+        # Create output directory for the configuration
+        output_dir = root_unzipped_benchmark_dir / "results" / data.get("configuration")
+        output_dir.mkdir(parents=True, exist_ok=True) 
             
-            # For the scenario where the snakemake workflow doesn't exist, one can directly run the simulation script using the subprocess module, e.g.:
-            #subprocess.run(["python", "run_fenics_simulation.py" \
-                            #"--input_parameter_file" "parameters.json" \
-                            #"--input_mesh_file" "mesh.msh" \
-                            #"--output_solution_file_zip" "solution_field_data.zip" \
-                            #"--output_metrics_file" "solution_metrics.json"], check=True, cwd=output_dir)
+        # Copy the selected parameter file to the output directory with a standardised name
+        with open(output_dir / "parameters.json", "w") as outfile:
+            json.dump(data, outfile, indent=2)
+
+        # Copy files from benchmark_dir to output_dir, excluding non-matching parameter files.
+        for item in root_unzipped_benchmark_dir.iterdir():
+            if item.is_file():
+                if item.name.startswith("parameters_") and item.suffix == ".json":
+                    continue
+                else:
+                    shutil.copy(item, output_dir / item.name)
                             
-            #Assuming the mesh.msh and parameters.json files are present/copied to the output_dir.
+        # Run the Snakemake workflow for the configuration
+        subprocess.run(["snakemake", "--use-conda", "--force", "--cores", "all", "--conda-prefix", str(shared_env_dir), "--configfile", str(file)], check=True, cwd=output_dir)
+        print("Workflow executed successfully.")
+            
+        # For the scenario where the snakemake workflow doesn't exist, one can directly run the simulation script using the subprocess module, e.g.:
+        #subprocess.run(["python", "run_fenics_simulation.py" \
+                        #"--input_parameter_file" str(file) \
+                        #"--input_mesh_file" "mesh.msh" \
+                        #"--output_solution_file_zip" "solution_field_data.zip" \
+                        #"--output_metrics_file" "solution_metrics.json"], check=True, cwd=output_dir)
+                        
+        #Assuming the mesh.msh and parameters.json files are present/copied to the output_dir.

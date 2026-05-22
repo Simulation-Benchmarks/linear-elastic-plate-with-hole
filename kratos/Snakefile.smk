@@ -12,7 +12,7 @@ rule all:
 rule create_mesh:    
     input:
         script = "create_mesh.py",
-        parameters = "parameters.json",
+        parameters = workflow.configfiles[0],
     output:
         mesh = "mesh.msh",
     conda: "environment_mesh.yml"
@@ -23,7 +23,7 @@ rule create_mesh:
 
 rule mesh_to_mdpa:
     input:
-        parameters = "parameters.json",
+        parameters = workflow.configfiles[0],
         mesh = "mesh.msh",
         script = "msh_to_mdpa.py",
     output:
@@ -40,7 +40,7 @@ rule mesh_to_mdpa:
 
 rule create_kratos_input_and_run_simulation:
     input:
-        parameters = "parameters.json",
+        parameters = workflow.configfiles[0],
         mdpa = "mesh.mdpa",
         kratos_input_template = kratos_input_template,
         kratos_material_template = kratos_material_template,
@@ -70,7 +70,7 @@ rule create_kratos_input_and_run_simulation:
 
 rule postprocess_kratos_results:
     input:
-        parameters = "parameters.json",
+        parameters = workflow.configfiles[0],
         result_vtk = "vtk/Structure_0_1.vtk",
         script = "postprocess_results.py",
     output:
