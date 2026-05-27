@@ -44,6 +44,22 @@ tool_name = "kratos"
 tool_uri =  "https://github.com/KratosMultiphysics/Kratos"
 tool_version = "10.3.1"
 
+
+def archive_snakemake_metadata(output_dir: Path) -> None:
+    """Zip the Snakemake working metadata, excluding generated conda environments."""
+    snakemake_dir = output_dir / ".snakemake"
+    if not snakemake_dir.exists():
+        return
+
+    archive_path = output_dir / "snakemake_metadata.zip"
+    with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for path in snakemake_dir.rglob("*"):
+            relative_path = path.relative_to(output_dir)
+            if "conda" in relative_path.parts:
+                continue
+            if path.is_file():
+                archive.write(path, arcname=relative_path)
+
 ####################################################################################################
 ####################################################################################################
 # Conditional execution of parameter configurations 
@@ -96,10 +112,12 @@ for file in root_unzipped_benchmark_dir.glob("parameters_*.json"):
             cwd=output_dir,
         )
         
-        # Second run: with provenance reporter
-        subprocess.run(
-            base_cmd + reporter_args,
-            check=True,
-            cwd=output_dir,
-        )
+        # # Second run: with provenance reporter
+        # subprocess.run(
+        #     base_cmd + reporter_args,
+        #     check=True,
+        #     cwd=output_dir,
+        # )
+
+        archive_snakemake_metadata(output_dir)
         print("Workflow executed successfully.")
