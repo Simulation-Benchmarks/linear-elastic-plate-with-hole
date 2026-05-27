@@ -59,3 +59,17 @@ jobs:
             name: kratos_results_linear-elastic-plate-with-hole
             path: |
               kratos/results/
+      
+      - name: Archive provenance zip artifacts of the Fenics run
+        uses: actions/upload-artifact@v4
+        with:
+          name: fenics_provenance_linear-elastic-plate-with-hole
+          path: |
+            fenics/results/**/Fenics-*.zip
+      
+      - name: Archive provenance zip artifacts of the Kratos run
+        uses: actions/upload-artifact@v4
+        with:
+          name: kratos_provenance_linear-elastic-plate-with-hole
+          path: |
+            kratos/results/**/Kratos-*.zip 
