@@ -112,12 +112,12 @@ for file in root_unzipped_benchmark_dir.glob("parameters_*.json"):
             cwd=output_dir,
         )
         
-        # # Second run: with provenance reporter
-        # subprocess.run(
-        #     base_cmd + reporter_args,
-        #     check=True,
-        #     cwd=output_dir,
-        # )
+        # Second run: with provenance reporter
+        subprocess.run(
+            base_cmd + reporter_args,
+            check=True,
+            cwd=output_dir,
+        )
 
         archive_snakemake_metadata(output_dir)
         print("Workflow executed successfully.")

@@ -6,4 +6,4 @@ dependencies:
   - snakemake
   - pip
   - pip:
-      - "git+https://github.com/izus-fokus/snakemake-report-plugin-metadata4ing@v2.0.1#egg=snakemake-report-plugin-metadata4ing"
+      - "git+https://github.com/izus-fokus/snakemake-report-plugin-metadata4ing@v2.0.2#egg=snakemake-report-plugin-metadata4ing"
