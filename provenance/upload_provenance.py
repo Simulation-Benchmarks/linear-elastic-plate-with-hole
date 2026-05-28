@@ -56,6 +56,12 @@ def parse_args():
         required=True,
         help="Password for RoHub",
     )
+    parser.add_argument(
+        "--rocrate-title",
+        type=str,
+        required=True,
+        help="Title of the RO-Crate to be uploaded",
+    )
     return parser.parse_args()
 
 
