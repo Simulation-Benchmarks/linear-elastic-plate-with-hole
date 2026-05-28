@@ -76,21 +76,33 @@ jobs:
     runs-on: ubuntu-latest
     needs: run-examples
 
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - tool_id: fenics
+            software_name: Fenics
+            results_artifact: fenics_results_linear-elastic-plate-with-hole
+            rocrate_filename: Fenics-RoCrate.zip
+            plot_filename: fenics-element-size-vs-stress-plot.pdf
+            rocrate_title: "NFDI4Ing Provenance (Fenics)"
+
+          - tool_id: kratos
+            software_name: Kratos
+            results_artifact: kratos_results_linear-elastic-plate-with-hole
+            rocrate_filename: Kratos-RoCrate.zip
+            plot_filename: kratos-element-size-vs-stress-plot.pdf
+            rocrate_title: "NFDI4Ing Provenance (Kratos)"
+
     steps:
       - name: Checkout repo content
         uses: actions/checkout@v2
 
-      - name: Download Fenics results artifact
+      - name: Download ${{ matrix.software_name }} results artifact
         uses: actions/download-artifact@v4
         with:
-          name: fenics_results_linear-elastic-plate-with-hole
-          path: ./simulation-results/fenics
-
-      - name: Download Kratos results artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: kratos_results_linear-elastic-plate-with-hole
-          path: ./simulation-results/kratos
+          name: ${{ matrix.results_artifact }}
+          path: ./simulation-results/${{ matrix.tool_id }}
 
       - name: Setup Mambaforge with provenance env
         uses: conda-incubator/setup-miniconda@v3
@@ -100,49 +112,50 @@ jobs:
           use-mamba: true
           environment-file: provenance/environment_provenance.yml
 
-      - name: Create Fenics aggregate RO-Crate
+      - name: Create ${{ matrix.software_name }} aggregate RO-Crate
         shell: bash -l {0}
         run: |
           python provenance/create_rocrate.py \
             --benchmark-file "${EXAMPLE_BENCHMARK_FILE}" \
-            --simulation-result-path "./simulation-results/fenics" \
-            --rocrate-filename "Fenics-RoCrate.zip" \
-            --software-name "Fenics"
+            --simulation-result-path "./simulation-results/${{ matrix.tool_id }}" \
+            --rocrate-filename "${{ matrix.rocrate_filename }}" \
+            --software-name "${{ matrix.software_name }}" \
+            --rocrate-title "${{ matrix.rocrate_title }}"
 
-      - name: Unzip Fenics RO-Crate
+      - name: Unzip ${{ matrix.software_name }} RO-Crate
         run: |
-          mkdir -p "./processed/fenics"
-          unzip -o "Fenics-RoCrate.zip" -d "./processed/fenics"
+          mkdir -p "./processed/${{ matrix.tool_id }}"
+          unzip -o "${{ matrix.rocrate_filename }}" -d "./processed/${{ matrix.tool_id }}"
 
-      - name: Run Fenics plotting script
+      - name: Run ${{ matrix.software_name }} plotting script
         shell: bash -l {0}
         run: |
           python provenance/plot_metrics.py \
-            --provenance_folderpath "./processed/fenics" \
-            --output_file "fenics-element-size-vs-stress-plot.pdf"
+            --provenance_folderpath "./processed/${{ matrix.tool_id }}" \
+            --output_file "${{ matrix.plot_filename }}"
 
-      - name: Upload Fenics plot artifact
+      - name: Upload ${{ matrix.software_name }} plot artifact
         uses: actions/upload-artifact@v4
         with:
-          name: fenics-element-size-vs-stress-plot
-          path: fenics-element-size-vs-stress-plot.pdf
+          name: ${{ matrix.tool_id }}-element-size-vs-stress-plot
+          path: ${{ matrix.plot_filename }}
 
-      - name: Upload Fenics aggregate RO-Crate artifact
+      - name: Upload ${{ matrix.software_name }} aggregate RO-Crate artifact
         uses: actions/upload-artifact@v4
         with:
-          name: fenics-aggregate-rocrate
-          path: Fenics-RoCrate.zip
+          name: ${{ matrix.tool_id }}-aggregate-rocrate
+          path: ${{ matrix.rocrate_filename }}
 
-      - name: Upload Fenics RO-Crate Zip file onto RoHub
-        id: rohub_upload_fenics
+      - name: Upload ${{ matrix.software_name }} RO-Crate Zip file onto RoHub
+        id: rohub_upload
         shell: bash -l {0}
         continue-on-error: true
         run: |
-          LOG_FILE="${GITHUB_WORKSPACE}/rohub_upload_fenics_error.log"
+          LOG_FILE="${GITHUB_WORKSPACE}/rohub_upload_${{ matrix.tool_id }}_error.log"
 
           OUTPUT="$(
             python provenance/upload_provenance.py \
-              --provenance_folderpath "./Fenics-RoCrate.zip" \
+              --provenance_folderpath "./${{ matrix.rocrate_filename }}" \
               --benchmark_name "linear-elastic-plate-with-hole" \
               --username "${{ secrets.ROHUB_USERNAME }}" \
               --password "${{ secrets.ROHUB_PASSWORD }}" \
@@ -159,77 +172,10 @@ jobs:
             printf '%s\n' "$OUTPUT" | tee "$LOG_FILE"
           fi
 
-      - name: Upload Fenics RoHub error log
+      - name: Upload ${{ matrix.software_name }} RoHub error log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: fenics-rohub-upload-error-log
-          path: ${{ github.workspace }}/rohub_upload_fenics_error.log
-          if-no-files-found: ignore
-
-      - name: Create Kratos aggregate RO-Crate
-        shell: bash -l {0}
-        run: |
-          python provenance/create_rocrate.py \
-            --benchmark-file "${EXAMPLE_BENCHMARK_FILE}" \
-            --simulation-result-path "./simulation-results/kratos" \
-            --rocrate-filename "Kratos-RoCrate.zip" \
-            --software-name "Kratos"
-
-      - name: Unzip Kratos RO-Crate
-        run: |
-          mkdir -p "./processed/kratos"
-          unzip -o "Kratos-RoCrate.zip" -d "./processed/kratos"
-
-      - name: Run Kratos plotting script
-        shell: bash -l {0}
-        run: |
-          python provenance/plot_metrics.py \
-            --provenance_folderpath "./processed/kratos" \
-            --output_file "kratos-element-size-vs-stress-plot.pdf"
-
-      - name: Upload Kratos plot artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: kratos-element-size-vs-stress-plot
-          path: kratos-element-size-vs-stress-plot.pdf
-
-      - name: Upload Kratos aggregate RO-Crate artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: kratos-aggregate-rocrate
-          path: Kratos-RoCrate.zip
-
-      - name: Upload Kratos RO-Crate Zip file onto RoHub
-        id: rohub_upload_kratos
-        shell: bash -l {0}
-        continue-on-error: true
-        run: |
-          LOG_FILE="${GITHUB_WORKSPACE}/rohub_upload_kratos_error.log"
-
-          OUTPUT="$(
-            python provenance/upload_provenance.py \
-              --provenance_folderpath "./Kratos-RoCrate.zip" \
-              --benchmark_name "linear-elastic-plate-with-hole" \
-              --username "${{ secrets.ROHUB_USERNAME }}" \
-              --password "${{ secrets.ROHUB_PASSWORD }}" \
-            2>&1
-          )"
-
-          PYTHON_EXIT_CODE=$?
-
-          if [ "$PYTHON_EXIT_CODE" -eq 0 ]; then
-            echo "RoHub upload succeeded"
-            rm -f "$LOG_FILE" || true
-          else
-            echo "=== RoHub upload failed, writing log to $LOG_FILE ==="
-            printf '%s\n' "$OUTPUT" | tee "$LOG_FILE"
-          fi
-
-      - name: Upload Kratos RoHub error log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: kratos-rohub-upload-error-log
-          path: ${{ github.workspace }}/rohub_upload_kratos_error.log
+          name: ${{ matrix.tool_id }}-rohub-upload-error-log
+          path: ${{ github.workspace }}/rohub_upload_${{ matrix.tool_id }}_error.log
           if-no-files-found: ignore

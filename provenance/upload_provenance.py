@@ -102,8 +102,6 @@ def run(args):
     USE_DEVELOPMENT_VERSION = True
     
     if USE_DEVELOPMENT_VERSION:
-        # Development server configuration
-        
         rohub.settings.API_URL = "https://rohub2020-devel.apps.bst2.paas.psnc.pl/api/"
         rohub.settings.KEYCLOAK_CLIENT_ID = "rohub2020-cli"
         rohub.settings.KEYCLOAK_CLIENT_SECRET = "714617a7-87bc-4a88-8682-5f9c2f60337d"
@@ -121,7 +119,8 @@ def run(args):
     # Delete all existing research objects to ensure clean upload
     try:
         for _, row in my_ros.iterrows():
-            rohub.ros_delete(row["identifier"])
+            if row["title"].strip().lower() == args.rocrate_title.strip().lower():
+                rohub.ros_delete(row["identifier"])
     except Exception as error:
         print(f"Error on Deleting RoHub: {error}")
 
