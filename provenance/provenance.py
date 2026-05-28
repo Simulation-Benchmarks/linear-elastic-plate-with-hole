@@ -1,9 +1,11 @@
 import os
-from rdflib import Graph
-import matplotlib.pyplot as plt
-from typing import List, Tuple
 import re
-from rocrate_validator import services, models
+from collections import defaultdict
+from typing import List, Tuple
+
+import matplotlib.pyplot as plt
+from rdflib import Graph
+from rocrate_validator import models, services
 
 
 class ProvenanceAnalyzer:
@@ -18,6 +20,10 @@ class ProvenanceAnalyzer:
         provenance_folderpath (str): The directory path containing the RO-Crate folder.
         provenance_filename (str): The name of the provenance file (default: 'ro-crate-metadata.json').
     """
+
+    SCHEMA_PREFIX = "PREFIX schema: <http://schema.org/>"
+    FORMAL_PARAMETER_TYPE = "<https://bioschemas.org/FormalParameter>"
+    FOAF_NAME = "<http://xmlns.com/foaf/0.1/name>"
 
     def __init__(
         self,
@@ -36,6 +42,9 @@ class ProvenanceAnalyzer:
         self.provenance_folderpath = provenance_folderpath
         self.provenance_filename = provenance_filename
 
+    def _metadata_path(self) -> str:
+        return os.path.join(self.provenance_folderpath, self.provenance_filename)
+
     def load_graph_from_file(self) -> Graph:
         """
         Loads the RO-Crate metadata file into an rdflib Graph object.
@@ -47,16 +56,12 @@ class ProvenanceAnalyzer:
             Exception: If the file cannot be parsed as JSON-LD.
         """
         try:
-            g = Graph()
-            # The parse method handles file loading and format parsing
-            g.parse(
-                os.path.join(self.provenance_folderpath, self.provenance_filename),
-                format="json-ld",
-            )
-            return g
+            graph = Graph()
+            graph.parse(self._metadata_path(), format="json-ld")
+            return graph
         except Exception as e:
             print(f"Failed to parse {self.provenance_filename}: {e}")
-            raise  # Re-raise to ensure error is handled
+            raise
 
     def sanitize_variable_name(self, name: str) -> str:
         """
@@ -71,25 +76,156 @@ class ProvenanceAnalyzer:
         Returns:
             str: A sanitized variable name safe for use in SPARQL queries.
         """
-        # Replace invalid chars with underscore
         var = re.sub(r"[^a-zA-Z0-9_]", "_", name)
-        # Ensure it doesn't start with a digit
         if re.match(r"^\d", var):
             var = "_" + var
-        return var
+        return var or "_"
 
     def _sparql_string_literal(self, value: str) -> str:
         """
         Escape a Python string for safe use as a SPARQL string literal.
         """
-        return value.replace("\\", "\\\\").replace('"', '\\"')
+        return (
+            value.replace("\\", "\\\\")
+            .replace('"', '\\"')
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+        )
+
+    def _variable_map(self, names):
+        return {name: self.sanitize_variable_name(name) for name in names}
+
+    def _select_variables(self, names, var_map):
+        return " ".join(f"?{var_map[name]}" for name in names)
+
+    def _create_action_links(self, include_tool=False):
+        links = [
+            "?runAction a schema:CreateAction .",
+            "?runAction schema:object ?configuration .",
+            "?configuration a schema:PropertyValue .",
+        ]
+
+        if include_tool:
+            links.extend(
+                [
+                    "?software a schema:SoftwareApplication .",
+                    f"?software {self.FOAF_NAME} ?tool_name .",
+                ]
+            )
+
+        return links
+
+    def _node_type(self, node_prefix):
+        if node_prefix == "param":
+            return self.FORMAL_PARAMETER_TYPE
+        return "schema:PropertyValue"
+
+    def _value_block(self, parent, relation, node_prefix, name, var_map, name_predicate):
+        safe_name = var_map[name]
+        escaped_name = self._sparql_string_literal(name)
+
+        return f"""
+        {parent} {relation} ?{node_prefix}_{safe_name} .
+        ?{node_prefix}_{safe_name} a {self._node_type(node_prefix)} ;
+            {name_predicate} "{escaped_name}" ;
+            schema:defaultValue ?{safe_name} .
+        """.strip()
+
+    def _parameter_block(self, name, var_map, name_predicate="schema:name"):
+        return self._value_block(
+            "?configuration",
+            "schema:exampleOfWork",
+            "param",
+            name,
+            var_map,
+            name_predicate,
+        )
+
+    def _metric_block(self, name, var_map, name_predicate="schema:name"):
+        return self._value_block(
+            "?runAction",
+            "schema:result",
+            "metric",
+            name,
+            var_map,
+            name_predicate,
+        )
+
+    def _join_blocks(self, *blocks):
+        return "\n".join(block for block in blocks if block)
+
+    def _where_block(self, inner_query, named_graph=None):
+        if not named_graph:
+            return inner_query
+        return f"GRAPH <{named_graph}> {{\n{inner_query}\n}}"
+
+    def _named_graph_values_block(self, named_graphs, inner_query):
+        if not named_graphs:
+            return inner_query
+
+        values_block = "VALUES ?graph {\n" + "\n".join(
+            f"    <{graph}>" for graph in named_graphs
+        ) + "\n}"
+
+        return f"""
+        {values_block}
+
+        GRAPH ?graph {{
+            {inner_query}
+        }}
+        """.strip()
+
+    def _order_clause(self, order_name, var_map):
+        if not order_name:
+            return ""
+
+        order_var = var_map.get(order_name, self.sanitize_variable_name(order_name))
+        return f"\nORDER BY ?{order_var}"
+
+    def _format_query(self, select_vars, where_block, order_clause=""):
+        return f"""
+        {self.SCHEMA_PREFIX}
+
+        SELECT {select_vars}
+        WHERE {{
+            {where_block}
+        }}
+        {order_clause}
+        """.strip()
+
+    def _collect_xy_values(self, data, x_axis_index, y_axis_index):
+        values = []
+        x_tick_set = set()
+
+        for row in data:
+            x = float(row[x_axis_index])
+            y = float(row[y_axis_index])
+            values.append((x, y))
+            x_tick_set.add(x)
+
+        return sorted(values), sorted(x_tick_set)
+
+    def _finish_plot(self, x_axis_label, y_axis_label, title, x_ticks, output_file):
+        plt.xlabel(x_axis_label)
+        plt.ylabel(y_axis_label)
+        plt.title(title)
+        plt.grid(True)
+        plt.xscale("log")
+        plt.xticks(ticks=x_ticks, labels=[str(x) for x in x_ticks], rotation=45)
+        plt.tight_layout()
+
+        if output_file:
+            plt.savefig(output_file)
+            print(f"Plot saved to: {output_file}")
+        else:
+            plt.show()
 
     def build_dynamic_rocrate_query(
         self,
         parameters,
         metrics,
         named_graph=None,
-        order_by=None
+        order_by=None,
     ):
         """
         Generate a dynamic SPARQL query for the schema.org CreateAction structure
@@ -113,181 +249,62 @@ class ProvenanceAnalyzer:
         """
 
         all_names = parameters + metrics
-        var_map = {name: self.sanitize_variable_name(name) for name in all_names}
+        var_map = self._variable_map(all_names)
+        select_vars = self._select_variables(all_names, var_map)
 
-        select_names = list(all_names)
-        select_vars = " ".join(f"?{var_map[name]}" for name in select_names)
-
-        action_links = [
-            "?runAction a schema:CreateAction .",
-            "?runAction schema:object ?configuration .",
-            "?configuration a schema:PropertyValue .",
-        ]
-
-        parameter_blocks = []
-        for name in parameters:
-            safe_name = var_map[name]
-            escaped_name = self._sparql_string_literal(name)
-            parameter_blocks.append(
-                f"""
-                ?configuration schema:exampleOfWork ?param_{safe_name} .
-                ?param_{safe_name} a <https://bioschemas.org/FormalParameter> ;
-                    schema:name "{escaped_name}" ;
-                    schema:defaultValue ?{safe_name} .
-                """.strip()
-            )
-
-        metric_blocks = []
-        for name in metrics:
-            safe_name = var_map[name]
-            escaped_name = self._sparql_string_literal(name)
-            metric_blocks.append(
-                f"""
-                ?runAction schema:result ?metric_{safe_name} .
-                ?metric_{safe_name} a schema:PropertyValue ;
-                    schema:name "{escaped_name}" ;
-                    schema:defaultValue ?{safe_name} .
-                """.strip()
-            )
-
-        inner_query = "\n".join(
-            block
-            for block in (
-                "\n".join(action_links),
-                "\n".join(parameter_blocks),
-                "\n".join(metric_blocks)
-            )
-            if block
-        )
-
-        where_block = (
-            f"GRAPH <{named_graph}> {{\n{inner_query}\n}}"
-            if named_graph
-            else inner_query
+        inner_query = self._join_blocks(
+            "\n".join(self._create_action_links()),
+            "\n".join(self._parameter_block(name, var_map) for name in parameters),
+            "\n".join(self._metric_block(name, var_map) for name in metrics),
         )
 
         order_name = order_by or (parameters[0] if parameters else None)
-        order_clause = ""
-        if order_name:
-            order_var = var_map.get(order_name, self.sanitize_variable_name(order_name))
-            order_clause = f"\n        ORDER BY ?{order_var}"
+        return self._format_query(
+            select_vars,
+            self._where_block(inner_query, named_graph),
+            self._order_clause(order_name, var_map),
+        )
 
-        query = f"""
-        PREFIX schema: <http://schema.org/>
-
-        SELECT {select_vars}
-        WHERE {{
-            {where_block}
-        }}{order_clause}
-        """.strip()
-
-        return query
-
-    def build_dynamic_query(
+    def build_dynamic_rohub_query(
         self,
         parameters,
         metrics,
-        tools=None,
-        named_graph=None,
-        query_structure="legacy",
-        order_by=None,
-    ):
+        named_graphs):
         """
-        Generate a dynamic SPARQL query to extract m4i:Method instances with specified
-        parameters and metrics.
+        Generate a dynamic SPARQL query for schema.org CreateAction structure
+        across multiple named graphs using VALUES ?graph.
 
-        The query extracts methods along with their associated parameters (via m4i:hasParameter),
-        metrics (via m4i:investigates).
-
-        Args:
-            parameters (list): List of parameter names to query (matched via rdfs:label).
-            metrics (list): List of metric names to query (matched via rdfs:label).
-            tools (list, optional): List of tool name substrings to filter results.
-                                   Case-insensitive matching. Defaults to None.
-            named_graph (str, optional): URI of a named graph to query within.
-                                        If None, queries the default graph. Defaults to None.
-            query_structure (str, optional): Query structure to generate. Use
-                                            "legacy" for the existing m4i query or
-                                            "rocrate" for the schema.org
-                                            CreateAction query.
-            order_by (str, optional): Parameter or metric name to order by when
-                                     query_structure is "rocrate".
-
-        Returns:
-            str: A complete SPARQL query string ready to execute.
+        Also extracts:
+            ?tool_name
+        from:
+            ?software a schema:SoftwareApplication ;
+                      foaf:name ?tool_name .
         """
-
-        if query_structure in {"rocrate", "create_action", "schema"}:
-            return self.build_dynamic_rocrate_query(
-                parameters=parameters,
-                metrics=metrics,
-                named_graph=named_graph,
-                order_by=order_by,
-                include_tool=bool(tools),
-            )
 
         all_names = parameters + metrics
-        # Map original names to safe SPARQL variable names
-        var_map = {name: self.sanitize_variable_name(name) for name in all_names}
-
-        # Build SELECT variables
-        select_vars = " ".join(f"?{var_map[name]}" for name in all_names)
-
-        # Build method→parameter and method→metric links
-        method_links = (
-            "\n    ".join(
-                f"?method m4i:hasParameter ?param_{var_map[p]} ." for p in parameters
-            )
-            + "\n"
-            + "\n    ".join(
-                f"?method m4i:investigates ?param_{var_map[m]} ." for m in metrics
-            )
+        var_map = self._variable_map(all_names)
+        select_vars_str = " ".join(
+            ["?tool_name", self._select_variables(all_names, var_map)]
         )
 
-        # Build parameter and metric blocks
-        value_blocks = "\n".join(
-            f'?param_{var_map[name]} a schema:PropertyValue ;\n rdfs:label "{name}" ;\n schema:value ?{var_map[name]} .\n'
-            for name in all_names
+        inner_query = self._join_blocks(
+            "\n".join(self._create_action_links(include_tool=True)),
+            "\n".join(
+                self._parameter_block(name, var_map, self.FOAF_NAME)
+                for name in parameters
+            ),
+            "\n".join(
+                self._metric_block(name, var_map, self.FOAF_NAME)
+                for name in metrics
+            ),
         )
 
-        # Tool block with optional filter
-        tool_predicate = "ssn:implementedBy" if named_graph else "m4i:implementedByTool"
-        tool_block = f"?method {tool_predicate} ?tool .\n?tool a schema:SoftwareApplication ;\n rdfs:label ?tool_name .\n"
-        if tools:
-            filter_cond = " || ".join(
-                f'CONTAINS(LCASE(?tool_name), "{t.lower()}")' for t in tools
-            )
-            tool_block += f"\nFILTER({filter_cond}) .\n"
-
-        # Build the inner query
-        inner_query = f"""
-        ?method a m4i:Method .
-        {method_links}
-        {value_blocks}
-        {tool_block}
-        """.strip()
-
-        # Wrap in GRAPH if named_graph is provided
-        where_block = (
-            f"GRAPH <{named_graph}> {{\n{inner_query}\n}}"
-            if named_graph
-            else inner_query
+        order_name = parameters[0] if parameters else None
+        return self._format_query(
+            select_vars_str,
+            self._named_graph_values_block(named_graphs, inner_query),
+            self._order_clause(order_name, var_map),
         )
-
-        # Final query
-        query = f"""
-        PREFIX schema: <http://schema.org/>
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        PREFIX m4i: <http://w3id.org/nfdi4ing/metadata4ing#>
-        PREFIX ssn: <http://www.w3.org/ns/ssn/>
-        
-        SELECT {select_vars} ?tool_name
-        WHERE {{
-            {where_block}
-        }}
-        """.strip()
-
-        return query
 
     def run_query_on_graph(
         self, graph: Graph, query: str
@@ -334,47 +351,75 @@ class ProvenanceAnalyzer:
             figsize (Tuple[int, int], optional): Figure dimensions (width, height).
                                                 Defaults to (12, 5).
         """
-
-        values = []
-        x_tick_set = set()
-
-        for row in data:
-            x = float(row[x_axis_index])
-            y = float(row[y_axis_index])
-            values.append((x, y))
-            x_tick_set.add(x)
-
-        # Sort x-tick labels
-        x_ticks = sorted(x_tick_set)
-        values.sort()
+        values, x_ticks = self._collect_xy_values(data, x_axis_index, y_axis_index)
 
         plt.figure(figsize=figsize)
         x_vals, y_vals = zip(*values)
         plt.plot(x_vals, y_vals, marker="o", linestyle="-")
+        self._finish_plot(x_axis_label, y_axis_label, title, x_ticks, output_file)
 
-        plt.xlabel(x_axis_label)
-        plt.ylabel(y_axis_label)
-        plt.title(title)
-        plt.grid(True)
-        plt.xscale("log")
+    def plot_provenance_graph_rohub(
+        self,
+        data: List[List],
+        x_axis_label: str,
+        y_axis_label: str,
+        group_index: int,
+        x_axis_index: int,
+        y_axis_index: int,
+        title: str,
+        output_file: str = None,
+        figsize: Tuple[int, int] = (12, 5),
+    ):
+        """
+        Generates grouped scatter/line plots from provenance data.
 
-        # Set x-ticks to show original values
-        plt.xticks(ticks=x_ticks, labels=[str(x) for x in x_ticks], rotation=45)
-        plt.tight_layout()
+        Expected row format example:
+            ["A", x1, y1]
+            ["A", x2, y2]
+            ["B", x3, y3]
 
-        if output_file:
-            plt.savefig(output_file)
-            print(f"Plot saved to: {output_file}")
-        else:
-            plt.show()
+        Each unique group gets its own plotted line.
+
+        Args:
+            data (List[List]): Table data.
+            x_axis_label (str): Label for x-axis.
+            y_axis_label (str): Label for y-axis.
+            group_index (int): Index containing the grouping string.
+            x_axis_index (int): Index for x-axis values.
+            y_axis_index (int): Index for y-axis values.
+            title (str): Plot title.
+            output_file (str, optional): File path to save plot.
+            figsize (Tuple[int, int], optional): Figure size.
+        """
+        grouped_values = defaultdict(list)
+        x_tick_set = set()
+
+        for row in data:
+            group = str(row[group_index])
+            x = float(row[x_axis_index])
+            y = float(row[y_axis_index])
+
+            grouped_values[group].append((x, y))
+            x_tick_set.add(x)
+
+        x_ticks = sorted(x_tick_set)
+
+        plt.figure(figsize=figsize)
+
+        for group, values in grouped_values.items():
+            values.sort()
+            x_vals, y_vals = zip(*values)
+            plt.plot(x_vals, y_vals, marker="o", linestyle="-", label=group)
+
+        if grouped_values:
+            plt.legend()
+        self._finish_plot(x_axis_label, y_axis_label, title, x_ticks, output_file)
 
     def validate_provenance(self):
         """
         Validates the RO-Crate against the RO-Crate 1.1 profile.
-
         Uses the rocrate-validator library to check if the RO-Crate metadata
         conforms to the RO-Crate 1.1 specification with required severity level.
-
         Raises:
             AssertionError: If the RO-Crate has validation issues, with details
                            about each issue's severity and message.
