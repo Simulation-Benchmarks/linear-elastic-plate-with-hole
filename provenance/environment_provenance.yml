@@ -12,7 +12,3 @@ dependencies:
   - matplotlib
   - pandas
   - pip
-  - pip:
-      - rocrate
-      - roc-validator
-      - rohub 

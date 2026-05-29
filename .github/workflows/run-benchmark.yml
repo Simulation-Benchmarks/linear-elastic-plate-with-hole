@@ -114,6 +114,11 @@ jobs:
           environment-file: provenance/environment_provenance.yml
           conda-remove-defaults: "true"
 
+      - name: Install provenance pip packages
+        shell: bash -l {0}
+        run: |
+          python -m pip install rocrate roc-validator rohub
+
       - name: Create ${{ matrix.software_name }} aggregate RO-Crate
         shell: bash -l {0}
         run: |
