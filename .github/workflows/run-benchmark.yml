@@ -41,13 +41,14 @@ jobs:
 
     steps:
       - name: checkout repo content
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
 
       - name: Setup Mambaforge
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
             miniforge-version: latest
             use-mamba: true
+            conda-remove-defaults: "true"
         
       - name: Create ${{ matrix.software_name }} environment
         run: mamba env create -n ${{ matrix.environment_name }} -f ${{ matrix.environment_file }}
@@ -59,14 +60,14 @@ jobs:
           conda run -n "${{ matrix.environment_name }}" python run_benchmark.py
 
       - name: Archive results of the ${{ matrix.software_name }} run of linear-elastic-plate-with-hole
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
             name: ${{ matrix.results_artifact }}
             path: |
               ${{ matrix.tool_id }}/results/
 
       - name: Archive provenance zip artifacts of the ${{ matrix.software_name }} run
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.provenance_artifact }}
           path: |
@@ -96,21 +97,22 @@ jobs:
 
     steps:
       - name: Checkout repo content
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
 
       - name: Download ${{ matrix.software_name }} results artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: ${{ matrix.results_artifact }}
           path: ./simulation-results/${{ matrix.tool_id }}
 
       - name: Setup Mambaforge with provenance env
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniforge-version: latest
           activate-environment: provenance
           use-mamba: true
           environment-file: provenance/environment_provenance.yml
+          conda-remove-defaults: "true"
 
       - name: Create ${{ matrix.software_name }} aggregate RO-Crate
         shell: bash -l {0}
@@ -134,13 +136,13 @@ jobs:
             --output_file "${{ matrix.plot_filename }}"
 
       - name: Upload ${{ matrix.software_name }} plot artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.tool_id }}-element-size-vs-stress-plot
           path: ${{ matrix.plot_filename }}
 
       - name: Upload ${{ matrix.software_name }} aggregate RO-Crate artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.tool_id }}-aggregate-rocrate
           path: ${{ matrix.rocrate_filename }}
@@ -174,7 +176,7 @@ jobs:
 
       - name: Upload ${{ matrix.software_name }} RoHub error log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.tool_id }}-rohub-upload-error-log
           path: ${{ github.workspace }}/rohub_upload_${{ matrix.tool_id }}_error.log
