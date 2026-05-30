@@ -173,7 +173,7 @@ def main():
     """
     args = parse_args()
 
-    parameters = ["element-size", "element-order", "element-degree"]
+    parameters = ["element_size"]
     metrics = ["max_von_mises_stress"]
 
     run(args, parameters, metrics)
