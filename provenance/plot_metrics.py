@@ -64,20 +64,19 @@ def apply_custom_filters(data: pd.DataFrame) -> pd.DataFrame:
     """
     Filter provenance data to include only first-order linear elements.
 
-    Filters rows where element_degree = 1 and element_order = 1, then removes
+    Filters rows where isoparametric_element_degree = 1 then removes
     these filtering columns from the result.
 
     Args:
-        data (pd.DataFrame): Input DataFrame containing element_degree and
-                            element_order columns.
+        data (pd.DataFrame): Input DataFrame containing isoparametric_element_degree column.
 
     Returns:
-        pd.DataFrame: Filtered DataFrame with element_degree and element_order
+        pd.DataFrame: Filtered DataFrame with isoparametric_element_degree
                      columns removed and index reset.
     """
-    filtered_df = data[(data["element_degree"] == 1) & (data["element_order"] == 1)]
+    filtered_df = data[(data["isoparametric_element_degree"] == 1)]
 
-    return filtered_df.drop(columns=["element_degree", "element_order"]).reset_index(
+    return filtered_df.drop(columns=["isoparametric_element_degree"]).reset_index(
         drop=True
     )
 
@@ -173,7 +172,7 @@ def main():
     """
     args = parse_args()
 
-    parameters = ["element_size"]
+    parameters = ["element_size","isoparametric_element_degree"]
     metrics = ["max_von_mises_stress"]
 
     run(args, parameters, metrics)
