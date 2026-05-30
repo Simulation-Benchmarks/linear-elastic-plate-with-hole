@@ -1,8 +1,27 @@
 from pathlib import Path
+import argparse
 import zipfile
 import json
 import shutil
 import subprocess
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "provenance"))
+import semantic_benchmark
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--benchmark-file",
+        type=Path,
+        required=True,
+        help="Path to the semantic benchmark JSON-LD file.",
+    )
+    return parser.parse_args()
+
+
+args = parse_arguments()
 
 """
 The script performs the following steps:
@@ -44,29 +63,60 @@ tool_name = "kratos"
 tool_uri =  "https://github.com/KratosMultiphysics/Kratos"
 tool_version = "10.3.1"
 
+UNIT_SYMBOLS = {
+    "unit:M": "m",
+    "unit:PA": "Pa",
+}
 
-def archive_snakemake_metadata(output_dir: Path) -> None:
-    """Zip the Snakemake working metadata, excluding generated conda environments."""
-    snakemake_dir = output_dir / ".snakemake"
-    if not snakemake_dir.exists():
-        return
 
-    archive_path = output_dir / "snakemake_metadata.zip"
-    with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        for path in snakemake_dir.rglob("*"):
-            relative_path = path.relative_to(output_dir)
-            if "conda" in relative_path.parts:
-                continue
-            if path.is_file():
-                archive.write(path, arcname=relative_path)
+def parameter_json_key(parameter) -> str:
+    """Build the parameters.json key, including the unit suffix when present."""
+    unit_symbol = UNIT_SYMBOLS.get(parameter.unit)
+    if unit_symbol:
+        return f"{parameter.label}[{unit_symbol}]"
+    return parameter.label
+
+
+def parameter_json_value(parameter):
+    """Extract the scalar value stored in a benchmark parameter object."""
+    if isinstance(parameter, semantic_benchmark.TextParameter):
+        return parameter.string_value
+    return getattr(parameter, "numerical_value", None)
+
+
+def write_parameter_files_from_benchmark(
+    benchmark: semantic_benchmark.SemanticBenchmark,
+    output_dir: Path,
+) -> None:
+    """Create parameters_*.json files from the benchmark configuration objects."""
+    for stale_file in output_dir.glob("parameters_*.json"):
+        stale_file.unlink()
+
+    for configuration in benchmark.parameter_sets:
+        if not configuration.identifier:
+            continue
+
+        payload = {"configuration": configuration.identifier}
+        for parameter in configuration.parts:
+            payload[parameter_json_key(parameter)] = parameter_json_value(parameter)
+
+        parameter_file = output_dir / f"parameters_{configuration.identifier}.json"
+        with open(parameter_file, "w") as outfile:
+            json.dump(payload, outfile, indent=4)
+            outfile.write("\n")
 
 ####################################################################################################
 ####################################################################################################
 # Conditional execution of parameter configurations 
 ####################################################################################################
 ####################################################################################################
-  
-for file in root_unzipped_benchmark_dir.glob("parameters_*.json"):
+
+benchmark_object = semantic_benchmark.BenchmarkLoader(args.benchmark_file).load()
+write_parameter_files_from_benchmark(benchmark_object, root_unzipped_benchmark_dir)
+
+exit(1)
+
+for file in sorted(root_unzipped_benchmark_dir.glob("parameters_*.json")):
     with open(file, "r") as f:
         data = json.load(f)
 
@@ -98,7 +148,7 @@ for file in root_unzipped_benchmark_dir.glob("parameters_*.json"):
         
         reporter_args = [
             "--reporter", "metadata4ing",
-            "--report-metadata4ing-filename", f"Kratos-{data.get("configuration")}",
+            "--report-metadata4ing-filename", f"Kratos-{data.get('configuration')}",
             "--report-metadata4ing-name", "NFDI4Ing Provenance",
             "--report-metadata4ing-description", "Benchmark for linear-elastic plate with a hole",
             "--report-metadata4ing-license", "https://opensource.org/licenses/MIT",
@@ -119,5 +169,4 @@ for file in root_unzipped_benchmark_dir.glob("parameters_*.json"):
             cwd=output_dir,
         )
 
-        archive_snakemake_metadata(output_dir)
         print("Workflow executed successfully.")

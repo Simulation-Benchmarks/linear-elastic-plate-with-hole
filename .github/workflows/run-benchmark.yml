@@ -57,7 +57,8 @@ jobs:
         shell: bash -l {0}
         run: |
           cd "$GITHUB_WORKSPACE/${{ matrix.tool_id }}/"
-          conda run -n "${{ matrix.environment_name }}" python run_benchmark.py
+          conda run -n "${{ matrix.environment_name }}" python run_benchmark.py \
+            --benchmark-file "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}"
 
       - name: Archive results of the ${{ matrix.software_name }} run of linear-elastic-plate-with-hole
         uses: actions/upload-artifact@v6
