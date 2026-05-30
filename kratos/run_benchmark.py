@@ -114,8 +114,6 @@ def write_parameter_files_from_benchmark(
 benchmark_object = semantic_benchmark.BenchmarkLoader(args.benchmark_file).load()
 write_parameter_files_from_benchmark(benchmark_object, root_unzipped_benchmark_dir)
 
-exit(1)
-
 for file in sorted(root_unzipped_benchmark_dir.glob("parameters_*.json")):
     with open(file, "r") as f:
         data = json.load(f)
