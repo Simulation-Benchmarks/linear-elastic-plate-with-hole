@@ -582,6 +582,9 @@
         },
         {
           "@id": "local:metric_reaction_force_left_boundary_y"
+        },
+        {
+          "@id": "local:metric_displacement_top_right_corner"
         }
       ],
       "has parameter set": [
@@ -823,6 +826,45 @@
       "@id": "local:extract_reaction_force_left_boundary_y",
       "@type": "cr:DataSource",
       "jsonPath": "/reaction_force_left_boundary_y/"
+    },
+    {
+      "@id": "local:field_displacement_top_right_corner",
+      "@type": "Field",
+      "dataType": {
+        "@id": "schema:Text"
+      },
+      "represents": {
+        "@id": "local:metric_displacement_top_right_corner"
+      },
+      "source": {
+        "@id": "local:source_displacement_top_right_corner"
+      }
+    },
+    {
+      "@id": "local:metric_displacement_top_right_corner",
+      "@type": "numerical variable",
+      "label": "displacement_top_right_corner",
+      "has unit": {
+        "@id": "unit:M"
+      },
+      "has quantity kind": {
+        "@id": "http://qudt.org/vocab/quantitykind/Displacement"
+      }
+    },
+    {
+      "@id": "local:source_displacement_top_right_corner",
+      "@type": "cr:DataSource",
+      "extract": {
+        "@id": "local:extract_displacement_top_right_corner"
+      },
+      "file object": {
+        "@id": "local:summary_file_object"
+      }
+    },
+    {
+      "@id": "local:extract_displacement_top_right_corner",
+      "@type": "cr:DataSource",
+      "jsonPath": "/displacement_top_right_corner/"
     },
     {
       "@id": "local:field_number_of_dofs",

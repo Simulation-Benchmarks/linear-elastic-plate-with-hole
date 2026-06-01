@@ -510,6 +510,9 @@ def _json_path_value(payload: Any, json_path: str) -> Any:
 
         return None
 
+    if isinstance(current, list):
+        return ", ".join(str(value) for value in current)
+
     return current
 
 
