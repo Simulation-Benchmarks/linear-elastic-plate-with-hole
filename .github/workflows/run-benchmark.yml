@@ -10,11 +10,12 @@ on:
 
   # Runs the workflow once per day at 3:15am
   schedule:
-    - cron: '3 16 * * *'
+    - cron: '3 17 * * *'
 
 env:
   CACHE_NUMBER: 1  # increase to reset cache manually
   EXAMPLE_BENCHMARK_FILE: provenance/benchmark.json
+  EXAMPLE_BENCHMARK_ZIP: benchmark/linear-elastic-plate-with-hole.zip
 
 jobs:
   run-examples:
@@ -30,6 +31,8 @@ jobs:
             results_artifact: fenics_results_linear-elastic-plate-with-hole
             provenance_artifact: fenics_provenance_linear-elastic-plate-with-hole
             provenance_glob: fenics/results/**/Fenics-*.zip
+            aggregate_rocrate_artifact: fenics-aggregate-rocrate
+            rocrate_filename: Fenics-RoCrate.zip
 
           - tool_id: kratos
             software_name: Kratos
@@ -38,6 +41,8 @@ jobs:
             results_artifact: kratos_results_linear-elastic-plate-with-hole
             provenance_artifact: kratos_provenance_linear-elastic-plate-with-hole
             provenance_glob: kratos/results/**/Kratos-*.zip
+            aggregate_rocrate_artifact: kratos-aggregate-rocrate
+            rocrate_filename: Kratos-RoCrate.zip
 
     steps:
       - name: checkout repo content
@@ -58,7 +63,8 @@ jobs:
         run: |
           cd "$GITHUB_WORKSPACE/${{ matrix.tool_id }}/"
           conda run -n "${{ matrix.environment_name }}" python run_benchmark.py \
-            --benchmark-file "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}"
+            --benchmark-file "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}" \
+            --benchmark-zip "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_ZIP}"
 
       - name: Archive results of the ${{ matrix.software_name }} run of linear-elastic-plate-with-hole
         uses: actions/upload-artifact@v6
@@ -73,6 +79,12 @@ jobs:
           name: ${{ matrix.provenance_artifact }}
           path: |
             ${{ matrix.provenance_glob }}
+
+      - name: Archive ${{ matrix.software_name }} aggregate RO-Crate artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.aggregate_rocrate_artifact }}
+          path: ${{ matrix.tool_id }}/${{ matrix.rocrate_filename }}
   
   process-artifacts:
     runs-on: ubuntu-latest
@@ -84,14 +96,14 @@ jobs:
         include:
           - tool_id: fenics
             software_name: Fenics
-            results_artifact: fenics_results_linear-elastic-plate-with-hole
+            aggregate_rocrate_artifact: fenics-aggregate-rocrate
             rocrate_filename: Fenics-RoCrate.zip
             plot_filename: fenics-element-size-vs-stress-plot.pdf
             rocrate_title: "NFDI4Ing Provenance (Fenics)"
 
           - tool_id: kratos
             software_name: Kratos
-            results_artifact: kratos_results_linear-elastic-plate-with-hole
+            aggregate_rocrate_artifact: kratos-aggregate-rocrate
             rocrate_filename: Kratos-RoCrate.zip
             plot_filename: kratos-element-size-vs-stress-plot.pdf
             rocrate_title: "NFDI4Ing Provenance (Kratos)"
@@ -100,11 +112,11 @@ jobs:
       - name: Checkout repo content
         uses: actions/checkout@v6
 
-      - name: Download ${{ matrix.software_name }} results artifact
+      - name: Download ${{ matrix.software_name }} aggregate RO-Crate artifact
         uses: actions/download-artifact@v7
         with:
-          name: ${{ matrix.results_artifact }}
-          path: ./simulation-results/${{ matrix.tool_id }}
+          name: ${{ matrix.aggregate_rocrate_artifact }}
+          path: .
 
       - name: Setup Mambaforge with provenance env
         uses: conda-incubator/setup-miniconda@v4
@@ -119,15 +131,6 @@ jobs:
         shell: bash -l {0}
         run: |
           python -m pip install rocrate roc-validator rohub
-
-      - name: Create ${{ matrix.software_name }} aggregate RO-Crate
-        shell: bash -l {0}
-        run: |
-          python provenance/create_rocrate.py \
-            --benchmark-file "${EXAMPLE_BENCHMARK_FILE}" \
-            --simulation-result-path "./simulation-results/${{ matrix.tool_id }}" \
-            --rocrate-filename "${{ matrix.rocrate_filename }}" \
-            --software-name "${{ matrix.software_name }}" 
 
       - name: Unzip ${{ matrix.software_name }} RO-Crate
         run: |
@@ -146,12 +149,6 @@ jobs:
         with:
           name: ${{ matrix.tool_id }}-element-size-vs-stress-plot
           path: ${{ matrix.plot_filename }}
-
-      - name: Upload ${{ matrix.software_name }} aggregate RO-Crate artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: ${{ matrix.tool_id }}-aggregate-rocrate
-          path: ${{ matrix.rocrate_filename }}
 
       - name: Upload ${{ matrix.software_name }} RO-Crate Zip file onto RoHub
         id: rohub_upload

@@ -1,78 +1,95 @@
-from pathlib import Path
+"""Run the Fenics benchmark for each semantic benchmark configuration.
+
+The script performs the following steps:
+
+1. Extracts the benchmark workflow files from a user-provided zip archive.
+2. Loads the semantic benchmark JSON-LD file and writes one parameter JSON file
+   per benchmark configuration.
+3. Creates a per-configuration result directory.
+4. Runs the Snakemake workflow once normally and once with the provenance
+   reporter enabled.
+5. Creates an aggregate RO-Crate from all configuration results.
+"""
+
 import argparse
-import zipfile
 import json
 import shutil
 import subprocess
 import sys
+import zipfile
+from argparse import Namespace
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "provenance"))
 import semantic_benchmark
+import create_rocrate
+
+ROOT_UNZIPPED_BENCHMARK_DIR = Path(__file__).resolve().parent
+PROVENANCE_REPORTER_NAME = "metadata4ing"
+PROVENANCE_REPORT_NAME = "NFDI4Ing Provenance"
+PROVENANCE_REPORT_DESCRIPTION = "Benchmark for linear-elastic plate with a hole"
+PROVENANCE_REPORT_LICENSE = "https://opensource.org/licenses/MIT"
+PROVENANCE_REPORT_PROFILE = "provenance-run-crate-0.5"
+DEFAULT_ROCRATE_FILENAME = "Fenics-RoCrate.zip"
+DEFAULT_SOFTWARE_NAME = "Fenics"
+
+UNIT_SYMBOLS = {
+    "unit:M": "m",
+    "unit:PA": "Pa",
+}
 
 
-def parse_arguments():
-    parser = argparse.ArgumentParser()
+def parse_arguments() -> Namespace:
+    """Parse command-line arguments for the Fenics benchmark runner."""
+    parser = argparse.ArgumentParser(
+        description="Run the Fenics benchmark workflow for all benchmark configurations."
+    )
     parser.add_argument(
         "--benchmark-file",
         type=Path,
         required=True,
         help="Path to the semantic benchmark JSON-LD file.",
     )
+    parser.add_argument(
+        "--benchmark-zip",
+        type=Path,
+        required=True,
+        help="Path to the zipped benchmark archive to extract.",
+    )
+    parser.add_argument(
+        "--rocrate-filename",
+        type=Path,
+        default=DEFAULT_ROCRATE_FILENAME,
+        help="Filename or path for the generated aggregate RO-Crate zip file.",
+    )
+    parser.add_argument(
+        "--software-name",
+        default=DEFAULT_SOFTWARE_NAME,
+        help="Software name recorded in the generated aggregate RO-Crate.",
+    )
     return parser.parse_args()
 
 
-args = parse_arguments()
+def extract_benchmark_archive(benchmark_zip: Path, output_dir: Path) -> None:
+    """Extract the zipped benchmark workflow into the Fenics working directory.
 
-"""
-The script performs the following steps:
+    Args:
+        benchmark_zip: Path to the benchmark zip archive.
+        output_dir: Directory where the archive contents will be extracted.
+    """
+    with zipfile.ZipFile(benchmark_zip.expanduser().resolve(), "r") as zip_ref:
+        zip_ref.extractall(output_dir)
 
-1. Extracts the benchmark files from a zip archive (currently assuming that it is an RO-Crate of the benchmark).
-2. Iterates through the parameter configuration files, checks the "element-size" value, and if it meets the specified condition (>= 0.025)
-, it executes the Snakemake workflow for that configuration.
 
-The results of each run (and the files used by it) are stored in the directory with the configuration name.
-"""
+def create_shared_conda_env_dir(benchmark_dir: Path) -> Path:
+    """Create and return the shared Snakemake conda environment directory.
 
-####################################################################################################
-####################################################################################################
-# Benchmark Extraction
-####################################################################################################
-####################################################################################################
-
-root_zipped_benchmark_dir = Path(__file__).resolve().parent.parent
-root_unzipped_benchmark_dir = Path(__file__).resolve().parent
-
-with zipfile.ZipFile(root_zipped_benchmark_dir / "benchmark/linear-elastic-plate-with-hole.zip", 'r') as zip_ref:
-    # Extract all files
-    zip_ref.extractall(root_unzipped_benchmark_dir)
-    
-    
-#Creates a directory to store the conda environments. The environments are shared across different parameter configurations.
-#To avoid redundant creation of environments, this path will be passed to all snakemake files during execution.
-        
-shared_env_dir = root_unzipped_benchmark_dir / "conda_envs"
-shared_env_dir.mkdir(parents=True, exist_ok=True)  
-
-####################################################################################################
-####################################################################################################
-# Simulation tool metadata (to be included in the RO-Crate)
-####################################################################################################
-####################################################################################################
-
-tool_name = "fenics"
-tool_uri =  "https://github.com/FEniCS/dolfinx"
-tool_version = "0.9.0"
-
-####################################################################################################
-####################################################################################################
-# Conditional execution of parameter configurations 
-####################################################################################################
-####################################################################################################
-
-UNIT_SYMBOLS = {
-    "unit:M": "m",
-    "unit:PA": "Pa",
-}
+    Snakemake receives this path for every configuration so environments can be
+    reused instead of recreated for each benchmark run.
+    """
+    shared_env_dir = benchmark_dir / "conda_envs"
+    shared_env_dir.mkdir(parents=True, exist_ok=True)
+    return shared_env_dir
 
 
 def parameter_json_key(parameter) -> str:
@@ -90,7 +107,12 @@ def parameter_json_value(parameter):
     return getattr(parameter, "numerical_value", None)
 
 
-def write_parameter_files_from_benchmark(
+def load_benchmark(benchmark_file: Path) -> semantic_benchmark.SemanticBenchmark:
+    """Load the semantic benchmark description from a JSON-LD file."""
+    return semantic_benchmark.BenchmarkLoader(benchmark_file).load()
+
+
+def create_parameter_files_from_benchmark(
     benchmark: semantic_benchmark.SemanticBenchmark,
     output_dir: Path,
 ) -> None:
@@ -112,69 +134,159 @@ def write_parameter_files_from_benchmark(
             outfile.write("\n")
 
 
-benchmark_object = semantic_benchmark.BenchmarkLoader(args.benchmark_file).load()
-write_parameter_files_from_benchmark(benchmark_object, root_unzipped_benchmark_dir)
-
-for file in sorted(root_unzipped_benchmark_dir.glob("parameters_*.json")):
-    with open(file, "r") as f:
-        data = json.load(f)
+def load_parameter_file(parameter_file: Path) -> dict:
+    """Load a generated parameter JSON file."""
+    with open(parameter_file, "r") as infile:
+        return json.load(infile)
 
 
-        # Create output directory for the configuration
-        output_dir = root_unzipped_benchmark_dir / "results" / data.get("configuration")
-        output_dir.mkdir(parents=True, exist_ok=True) 
-            
-        # Copy the selected parameter file to the output directory with a standardised name
-        with open(output_dir / "parameters.json", "w") as outfile:
-            json.dump(data, outfile, indent=2)
+def create_configuration_output_dir(benchmark_dir: Path, configuration: str) -> Path:
+    """Create and return the result directory for a benchmark configuration."""
+    output_dir = benchmark_dir / "results" / configuration
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return output_dir
 
-        # Copy files from benchmark_dir to output_dir, excluding non-matching parameter files.
-        for item in root_unzipped_benchmark_dir.iterdir():
-            if item.is_file():
-                if item.name.startswith("parameters_") and item.suffix == ".json":
-                    continue
-                else:
-                    shutil.copy(item, output_dir / item.name)
-        
-        base_cmd = [
-            "snakemake",
-            "--use-conda",
-            "--force",
-            "--cores", "all",
-            "--conda-prefix", str(shared_env_dir),
-            "--configfile", str(file),
-        ]
-        
-        reporter_args = [
-            "--reporter", "metadata4ing",
-            "--report-metadata4ing-filename", f"Fenics-{data.get('configuration')}",
-            "--report-metadata4ing-name", "NFDI4Ing Provenance",
-            "--report-metadata4ing-description", "Benchmark for linear-elastic plate with a hole",
-            "--report-metadata4ing-license", "https://opensource.org/licenses/MIT",
-            "--report-metadata4ing-profile", "provenance-run-crate-0.5",
-        ]
-        
-        # Run the Snakemake workflow from the benchmark to create the mesh for the configuration
-        subprocess.run(
-            base_cmd,
-            check=True,
-            cwd=output_dir,
-        )
-        
-        # Second run: with provenance reporter
-        subprocess.run(
-            base_cmd + reporter_args,
-            check=True,
-            cwd=output_dir,
-        )
-        
-        print("Workflow executed successfully.")
-            
-        # For the scenario where the snakemake workflow doesn't exist, one can directly run the simulation script using the subprocess module, e.g.:
-        #subprocess.run(["python", "run_fenics_simulation.py" \
-                        #"--input_parameter_file" str(file) \
-                        #"--input_mesh_file" "mesh.msh" \
-                        #"--output_solution_file_zip" "solution_field_data.zip" \
-                        #"--output_metrics_file" "solution_metrics.json"], check=True, cwd=output_dir)
-                        
-        #Assuming the mesh.msh and parameters.json files are present/copied to the output_dir.
+
+def create_parameter_file(configuration_data: dict, output_dir: Path) -> None:
+    """Write the selected configuration as parameters.json in the result directory."""
+    with open(output_dir / "parameters.json", "w") as outfile:
+        json.dump(configuration_data, outfile, indent=2)
+
+
+def copy_benchmark_files_to_output_dir(benchmark_dir: Path, output_dir: Path) -> None:
+    """Copy benchmark workflow files into a configuration result directory.
+
+    Generated parameter files are excluded because the selected configuration is
+    already copied as parameters.json.
+    """
+    for item in benchmark_dir.iterdir():
+        if not item.is_file():
+            continue
+
+        if item.name.startswith("parameters_") and item.suffix == ".json":
+            continue
+
+        shutil.copy(item, output_dir / item.name)
+
+
+def build_snakemake_command(parameter_file: Path, shared_env_dir: Path) -> list[str]:
+    """Build the base Snakemake command for one configuration."""
+    return [
+        "snakemake",
+        "--use-conda",
+        "--force",
+        "--cores",
+        "all",
+        "--conda-prefix",
+        str(shared_env_dir),
+        "--configfile",
+        str(parameter_file),
+    ]
+
+
+def build_provenance_reporter_args(configuration: str) -> list[str]:
+    """Build Snakemake reporter arguments for the metadata4ing provenance crate."""
+    return [
+        "--reporter",
+        PROVENANCE_REPORTER_NAME,
+        "--report-metadata4ing-filename",
+        f"Fenics-{configuration}",
+        "--report-metadata4ing-name",
+        PROVENANCE_REPORT_NAME,
+        "--report-metadata4ing-description",
+        PROVENANCE_REPORT_DESCRIPTION,
+        "--report-metadata4ing-license",
+        PROVENANCE_REPORT_LICENSE,
+        "--report-metadata4ing-profile",
+        PROVENANCE_REPORT_PROFILE,
+    ]
+
+
+def run_snakemake_workflow(
+    parameter_file: Path,
+    configuration: str,
+    output_dir: Path,
+    shared_env_dir: Path,
+) -> None:
+    """Run the Snakemake workflow normally and then with provenance reporting."""
+    base_cmd = build_snakemake_command(parameter_file, shared_env_dir)
+    reporter_args = build_provenance_reporter_args(configuration)
+
+    subprocess.run(base_cmd, check=True, cwd=output_dir)
+    subprocess.run(base_cmd + reporter_args, check=True, cwd=output_dir)
+
+
+def run_configuration(
+    parameter_file: Path,
+    benchmark_dir: Path,
+    shared_env_dir: Path,
+) -> None:
+    """Prepare and execute one benchmark configuration."""
+    configuration_data = load_parameter_file(parameter_file)
+    configuration = configuration_data.get("configuration")
+    if not configuration:
+        raise ValueError(f"Missing configuration value in {parameter_file}")
+
+    output_dir = create_configuration_output_dir(benchmark_dir, configuration)
+
+    create_parameter_file(configuration_data, output_dir)
+    copy_benchmark_files_to_output_dir(benchmark_dir, output_dir)
+    run_snakemake_workflow(parameter_file, configuration, output_dir, shared_env_dir)
+
+    print(f"Workflow executed successfully for configuration {configuration}.")
+
+
+def create_aggregate_rocrate(
+    results_dir: Path,
+    benchmark: semantic_benchmark.SemanticBenchmark,
+    rocrate_filename: Path,
+    software_name: str,
+) -> None:
+    """Create one aggregate RO-Crate from all per-configuration result crates."""
+
+    create_rocrate.create_main_ro(
+        str(results_dir),
+        benchmark,
+        rocrate_filename=str(rocrate_filename),
+        software_name=software_name,
+    )
+    print(f"Aggregate RO-Crate created at {rocrate_filename}.")
+
+
+def resolve_rocrate_filename(rocrate_filename: Path, benchmark_dir: Path) -> Path:
+    """Resolve relative aggregate RO-Crate filenames inside the benchmark directory."""
+    output_path = rocrate_filename.expanduser()
+    if output_path.is_absolute():
+        return output_path
+    return benchmark_dir / output_path
+
+
+def run_benchmark(args: Namespace) -> None:
+    """Run the complete Fenics benchmark workflow from parsed arguments."""
+    benchmark_dir = ROOT_UNZIPPED_BENCHMARK_DIR
+
+    extract_benchmark_archive(args.benchmark_zip, benchmark_dir)
+    shared_env_dir = create_shared_conda_env_dir(benchmark_dir)
+
+    benchmark = load_benchmark(args.benchmark_file)
+    create_parameter_files_from_benchmark(benchmark, benchmark_dir)
+
+    for parameter_file in sorted(benchmark_dir.glob("parameters_*.json")):
+        run_configuration(parameter_file, benchmark_dir, shared_env_dir)
+
+    create_aggregate_rocrate(
+        benchmark_dir / "results",
+        benchmark,
+        rocrate_filename=resolve_rocrate_filename(args.rocrate_filename, benchmark_dir),
+        software_name=args.software_name,
+    )
+
+
+def main() -> None:
+    """Parse arguments and run the Fenics benchmark."""
+    args = parse_arguments()
+    run_benchmark(args)
+
+
+if __name__ == "__main__":
+    main()
