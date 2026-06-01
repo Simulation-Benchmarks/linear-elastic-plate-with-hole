@@ -273,8 +273,8 @@ def run_benchmark(args: Namespace) -> None:
     benchmark = load_benchmark(args.benchmark_file)
     create_parameter_files_from_benchmark(benchmark, benchmark_dir)
 
-    # for parameter_file in sorted(benchmark_dir.glob("parameters_*.json")):
-    #     run_configuration(parameter_file, benchmark_dir, shared_env_dir)
+    for parameter_file in sorted(benchmark_dir.glob("parameters_*.json")):
+        run_configuration(parameter_file, benchmark_dir, shared_env_dir)
 
     create_aggregate_rocrate(
         benchmark_dir / "results",
