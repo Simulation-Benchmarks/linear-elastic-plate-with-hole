@@ -13,17 +13,6 @@ import re
 from rocrate.rocrate import ROCrate
 import semantic_benchmark
 
-DEFAULT_BENCHMARK_FILE = (
-    "/Users/mahdi/Documents/GitHub/linear-elastic-plate-with-hole/provenance/benchmark.json"
-)
-DEFAULT_SIMULATION_RESULT_PATH = (
-    "/Users/mahdi/Downloads/fenics_provenance_linear-elastic-plate-with-hole"
-)
-DEFAULT_ROCRATE_FILENAME = "RoCrate.zip"
-DEFAULT_SOFTWARE_NAME = "Kratos"
-RUN_PARAMETER_FILENAMES = ("parameter.json", "parameters.json")
-SNAKEMAKE_FILE_NAME = "Snakefile.smk"
-M4I_HAS_KIND_OF_QUANTITY = "http://w3id.org/nfdi4ing/metadata4ing#hasKindOfQuantity"
 ROCRATE_CONFORMS_TO = [
     {"@id": "https://w3id.org/ro/crate/1.1"},
     {"@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0"},
@@ -236,7 +225,9 @@ def _formal_parameter_payload(
     payload["additionalType"] = ""
 
     if unit is not None:
-        payload["m4i:hasKindOfQuantity"] = {"@id": unit}
+        payload["http://w3id.org/nfdi4ing/metadata4ing#hasKindOfQuantity"] = {
+            "@id": unit
+        }
 
     if isinstance(part, semantic_benchmark.NumericalParameter):
         payload["defaultValue"] = part.numerical_value
@@ -376,47 +367,8 @@ def _normalize_value(value: Any) -> str | None:
         return text.lower()
 
 
-def _run_parameters_file(run_folder: Path) -> Path | None:
-    """Find the parameter file for a run folder.
-
-    Args:
-        run_folder: Simulation run folder to inspect.
-
-    Returns:
-        Path to ``parameter.json`` or ``parameters.json`` if present, otherwise
-        ``None``.
-    """
-    for candidate in RUN_PARAMETER_FILENAMES:
-        path = run_folder / candidate
-        if path.exists() and path.is_file():
-            return path
-    return None
-
-
-def _load_run_parameters(run_folder: Path) -> dict[str, Any]:
-    """Load run parameters from a result folder.
-
-    Args:
-        run_folder: Simulation run folder containing a parameter JSON file.
-
-    Returns:
-        Parsed JSON object when the file exists and contains a dictionary;
-        otherwise an empty dictionary.
-    """
-    parameters_file = _run_parameters_file(run_folder)
-    if parameters_file is None:
-        return {}
-    try:
-        with parameters_file.open("r", encoding="utf-8") as handle:
-            payload = json.load(handle)
-    except (OSError, json.JSONDecodeError):
-        return {}
-    return payload if isinstance(payload, dict) else {}
-
-
 def _configuration_id_for_run(
     run_folder: Path,
-    run_parameters: dict[str, Any],
     configuration_entries: list[ConfigurationEntry],
 ) -> str | None:
     """Resolve the generated configuration node id for a run.
@@ -440,16 +392,10 @@ def _configuration_id_for_run(
         if identifier_key:
             by_identifier[identifier_key] = config_id
 
-    run_config_value = run_parameters.get("configuration")
+    candidate = _normalize_value(run_folder.name)
 
-    candidates = [
-        _normalize_value(run_config_value),
-        _normalize_value(run_folder.name),
-    ]
-
-    for candidate in candidates:
-        if candidate and candidate in by_identifier:
-            return by_identifier[candidate]
+    if candidate and candidate in by_identifier:
+        return by_identifier[candidate]
 
     return None
 
@@ -697,7 +643,6 @@ def _add_run_actions(
         if not run_object_id:
             continue
 
-        run_parameters = _load_run_parameters(run_folder)
         result_ids = run_results_by_name.get(run_name, [])
 
         for processing_step in processing_steps:
@@ -705,7 +650,7 @@ def _add_run_actions(
                 configuration_entries, processing_step
             )
             config_id = _configuration_id_for_run(
-                run_folder, run_parameters, step_configuration_entries
+                run_folder, step_configuration_entries
             )
 
             step_name = processing_step.label or processing_step.id
@@ -723,7 +668,9 @@ def _add_run_actions(
             crate.add_jsonld(run_action)
 
 
-def _configure_crate_metadata(crate: ROCrate, snakemake_id: str, software_name: str) -> None:
+def _configure_crate_metadata(
+    crate: ROCrate, snakemake_id: str, software_name: str
+) -> None:
     """Set crate-level metadata, profiles, license, and main workflow entity.
 
     Args:
@@ -734,7 +681,6 @@ def _configure_crate_metadata(crate: ROCrate, snakemake_id: str, software_name: 
     Returns:
         None. The function mutates crate metadata and root dataset properties.
     """
-    crate.metadata.extra_terms = {"m4i:hasKindOfQuantity": M4I_HAS_KIND_OF_QUANTITY}
     crate.mainEntity = {"@id": snakemake_id}
     crate.license = "https://opensource.org/licenses/MIT"
     crate.name = f"NFDI4Ing Provenance ({software_name})"
@@ -776,7 +722,7 @@ def _add_workflow_node(
     crate: ROCrate,
     subcrates: list[Path],
     software_id: str,
-    workflow_filename: str = SNAKEMAKE_FILE_NAME,
+    workflow_filename: str,
 ) -> None:
     """Add the Snakemake workflow file to the aggregate crate.
 
@@ -800,8 +746,8 @@ def _add_workflow_node(
 def create_main_ro(
     path: str,
     benchmark_object: semantic_benchmark.SemanticBenchmark,
-    rocrate_filename: str = DEFAULT_ROCRATE_FILENAME,
-    software_name: str = DEFAULT_SOFTWARE_NAME,
+    rocrate_filename: str,
+    software_name: str,
 ) -> None:
     """Create and write an aggregate RO-Crate for a benchmark result directory.
 
@@ -843,7 +789,7 @@ def create_main_ro(
     run_results_by_name = _run_results_by_name(run_results)
 
     snakemake_id = get_workflow_id(subcrates[0])
-    
+
     software_id = str(uuid.uuid4())
 
     _add_run_actions(
@@ -856,10 +802,10 @@ def create_main_ro(
         software_id=software_id,
     )
     _configure_crate_metadata(crate, snakemake_id, software_name)
-
     _add_software_node(crate, software_id, software_name)
     _add_profile_creative_works(crate)
     _add_workflow_node(crate, subcrates, software_id, snakemake_id)
+    
     crate.write_zip(rocrate_filename)
 
 
@@ -875,22 +821,22 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--benchmark-file",
-        default=DEFAULT_BENCHMARK_FILE,
+        required=True,
         help="Path to benchmark JSON-LD file",
     )
     parser.add_argument(
         "--simulation-result-path",
-        default=DEFAULT_SIMULATION_RESULT_PATH,
+        required=True,
         help="Path containing simulation result subfolders with RoCrate zip files",
     )
     parser.add_argument(
         "--rocrate-filename",
-        default=DEFAULT_ROCRATE_FILENAME,
+        required=True,
         help="Filename for the generated RO-Crate zip file",
     )
     parser.add_argument(
         "--software-name",
-        default=DEFAULT_SOFTWARE_NAME,
+        required=True,
         help="Name of the software application recorded in the generated RO-Crate",
     )
 
@@ -913,15 +859,16 @@ def main() -> None:
         software_name=args.software_name,
     )
 
+
 def get_workflow_id(subcrate):
     crate = ROCrate(subcrate)
 
     for e in crate.get_entities():
-        if (e.type == ['File', 'SoftwareSourceCode', 'ComputationalWorkflow']):
+        if e.type == ["File", "SoftwareSourceCode", "ComputationalWorkflow"]:
             return e.id
-        
-    return SNAKEMAKE_FILE_NAME 
+
+    return "Snakefile"
+
 
 if __name__ == "__main__":
-    
     main()

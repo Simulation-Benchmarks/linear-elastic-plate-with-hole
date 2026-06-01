@@ -970,12 +970,6 @@
       "label": "Compute Environment"
     },
     {
-      "@id": "local:parameter_file",
-      "@type": "File",
-      "encodingFormat": "application/json",
-      "name": "parameter.json"
-    },
-    {
       "@id": "local:summary_file",
       "@type": "File",
       "encodingFormat": "application/json",

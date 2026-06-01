@@ -1,24 +1,35 @@
-import os
+"""Utilities for reading, querying, plotting, and validating RO-Crate provenance.
+
+The public entry point is :class:`ProvenanceAnalyzer`. It loads RO-Crate
+JSON-LD metadata into an RDF graph, builds SPARQL queries for benchmark
+parameters and metrics, plots extracted values, and validates RO-Crate folders
+against the RO-Crate 1.1 profile.
+"""
+
+from __future__ import annotations
+
 import re
 from collections import defaultdict
-from typing import List, Tuple
+from pathlib import Path
+from typing import Any, Iterable, Sequence
 
 import matplotlib.pyplot as plt
 from rdflib import Graph
 from rocrate_validator import models, services
 
+DEFAULT_METADATA_FILENAME = "ro-crate-metadata.json"
+
 
 class ProvenanceAnalyzer:
-    """
-    A class to analyze, validate, and visualize provenance data from RO-Crate metadata files.
+    """Analyze, visualize, and validate provenance data from an RO-Crate.
 
-    This class loads RO-Crate JSON-LD files, builds dynamic SPARQL queries to extract
-    workflow metadata about methods, parameters, and metrics, and provides visualization
-    capabilities. It also validates RO-Crate files against the RO-Crate 1.1 profile.
+    Args:
+        provenance_folderpath: Folder containing the RO-Crate metadata file.
+        provenance_filename: Metadata filename inside ``provenance_folderpath``.
 
     Attributes:
-        provenance_folderpath (str): The directory path containing the RO-Crate folder.
-        provenance_filename (str): The name of the provenance file (default: 'ro-crate-metadata.json').
+        provenance_folderpath: Folder containing the RO-Crate.
+        provenance_filename: RO-Crate metadata filename.
     """
 
     SCHEMA_PREFIX = "PREFIX schema: <http://schema.org/>"
@@ -27,64 +38,52 @@ class ProvenanceAnalyzer:
 
     def __init__(
         self,
-        provenance_folderpath: str = None,
-        provenance_filename: str = "ro-crate-metadata.json",
-    ):
-        """
-        Initialize the ProvenanceAnalyzer.
-
-        Args:
-            provenance_folderpath (str, optional): Path to the folder containing the RO-Crate.
-                                                   Defaults to None.
-            provenance_filename (str, optional): Name of the RO-Crate metadata file.
-                                                 Defaults to "ro-crate-metadata.json".
-        """
+        provenance_folderpath: str | Path | None = None,
+        provenance_filename: str = DEFAULT_METADATA_FILENAME,
+    ) -> None:
         self.provenance_folderpath = provenance_folderpath
         self.provenance_filename = provenance_filename
 
-    def _metadata_path(self) -> str:
-        return os.path.join(self.provenance_folderpath, self.provenance_filename)
+    def _metadata_path(self) -> Path:
+        """Return the metadata file path for this analyzer."""
+        return self._provenance_dir() / self.provenance_filename
+
+    def _provenance_dir(self) -> Path:
+        """Return the configured RO-Crate folder path."""
+        if self.provenance_folderpath is None:
+            raise ValueError("provenance_folderpath must be set")
+        return Path(self.provenance_folderpath)
 
     def load_graph_from_file(self) -> Graph:
-        """
-        Loads the RO-Crate metadata file into an rdflib Graph object.
+        """Load the RO-Crate metadata JSON-LD file into an RDF graph.
 
         Returns:
-            rdflib.Graph: The loaded RDF graph containing the provenance data.
+            Parsed RDF graph containing the provenance metadata.
 
         Raises:
-            Exception: If the file cannot be parsed as JSON-LD.
+            Exception: Propagates RDF parsing errors after printing context.
         """
+        metadata_path = self._metadata_path()
+
         try:
             graph = Graph()
-            graph.parse(self._metadata_path(), format="json-ld")
+            graph.parse(metadata_path, format="json-ld")
             return graph
-        except Exception as e:
-            print(f"Failed to parse {self.provenance_filename}: {e}")
+        except Exception as error:
+            print(f"Failed to parse {metadata_path}: {error}")
             raise
 
-    def sanitize_variable_name(self, name: str) -> str:
-        """
-        Convert a string into a valid SPARQL variable name.
+    @staticmethod
+    def sanitize_variable_name(name: str) -> str:
+        """Convert a string into a SPARQL-safe variable name."""
+        variable_name = re.sub(r"[^a-zA-Z0-9_]", "_", name)
+        if re.match(r"^\d", variable_name):
+            variable_name = "_" + variable_name
+        return variable_name or "_"
 
-        Replaces invalid characters with underscores and ensures the variable
-        name doesn't start with a digit.
-
-        Args:
-            name (str): The original string to convert.
-
-        Returns:
-            str: A sanitized variable name safe for use in SPARQL queries.
-        """
-        var = re.sub(r"[^a-zA-Z0-9_]", "_", name)
-        if re.match(r"^\d", var):
-            var = "_" + var
-        return var or "_"
-
-    def _sparql_string_literal(self, value: str) -> str:
-        """
-        Escape a Python string for safe use as a SPARQL string literal.
-        """
+    @staticmethod
+    def _sparql_string_literal(value: str) -> str:
+        """Escape a Python string for safe use inside a SPARQL string literal."""
         return (
             value.replace("\\", "\\\\")
             .replace('"', '\\"')
@@ -92,13 +91,17 @@ class ProvenanceAnalyzer:
             .replace("\r", "\\r")
         )
 
-    def _variable_map(self, names):
+    def _variable_map(self, names: Iterable[str]) -> dict[str, str]:
+        """Map display names to SPARQL-safe variable names."""
         return {name: self.sanitize_variable_name(name) for name in names}
 
-    def _select_variables(self, names, var_map):
+    @staticmethod
+    def _select_variables(names: Sequence[str], var_map: dict[str, str]) -> str:
+        """Create a SPARQL SELECT variable list from display names."""
         return " ".join(f"?{var_map[name]}" for name in names)
 
-    def _create_action_links(self, include_tool=False):
+    def _create_action_links(self, include_tool: bool = False) -> list[str]:
+        """Build the common CreateAction graph pattern."""
         links = [
             "?runAction a schema:CreateAction .",
             "?runAction schema:object ?configuration .",
@@ -115,12 +118,22 @@ class ProvenanceAnalyzer:
 
         return links
 
-    def _node_type(self, node_prefix):
+    def _node_type(self, node_prefix: str) -> str:
+        """Return the RDF type used by a parameter or metric node."""
         if node_prefix == "param":
             return self.FORMAL_PARAMETER_TYPE
         return "schema:PropertyValue"
 
-    def _value_block(self, parent, relation, node_prefix, name, var_map, name_predicate):
+    def _value_block(
+        self,
+        parent: str,
+        relation: str,
+        node_prefix: str,
+        name: str,
+        var_map: dict[str, str],
+        name_predicate: str,
+    ) -> str:
+        """Build a graph pattern that extracts one named value."""
         safe_name = var_map[name]
         escaped_name = self._sparql_string_literal(name)
 
@@ -131,7 +144,13 @@ class ProvenanceAnalyzer:
             schema:defaultValue ?{safe_name} .
         """.strip()
 
-    def _parameter_block(self, name, var_map, name_predicate="schema:name"):
+    def _parameter_block(
+        self,
+        name: str,
+        var_map: dict[str, str],
+        name_predicate: str = "schema:name",
+    ) -> str:
+        """Build a graph pattern that extracts one configuration parameter."""
         return self._value_block(
             "?configuration",
             "schema:exampleOfWork",
@@ -141,7 +160,13 @@ class ProvenanceAnalyzer:
             name_predicate,
         )
 
-    def _metric_block(self, name, var_map, name_predicate="schema:name"):
+    def _metric_block(
+        self,
+        name: str,
+        var_map: dict[str, str],
+        name_predicate: str = "schema:name",
+    ) -> str:
+        """Build a graph pattern that extracts one run metric."""
         return self._value_block(
             "?runAction",
             "schema:result",
@@ -151,15 +176,24 @@ class ProvenanceAnalyzer:
             name_predicate,
         )
 
-    def _join_blocks(self, *blocks):
+    @staticmethod
+    def _join_blocks(*blocks: str) -> str:
+        """Join non-empty SPARQL graph pattern blocks."""
         return "\n".join(block for block in blocks if block)
 
-    def _where_block(self, inner_query, named_graph=None):
+    @staticmethod
+    def _where_block(inner_query: str, named_graph: str | None = None) -> str:
+        """Optionally wrap a graph pattern in a named graph block."""
         if not named_graph:
             return inner_query
         return f"GRAPH <{named_graph}> {{\n{inner_query}\n}}"
 
-    def _named_graph_values_block(self, named_graphs, inner_query):
+    @staticmethod
+    def _named_graph_values_block(
+        named_graphs: Sequence[str],
+        inner_query: str,
+    ) -> str:
+        """Wrap a query in ``VALUES ?graph`` and ``GRAPH ?graph`` clauses."""
         if not named_graphs:
             return inner_query
 
@@ -175,14 +209,25 @@ class ProvenanceAnalyzer:
         }}
         """.strip()
 
-    def _order_clause(self, order_name, var_map):
+    def _order_clause(
+        self,
+        order_name: str | None,
+        var_map: dict[str, str],
+    ) -> str:
+        """Build an ORDER BY clause for a selected parameter or metric."""
         if not order_name:
             return ""
 
         order_var = var_map.get(order_name, self.sanitize_variable_name(order_name))
         return f"\nORDER BY ?{order_var}"
 
-    def _format_query(self, select_vars, where_block, order_clause=""):
+    def _format_query(
+        self,
+        select_vars: str,
+        where_block: str,
+        order_clause: str = "",
+    ) -> str:
+        """Format a complete SPARQL query."""
         return f"""
         {self.SCHEMA_PREFIX}
 
@@ -193,19 +238,33 @@ class ProvenanceAnalyzer:
         {order_clause}
         """.strip()
 
-    def _collect_xy_values(self, data, x_axis_index, y_axis_index):
+    @staticmethod
+    def _collect_xy_values(
+        data: Sequence[Sequence[Any]],
+        x_axis_index: int,
+        y_axis_index: int,
+    ) -> tuple[list[tuple[float, float]], list[float]]:
+        """Collect sorted x/y pairs and unique x tick values from table rows."""
         values = []
         x_tick_set = set()
 
         for row in data:
-            x = float(row[x_axis_index])
-            y = float(row[y_axis_index])
-            values.append((x, y))
-            x_tick_set.add(x)
+            x_value = float(row[x_axis_index])
+            y_value = float(row[y_axis_index])
+            values.append((x_value, y_value))
+            x_tick_set.add(x_value)
 
         return sorted(values), sorted(x_tick_set)
 
-    def _finish_plot(self, x_axis_label, y_axis_label, title, x_ticks, output_file):
+    @staticmethod
+    def _finish_plot(
+        x_axis_label: str,
+        y_axis_label: str,
+        title: str,
+        x_ticks: Sequence[float],
+        output_file: str | None,
+    ) -> None:
+        """Apply common plot formatting and save or display the result."""
         plt.xlabel(x_axis_label)
         plt.ylabel(y_axis_label)
         plt.title(title)
@@ -222,33 +281,28 @@ class ProvenanceAnalyzer:
 
     def build_dynamic_rocrate_query(
         self,
-        parameters,
-        metrics,
-        named_graph=None,
-        order_by=None,
-    ):
-        """
-        Generate a dynamic SPARQL query for the schema.org CreateAction structure
-        used by the newer RO-Crate provenance output.
+        parameters: Sequence[str],
+        metrics: Sequence[str],
+        named_graph: str | None = None,
+        order_by: str | None = None,
+    ) -> str:
+        """Build a SPARQL query for local aggregate RO-Crate provenance.
 
-        The query extracts run parameters from:
-            CreateAction -> schema:object -> PropertyValue -> schema:exampleOfWork
-
-        and metrics from:
-            CreateAction -> schema:result -> PropertyValue
+        The query extracts parameter values from
+        ``CreateAction -> object -> PropertyValue -> exampleOfWork`` and metric
+        values from ``CreateAction -> result -> PropertyValue``.
 
         Args:
-            parameters (list): Parameter names matched via schema:name.
-            metrics (list): Metric names matched via schema:name.
-            named_graph (str, optional): URI of a named graph to query within.
-            order_by (str, optional): Parameter or metric name to order results by.
-                                     Defaults to the first parameter, if available.
+            parameters: Parameter names matched with ``schema:name``.
+            metrics: Metric names matched with ``schema:name``.
+            named_graph: Optional named graph URI to query inside.
+            order_by: Optional parameter or metric name used for result ordering.
+                Defaults to the first parameter when available.
 
         Returns:
-            str: A complete SPARQL query string ready to execute.
+            Complete SPARQL query string.
         """
-
-        all_names = parameters + metrics
+        all_names = [*parameters, *metrics]
         var_map = self._variable_map(all_names)
         select_vars = self._select_variables(all_names, var_map)
 
@@ -267,23 +321,26 @@ class ProvenanceAnalyzer:
 
     def build_dynamic_rohub_query(
         self,
-        parameters,
-        metrics,
-        named_graphs):
-        """
-        Generate a dynamic SPARQL query for schema.org CreateAction structure
-        across multiple named graphs using VALUES ?graph.
+        parameters: Sequence[str],
+        metrics: Sequence[str],
+        named_graphs: Sequence[str],
+    ) -> str:
+        """Build a SPARQL query for provenance spread across RoHub named graphs.
 
-        Also extracts:
-            ?tool_name
-        from:
-            ?software a schema:SoftwareApplication ;
-                      foaf:name ?tool_name .
-        """
+        The query includes ``?tool_name`` and reads parameter/metric names using
+        FOAF names, matching the uploaded RoHub graph structure.
 
-        all_names = parameters + metrics
+        Args:
+            parameters: Parameter names matched with FOAF name.
+            metrics: Metric names matched with FOAF name.
+            named_graphs: Named graph URIs included in a ``VALUES ?graph`` block.
+
+        Returns:
+            Complete SPARQL query string.
+        """
+        all_names = [*parameters, *metrics]
         var_map = self._variable_map(all_names)
-        select_vars_str = " ".join(
+        select_vars = " ".join(
             ["?tool_name", self._select_variables(all_names, var_map)]
         )
 
@@ -294,141 +351,122 @@ class ProvenanceAnalyzer:
                 for name in parameters
             ),
             "\n".join(
-                self._metric_block(name, var_map, self.FOAF_NAME)
-                for name in metrics
+                self._metric_block(name, var_map, self.FOAF_NAME) for name in metrics
             ),
         )
 
         order_name = parameters[0] if parameters else None
         return self._format_query(
-            select_vars_str,
+            select_vars,
             self._named_graph_values_block(named_graphs, inner_query),
             self._order_clause(order_name, var_map),
         )
 
-    def run_query_on_graph(
-        self, graph: Graph, query: str
-    ) -> Tuple[List[str], List[List]]:
-        """
-        Executes a SPARQL query on the provided RDF graph.
+    @staticmethod
+    def run_query_on_graph(graph: Graph, query: str) -> Any:
+        """Execute a SPARQL query on an RDF graph.
 
         Args:
-            graph (rdflib.Graph): The RDF graph to query.
-            query (str): The SPARQL query string to execute.
+            graph: RDF graph to query.
+            query: SPARQL query string.
 
         Returns:
-            rdflib.plugins.sparql.processor.SPARQLResult: The query results object
-                                                          from rdflib.
+            Query result object returned by ``rdflib.Graph.query``.
         """
         return graph.query(query)
 
     def plot_provenance_graph(
         self,
-        data: List[List],
+        data: Sequence[Sequence[Any]],
         x_axis_label: str,
         y_axis_label: str,
-        x_axis_index: str,
-        y_axis_index: str,
+        x_axis_index: int,
+        y_axis_index: int,
         title: str,
-        output_file: str = None,
-        figsize: Tuple[int, int] = (12, 5),
-    ):
-        """
-        Generates a scatter/line plot from the extracted provenance data.
-
-        The plot displays data points as a single line series. The x-axis uses a
-        logarithmic scale.
+        output_file: str | None = None,
+        figsize: tuple[int, int] = (12, 5),
+    ) -> None:
+        """Plot one metric series from extracted provenance data.
 
         Args:
-            data (List[List]): The table data to plot, where each row is a list of values.
-            x_axis_label (str): Label for the x-axis.
-            y_axis_label (str): Label for the y-axis.
-            x_axis_index (int or str): Index or key for the x-axis values in each row.
-            y_axis_index (int or str): Index or key for the y-axis values in each row.
-            title (str): Title of the plot.
-            output_file (str, optional): Path where the plot will be saved as an image.
-                                        If None, displays the plot. Defaults to None.
-            figsize (Tuple[int, int], optional): Figure dimensions (width, height).
-                                                Defaults to (12, 5).
+            data: Table rows containing the x and y values.
+            x_axis_label: Label for the x-axis.
+            y_axis_label: Label for the y-axis.
+            x_axis_index: Row index for x-axis values.
+            y_axis_index: Row index for y-axis values.
+            title: Plot title.
+            output_file: Optional output path. If omitted, the plot is shown.
+            figsize: Matplotlib figure size.
         """
         values, x_ticks = self._collect_xy_values(data, x_axis_index, y_axis_index)
 
         plt.figure(figsize=figsize)
-        x_vals, y_vals = zip(*values)
-        plt.plot(x_vals, y_vals, marker="o", linestyle="-")
+        x_values, y_values = zip(*values)
+        plt.plot(x_values, y_values, marker="o", linestyle="-")
         self._finish_plot(x_axis_label, y_axis_label, title, x_ticks, output_file)
 
     def plot_provenance_graph_rohub(
         self,
-        data: List[List],
+        data: Sequence[Sequence[Any]],
         x_axis_label: str,
         y_axis_label: str,
         group_index: int,
         x_axis_index: int,
         y_axis_index: int,
         title: str,
-        output_file: str = None,
-        figsize: Tuple[int, int] = (12, 5),
-    ):
-        """
-        Generates grouped scatter/line plots from provenance data.
-
-        Expected row format example:
-            ["A", x1, y1]
-            ["A", x2, y2]
-            ["B", x3, y3]
-
-        Each unique group gets its own plotted line.
+        output_file: str | None = None,
+        figsize: tuple[int, int] = (12, 5),
+    ) -> None:
+        """Plot grouped metric series from RoHub provenance query results.
 
         Args:
-            data (List[List]): Table data.
-            x_axis_label (str): Label for x-axis.
-            y_axis_label (str): Label for y-axis.
-            group_index (int): Index containing the grouping string.
-            x_axis_index (int): Index for x-axis values.
-            y_axis_index (int): Index for y-axis values.
-            title (str): Plot title.
-            output_file (str, optional): File path to save plot.
-            figsize (Tuple[int, int], optional): Figure size.
+            data: Table rows containing group, x, and y values.
+            x_axis_label: Label for the x-axis.
+            y_axis_label: Label for the y-axis.
+            group_index: Row index containing the group label.
+            x_axis_index: Row index for x-axis values.
+            y_axis_index: Row index for y-axis values.
+            title: Plot title.
+            output_file: Optional output path. If omitted, the plot is shown.
+            figsize: Matplotlib figure size.
         """
-        grouped_values = defaultdict(list)
+        grouped_values: dict[str, list[tuple[float, float]]] = defaultdict(list)
         x_tick_set = set()
 
         for row in data:
             group = str(row[group_index])
-            x = float(row[x_axis_index])
-            y = float(row[y_axis_index])
+            x_value = float(row[x_axis_index])
+            y_value = float(row[y_axis_index])
 
-            grouped_values[group].append((x, y))
-            x_tick_set.add(x)
-
-        x_ticks = sorted(x_tick_set)
+            grouped_values[group].append((x_value, y_value))
+            x_tick_set.add(x_value)
 
         plt.figure(figsize=figsize)
 
         for group, values in grouped_values.items():
             values.sort()
-            x_vals, y_vals = zip(*values)
-            plt.plot(x_vals, y_vals, marker="o", linestyle="-", label=group)
+            x_values, y_values = zip(*values)
+            plt.plot(x_values, y_values, marker="o", linestyle="-", label=group)
 
         if grouped_values:
             plt.legend()
-        self._finish_plot(x_axis_label, y_axis_label, title, x_ticks, output_file)
 
-    def validate_provenance(self):
-        """
-        Validates the RO-Crate against the RO-Crate 1.1 profile.
-        Uses the rocrate-validator library to check if the RO-Crate metadata
-        conforms to the RO-Crate 1.1 specification with required severity level.
+        self._finish_plot(
+            x_axis_label,
+            y_axis_label,
+            title,
+            sorted(x_tick_set),
+            output_file,
+        )
+
+    def validate_provenance(self) -> None:
+        """Validate the RO-Crate folder against the RO-Crate 1.1 profile.
+
         Raises:
-            AssertionError: If the RO-Crate has validation issues, with details
-                           about each issue's severity and message.
-
-        Prints:
-            Success message if the RO-Crate is valid.
+            AssertionError: If the validator reports required-profile issues.
         """
         settings = services.ValidationSettings(
-            rocrate_uri=self.provenance_folderpath,
+            rocrate_uri=str(self._provenance_dir()),
             profile_identifier="ro-crate-1.1",
             requirement_severity=models.Severity.REQUIRED,
         )

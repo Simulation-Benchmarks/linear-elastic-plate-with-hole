@@ -1,3 +1,4 @@
 kratos/__pycache__/
 fenics/__pycache__/
 provenance/__pycache__/
+benchmark_runner/__pycache__/
