@@ -566,6 +566,9 @@
       },
       "evaluates": [
         {
+          "@id": "local:metric_number_of_dofs"
+        },
+        {
           "@id": "local:metric_max_von_mises_stress"
         },
         {
@@ -820,6 +823,45 @@
       "@id": "local:extract_reaction_force_left_boundary_y",
       "@type": "cr:DataSource",
       "jsonPath": "/reaction_force_left_boundary_y/"
+    },
+    {
+      "@id": "local:field_number_of_dofs",
+      "@type": "Field",
+      "dataType": {
+        "@id": "schema:Double"
+      },
+      "represents": {
+        "@id": "local:metric_number_of_dofs"
+      },
+      "source": {
+        "@id": "local:source_number_of_dofs"
+      }
+    },
+    {
+      "@id": "local:metric_number_of_dofs",
+      "@type": "numerical variable",
+      "label": "number_of_dofs",
+      "has unit": {
+        "@id": "unit:UNITLESS"
+      },
+      "has quantity kind": {
+        "@id": "http://qudt.org/vocab/quantitykind/Count"
+      }
+    },
+    {
+      "@id": "local:source_number_of_dofs",
+      "@type": "cr:DataSource",
+      "extract": {
+        "@id": "local:extract_number_of_dofs"
+      },
+      "file object": {
+        "@id": "local:summary_file_object"
+      }
+    },
+    {
+      "@id": "local:extract_number_of_dofs",
+      "@type": "cr:DataSource",
+      "jsonPath": "/number_of_dofs/"
     },
     {
       "@id": "local:simulation_run",

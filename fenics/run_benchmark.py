@@ -37,6 +37,7 @@ UNIT_SYMBOLS = {
     "unit:M": "m",
     "unit:PA": "Pa",
     "unit:N": "N",
+    "unit:UNITLESS": "-"
 }
 
 
