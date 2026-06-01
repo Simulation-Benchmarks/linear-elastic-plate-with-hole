@@ -36,6 +36,7 @@ DEFAULT_SOFTWARE_NAME = "Fenics"
 UNIT_SYMBOLS = {
     "unit:M": "m",
     "unit:PA": "Pa",
+    "unit:N": "N",
 }
 
 

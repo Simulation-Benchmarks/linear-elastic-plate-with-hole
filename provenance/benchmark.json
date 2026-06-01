@@ -573,6 +573,12 @@
         },
         {
           "@id": "local:metric_max_displacement_error"
+        },
+        {
+          "@id": "local:metric_reaction_force_left_boundary_x"
+        },
+        {
+          "@id": "local:metric_reaction_force_left_boundary_y"
         }
       ],
       "has parameter set": [
@@ -638,7 +644,7 @@
       "@type": "numerical variable",
       "label": "max_von_mises_stress",
       "has unit": {
-        "@id": "unit:BAR"
+        "@id": "unit:PA"
       },
       "has quantity kind": {
         "@id": "http://qudt.org/vocab/quantitykind/Stress"
@@ -677,10 +683,10 @@
       "@type": "numerical variable",
       "label": "max_displacement_error",
       "has unit": {
-        "@id": "unit:BAR"
+        "@id": "unit:M"
       },
       "has quantity kind": {
-        "@id": "http://qudt.org/vocab/quantitykind/Stress"
+        "@id": "http://qudt.org/vocab/quantitykind/Displacement"
       }
     },
     {
@@ -736,6 +742,84 @@
       "@id": "local:extract_l2_error_displacement",
       "@type": "cr:DataSource",
       "jsonPath": "/l2_error_displacement/"
+    },
+    {
+      "@id": "local:field_reaction_force_left_boundary_x",
+      "@type": "Field",
+      "dataType": {
+        "@id": "schema:Double"
+      },
+      "represents": {
+        "@id": "local:metric_reaction_force_left_boundary_x"
+      },
+      "source": {
+        "@id": "local:source_reaction_force_left_boundary_x"
+      }
+    },
+    {
+      "@id": "local:metric_reaction_force_left_boundary_x",
+      "@type": "numerical variable",
+      "label": "reaction_force_left_boundary_x",
+      "has unit": {
+        "@id": "unit:N"
+      },
+      "has quantity kind": {
+        "@id": "http://qudt.org/vocab/quantitykind/Force"
+      }
+    },
+    {
+      "@id": "local:source_reaction_force_left_boundary_x",
+      "@type": "cr:DataSource",
+      "extract": {
+        "@id": "local:extract_reaction_force_left_boundary_x"
+      },
+      "file object": {
+        "@id": "local:summary_file_object"
+      }
+    },
+    {
+      "@id": "local:extract_reaction_force_left_boundary_x",
+      "@type": "cr:DataSource",
+      "jsonPath": "/reaction_force_left_boundary_x/"
+    },
+    {
+      "@id": "local:field_reaction_force_left_boundary_y",
+      "@type": "Field",
+      "dataType": {
+        "@id": "schema:Double"
+      },
+      "represents": {
+        "@id": "local:metric_reaction_force_left_boundary_y"
+      },
+      "source": {
+        "@id": "local:source_reaction_force_left_boundary_y"
+      }
+    },
+    {
+      "@id": "local:metric_reaction_force_left_boundary_y",
+      "@type": "numerical variable",
+      "label": "reaction_force_left_boundary_y",
+      "has unit": {
+        "@id": "unit:N"
+      },
+      "has quantity kind": {
+        "@id": "http://qudt.org/vocab/quantitykind/Force"
+      }
+    },
+    {
+      "@id": "local:source_reaction_force_left_boundary_y",
+      "@type": "cr:DataSource",
+      "extract": {
+        "@id": "local:extract_reaction_force_left_boundary_y"
+      },
+      "file object": {
+        "@id": "local:summary_file_object"
+      }
+    },
+    {
+      "@id": "local:extract_reaction_force_left_boundary_y",
+      "@type": "cr:DataSource",
+      "jsonPath": "/reaction_force_left_boundary_y/"
     },
     {
       "@id": "local:simulation_run",

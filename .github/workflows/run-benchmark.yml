@@ -29,7 +29,6 @@ jobs:
             environment_name: fenics-model-validation
             environment_file: fenics/environment_benchmark.yml
             results_artifact: fenics_results_linear-elastic-plate-with-hole
-            provenance_artifact: fenics_provenance_linear-elastic-plate-with-hole
             provenance_glob: fenics/results/**/Fenics-*.zip
             aggregate_rocrate_artifact: fenics-aggregate-rocrate
             rocrate_filename: Fenics-RoCrate.zip
@@ -39,8 +38,6 @@ jobs:
             environment_name: kratos-model-validation
             environment_file: kratos/environment_benchmark.yml
             results_artifact: kratos_results_linear-elastic-plate-with-hole
-            provenance_artifact: kratos_provenance_linear-elastic-plate-with-hole
-            provenance_glob: kratos/results/**/Kratos-*.zip
             aggregate_rocrate_artifact: kratos-aggregate-rocrate
             rocrate_filename: Kratos-RoCrate.zip
 
@@ -72,13 +69,6 @@ jobs:
             name: ${{ matrix.results_artifact }}
             path: |
               ${{ matrix.tool_id }}/results/
-
-      - name: Archive provenance zip artifacts of the ${{ matrix.software_name }} run
-        uses: actions/upload-artifact@v6
-        with:
-          name: ${{ matrix.provenance_artifact }}
-          path: |
-            ${{ matrix.provenance_glob }}
 
       - name: Archive ${{ matrix.software_name }} aggregate RO-Crate artifact
         uses: actions/upload-artifact@v6

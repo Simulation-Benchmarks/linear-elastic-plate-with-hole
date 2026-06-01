@@ -37,6 +37,7 @@ SNAKEMAKE_FILE_NAME = "Snakefile.smk"
 UNIT_SYMBOLS = {
     "unit:M": "m",
     "unit:PA": "Pa",
+    "unit:N": "N",
 }
 
 
