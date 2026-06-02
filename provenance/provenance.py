@@ -15,7 +15,7 @@ from typing import Any, Iterable, Sequence
 
 import matplotlib.pyplot as plt
 from rdflib import Graph
-from rocrate_validator import models, services
+
 
 DEFAULT_METADATA_FILENAME = "ro-crate-metadata.json"
 
@@ -458,25 +458,3 @@ class ProvenanceAnalyzer:
             sorted(x_tick_set),
             output_file,
         )
-
-    def validate_provenance(self) -> None:
-        """Validate the RO-Crate folder against the RO-Crate 1.1 profile.
-
-        Raises:
-            AssertionError: If the validator reports required-profile issues.
-        """
-        settings = services.ValidationSettings(
-            rocrate_uri=str(self._provenance_dir()),
-            profile_identifier="ro-crate-1.1",
-            requirement_severity=models.Severity.REQUIRED,
-        )
-
-        result = services.validate(settings)
-
-        assert not result.has_issues(), "RO-Crate is invalid!\n" + "\n".join(
-            f"Detected issue of severity {issue.severity.name} with check "
-            f'"{issue.check.identifier}": {issue.message}'
-            for issue in result.get_issues()
-        )
-
-        print("RO-Crate is valid!")

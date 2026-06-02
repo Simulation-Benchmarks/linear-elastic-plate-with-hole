@@ -225,7 +225,7 @@ def _formal_parameter_payload(
     payload["additionalType"] = ""
 
     if unit is not None:
-        payload["http://w3id.org/nfdi4ing/metadata4ing#hasKindOfQuantity"] = {
+        payload["unitText"] = {
             "@id": unit
         }
 
@@ -746,7 +746,7 @@ def _add_workflow_node(
 def create_main_ro(
     path: str,
     benchmark_object: semantic_benchmark.SemanticBenchmark,
-    rocrate_filename: str,
+    rocrate_path: str,
     software_name: str,
 ) -> None:
     """Create and write an aggregate RO-Crate for a benchmark result directory.
@@ -755,12 +755,12 @@ def create_main_ro(
         path: Directory containing one subfolder per simulation run.
         benchmark_object: Parsed benchmark description used to create configuration
             and metric nodes.
-        rocrate_filename: Output zip filename/path for the aggregate crate.
+        rocrate_path: Output zip filename/path for the aggregate crate.
         software_name: Software name recorded as the run action instrument.
 
     Returns:
         None. The function writes the aggregate RO-Crate zip to
-        ``rocrate_filename``.
+        ``rocrate_path``.
 
     Raises:
         NotADirectoryError: If ``path`` is not a directory.
@@ -772,6 +772,7 @@ def create_main_ro(
     if not input_path.is_dir():
         raise NotADirectoryError(f"{path} is not a valid directory")
 
+    print(f"Creating aggregate RO-Crate from simulation results in {input_path}...")
     subfolders = _iter_subfolders(input_path)
     subcrates = _collect_subcrates(subfolders)
     _unzip_subcrates_at_root(subcrates)
@@ -806,7 +807,7 @@ def create_main_ro(
     _add_profile_creative_works(crate)
     _add_workflow_node(crate, subcrates, software_id, snakemake_id)
     
-    crate.write_zip(rocrate_filename)
+    crate.write_zip(rocrate_path)
 
 
 def parse_args() -> argparse.Namespace:
@@ -814,7 +815,7 @@ def parse_args() -> argparse.Namespace:
 
     Returns:
         Parsed command-line arguments with benchmark file, simulation result path,
-        output RO-Crate filename, and software name.
+        output RO-Crate path, and software name.
     """
     parser = argparse.ArgumentParser(
         description="Create a benchmark provenance RO-Crate from simulation results."
@@ -830,9 +831,9 @@ def parse_args() -> argparse.Namespace:
         help="Path containing simulation result subfolders with RoCrate zip files",
     )
     parser.add_argument(
-        "--rocrate-filename",
+        "--rocrate-path",
         required=True,
-        help="Filename for the generated RO-Crate zip file",
+        help="Path for the generated RO-Crate zip file",
     )
     parser.add_argument(
         "--software-name",
@@ -855,7 +856,7 @@ def main() -> None:
     create_main_ro(
         args.simulation_result_path,
         benchmark_object,
-        rocrate_filename=args.rocrate_filename,
+        rocrate_path=args.rocrate_path,
         software_name=args.software_name,
     )
 

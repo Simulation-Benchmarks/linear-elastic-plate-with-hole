@@ -9,6 +9,7 @@ import zipfile
 from argparse import Namespace
 from dataclasses import dataclass
 from pathlib import Path
+from rocrate_validator import models, services
 
 # We should move the provenance reporter and RO-Crate creation code into a separate shared module
 
@@ -65,9 +66,15 @@ def parse_arguments(config: BenchmarkRunnerConfig) -> Namespace:
         help="Path to the zipped benchmark archive to extract.",
     )
     parser.add_argument(
-        "--rocrate-filename",
+        "--result-path",
         type=Path,
-        default=Path(config.default_rocrate_filename),
+        required=True,
+        help="Path for benchmark results",
+    )
+    parser.add_argument(
+        "--rocrate-name",
+        type=str,
+        default="RoCrate.zip",
         help="Filename or path for the generated aggregate RO-Crate zip file.",
     )
     parser.add_argument(
@@ -263,25 +270,44 @@ def run_configuration(
 def create_aggregate_rocrate(
     results_dir: Path,
     benchmark: semantic_benchmark.SemanticBenchmark,
-    rocrate_filename: Path,
+    rocrate_path: Path,
     software_name: str,
 ) -> None:
     """Create one aggregate RO-Crate from all per-configuration result crates."""
     create_rocrate.create_main_ro(
         str(results_dir),
         benchmark,
-        rocrate_filename=str(rocrate_filename),
+        rocrate_path=str(rocrate_path),
         software_name=software_name,
     )
-    print(f"Aggregate RO-Crate created at {rocrate_filename}.")
+    print(f"Aggregate RO-Crate created at {rocrate_path}.")
 
 
-def resolve_rocrate_filename(rocrate_filename: Path, benchmark_dir: Path) -> Path:
-    """Resolve relative aggregate RO-Crate filenames inside the benchmark directory."""
-    output_path = rocrate_filename.expanduser()
+def resolve_rocrate_path(rocrate_path: Path, benchmark_dir: Path) -> Path:
+    """Resolve relative aggregate RO-Crate paths inside the benchmark directory."""
+    output_path = rocrate_path.expanduser()
     if output_path.is_absolute():
         return output_path
     return benchmark_dir / output_path
+
+
+def validate_rocrate(rocrate_path: str, profile: str = "ro-crate-1.1") -> None:
+    """Validate the RO-Crate folder against the specified profile.
+    Raises:
+        AssertionError: If the validator reports required-profile issues.
+    """
+    settings = services.ValidationSettings(
+        rocrate_uri=rocrate_path,
+        profile_identifier=profile,
+        requirement_severity=models.Severity.REQUIRED,
+    )
+    result = services.validate(settings)
+    assert not result.has_issues(), "RO-Crate is invalid!\n" + "\n".join(
+        f"Detected issue of severity {issue.severity.name} with check "
+        f'"{issue.check.identifier}": {issue.message}'
+        for issue in result.get_issues()
+    )
+    print("RO-Crate is valid!")
 
 
 def run_benchmark(args: Namespace, config: BenchmarkRunnerConfig) -> None:
@@ -298,11 +324,16 @@ def run_benchmark(args: Namespace, config: BenchmarkRunnerConfig) -> None:
         run_configuration(parameter_file, benchmark_dir, shared_env_dir, config)
 
     create_aggregate_rocrate(
-        benchmark_dir / "results",
+        args.result_path,
         benchmark,
-        rocrate_filename=resolve_rocrate_filename(args.rocrate_filename, benchmark_dir),
+        rocrate_path=args.result_path / args.rocrate_name,
         software_name=args.software_name,
     )
+    
+    with zipfile.ZipFile(args.result_path / args.rocrate_name, "r") as zip_ref:
+        zip_ref.extractall(args.result_path / "unpacked_rocrate")
+    
+    validate_rocrate(rocrate_path=str(args.result_path / "unpacked_rocrate"), profile=PROVENANCE_REPORT_PROFILE)
 
 
 def main(config: BenchmarkRunnerConfig) -> None:
