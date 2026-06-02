@@ -63,7 +63,7 @@ jobs:
             --benchmark-file "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}" \
             --benchmark-zip "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_ZIP}" \
             --rocrate-name "${{ matrix.rocrate_filename }}" \
-            --result-path "${GITHUB_WORKSPACE}/${{ matrix.tool_id }}/results" \
+            --result-path "${GITHUB_WORKSPACE}/${{ matrix.tool_id }}/results" 
 
       - name: Archive results of the ${{ matrix.software_name }} run of linear-elastic-plate-with-hole
         uses: actions/upload-artifact@v6
@@ -76,7 +76,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.aggregate_rocrate_artifact }}
-          path: ${{ matrix.tool_id }}/${{ matrix.rocrate_filename }}
+          path: "${GITHUB_WORKSPACE}/${{ matrix.tool_id }}/results/${{ matrix.rocrate_filename }}"
   
   process-artifacts:
     runs-on: ubuntu-latest
