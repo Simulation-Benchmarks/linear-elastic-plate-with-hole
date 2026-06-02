@@ -62,6 +62,7 @@ jobs:
           conda run -n "${{ matrix.environment_name }}" python run_benchmark.py \
             --benchmark-file "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}" \
             --benchmark-zip "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_ZIP}" \
+            --rocrate-name "${{ matrix.rocrate_filename }}" \
             --result-path "${GITHUB_WORKSPACE}/${{ matrix.tool_id }}/results" \
 
       - name: Archive results of the ${{ matrix.software_name }} run of linear-elastic-plate-with-hole
