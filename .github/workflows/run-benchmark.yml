@@ -76,7 +76,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.aggregate_rocrate_artifact }}
-          path: "${GITHUB_WORKSPACE}/${{ matrix.tool_id }}/results/${{ matrix.rocrate_filename }}"
+          path: ${{ github.workspace }}/${{ matrix.tool_id }}/results/${{ matrix.rocrate_filename }}
   
   process-artifacts:
     runs-on: ubuntu-latest
