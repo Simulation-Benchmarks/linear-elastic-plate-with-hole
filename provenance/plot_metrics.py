@@ -9,6 +9,7 @@ from rohub_provenance import (
     query_sparql,
 )
 
+
 def parse_args(argv=None):
     """
     Parse command-line arguments for the provenance processing script.
@@ -20,15 +21,40 @@ def parse_args(argv=None):
             - benchmark_name: Benchmark name used in RoHub annotations
             - tool: Optional tool name used to filter plotted data
             - output_file: Path for the final visualization output
+            - x_axis_label: Label for the x-axis
+            - y_axis_label: Label for the y-axis
+            - plot_title: Title for the plot
+            - parameters: Parameter names to query
+            - metrics: Metric names to query
     """
     parser = argparse.ArgumentParser(
         description="Fetch benchmark provenance from RoHub and plot simulation metrics."
     )
     parser.add_argument(
-        "--output_file",
+        "--output-file",
+        dest="output_file",
         type=str,
-        required=True,
-        help="Final visualization file",
+        default=None,
+        required=False,
+        help="Final visualization file. When omitted, the plot is displayed.",
+    )
+    parser.add_argument(
+        "--x-axis-label",
+        type=str,
+        default="X Axis Label",
+        help="Label for the x-axis.",
+    )
+    parser.add_argument(
+        "--y-axis-label",
+        type=str,
+        default="Y Axis Label",
+        help="Label for the y-axis.",
+    )
+    parser.add_argument(
+        "--plot-title",
+        type=str,
+        default="Plot Title",
+        help="Title for the plot.",
     )
     parser.add_argument(
         "--username",
@@ -58,6 +84,18 @@ def parse_args(argv=None):
         "--use-production-rohub",
         action="store_true",
         help="Use production RoHub instead of the development instance",
+    )
+    parser.add_argument(
+        "--parameters",
+        nargs="+",
+        default=None,
+        help="Parameter names to query from RoHub.",
+    )
+    parser.add_argument(
+        "--metrics",
+        nargs="+",
+        default=None,
+        help="Metric names to query from RoHub.",
     )
     return parser.parse_args(argv)
 
@@ -188,7 +226,7 @@ def load_and_query_rohub(args, parameters, metrics):
     return filter_by_tool(provenance_df, args.tool)
 
 
-def plot_results(plotter, final_df, output_file):
+def plot_results(plotter, final_df, args):
     """
     Generate a visualization plot of the provenance results.
 
@@ -200,18 +238,18 @@ def plot_results(plotter, final_df, output_file):
         final_df (pd.DataFrame): DataFrame containing filtered data to plot.
                                 Expected columns: element_size,
                                 max_von_mises_stress (in that order).
-        output_file (str): Path where the plot image will be saved.
+        args (argparse.Namespace): Plot configuration arguments.
     """
-    
+
     plotter.plot_provenance_graph(
         data=final_df.values.tolist(),
-        x_axis_label="Element Size",
-        y_axis_label="Max Von Mises Stress",
+        x_axis_label=args.x_axis_label,
+        y_axis_label=args.y_axis_label,
         group_index=0,
         x_axis_index=1,
         y_axis_index=2,
-        title="Element Size vs Max Von Mises Stress",
-        output_file=output_file,
+        title=args.plot_title,
+        output_file=args.output_file,
     )
 
 
@@ -237,23 +275,23 @@ def run(args, parameters, metrics):
 
     final_df = apply_custom_filters(provenance_df)
 
-    plot_results(plotter, final_df, args.output_file)
+    plot_results(plotter, final_df, args)
 
 
 def main():
     """
     Main entry point for the provenance analysis script.
 
-    Parses command-line arguments, defines the parameters and metrics to extract,
-    retrieves tool names from the workflow configuration, and executes the analysis
-    workflow.
+    Parses command-line arguments and executes the analysis workflow.
     """
     args = parse_args()
 
-    parameters = ["element_size","isoparametric_element_degree"]
-    metrics = ["max_von_mises_stress"]
+    if args.parameters is None or args.metrics is None:
+        raise ValueError(
+            "When running plot_metrics.py directly, provide --parameters and --metrics."
+        )
 
-    run(args, parameters, metrics)
+    run(args, args.parameters, args.metrics)
 
 
 if __name__ == "__main__":

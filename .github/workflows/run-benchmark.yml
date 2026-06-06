@@ -98,6 +98,8 @@ jobs:
   process-artifacts:
     runs-on: ubuntu-latest
     needs: run-examples
+    env:
+      PLOT_OUTPUT_FILE: ${{ matrix.tool }}-element-size-vs-stress-plot.pdf
 
     strategy:
       fail-fast: false
@@ -128,15 +130,14 @@ jobs:
       - name: Run ${{ matrix.tool }} plotting script
         shell: bash -l {0}
         run: |
-          python provenance/plot_metrics.py \
-            --benchmark-name "linear-elastic-plate-with-hole" \
+          python provenance/plot_plate_with_hole_metrics.py \
             --tool "${{ matrix.tool }}" \
             --username "${{ secrets.ROHUB_USERNAME }}" \
             --password "${{ secrets.ROHUB_PASSWORD }}" \
-            --output_file "${{ matrix.tool }}-element-size-vs-stress-plot.pdf"
+            --output-file "${PLOT_OUTPUT_FILE}"
 
       - name: Upload ${{ matrix.tool }} plot artifact
         uses: actions/upload-artifact@v6
         with:
-          name: ${{ matrix.tool }}-element-size-vs-stress-plot
-          path: ${{ matrix.tool }}-element-size-vs-stress-plot.pdf
+          name: ${{ matrix.tool }}-plot
+          path: ${{ env.PLOT_OUTPUT_FILE }}
