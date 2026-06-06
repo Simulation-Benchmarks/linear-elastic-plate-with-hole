@@ -17,9 +17,6 @@ from benchmark_runner.common import (
 CONFIG = BenchmarkRunnerConfig(
     tool_name="Kratos",
     benchmark_dir=Path(__file__).resolve().parent,
-    default_rocrate_filename="Kratos-RoCrate.zip",
-    default_software_name="Kratos",
-    reporter_filename_prefix="Kratos",
     snakemake_extra_args=("--snakefile", "Snakefile.smk"),
 )
 

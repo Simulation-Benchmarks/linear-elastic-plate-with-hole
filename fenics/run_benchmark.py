@@ -17,9 +17,6 @@ from benchmark_runner.common import (
 CONFIG = BenchmarkRunnerConfig(
     tool_name="Fenics",
     benchmark_dir=Path(__file__).resolve().parent,
-    default_rocrate_filename="Fenics-RoCrate.zip",
-    default_software_name="Fenics",
-    reporter_filename_prefix="Fenics",
 )
 
 

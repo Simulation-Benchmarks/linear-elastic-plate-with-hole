@@ -25,7 +25,7 @@ PROVENANCE_REPORTER_NAME = "metadata4ing"
 PROVENANCE_REPORT_NAME = "NFDI4Ing Provenance"
 PROVENANCE_REPORT_DESCRIPTION = "Benchmark for linear-elastic plate with a hole"
 PROVENANCE_REPORT_LICENSE = "https://opensource.org/licenses/MIT"
-PROVENANCE_REPORT_PROFILE = "provenance-run-crate-0.5"
+PROVENANCE_PROFILE = "provenance-run-crate-0.5"
 
 UNIT_SYMBOLS = {
     "unit:M": "m",
@@ -39,10 +39,12 @@ class BenchmarkRunnerConfig:
 
     tool_name: str
     benchmark_dir: Path
-    default_rocrate_filename: str
-    default_software_name: str
-    reporter_filename_prefix: str
     snakemake_extra_args: tuple[str, ...] = ()
+
+
+def build_default_rocrate_name(tool_name: str) -> str:
+    """Build the default aggregate RO-Crate filename for a tool."""
+    return f"{tool_name}-RoCrate.zip"
 
 
 def parse_arguments(config: BenchmarkRunnerConfig) -> Namespace:
@@ -74,12 +76,12 @@ def parse_arguments(config: BenchmarkRunnerConfig) -> Namespace:
     parser.add_argument(
         "--rocrate-name",
         type=str,
-        default="RoCrate.zip",
+        default=build_default_rocrate_name(config.tool_name),
         help="Filename or path for the generated aggregate RO-Crate zip file.",
     )
     parser.add_argument(
         "--software-name",
-        default=config.default_software_name,
+        default=config.tool_name,
         help="Software name recorded in the generated aggregate RO-Crate.",
     )
     return parser.parse_args()
@@ -213,7 +215,7 @@ def build_provenance_reporter_args(
         "--reporter",
         PROVENANCE_REPORTER_NAME,
         "--report-metadata4ing-filename",
-        f"{config.reporter_filename_prefix}-{configuration}",
+        f"{config.tool_name}-{configuration}",
         "--report-metadata4ing-name",
         PROVENANCE_REPORT_NAME,
         "--report-metadata4ing-description",
@@ -221,7 +223,7 @@ def build_provenance_reporter_args(
         "--report-metadata4ing-license",
         PROVENANCE_REPORT_LICENSE,
         "--report-metadata4ing-profile",
-        PROVENANCE_REPORT_PROFILE,
+        PROVENANCE_PROFILE,
     ]
 
 
@@ -291,7 +293,7 @@ def resolve_rocrate_path(rocrate_path: Path, benchmark_dir: Path) -> Path:
     return benchmark_dir / output_path
 
 
-def validate_rocrate(rocrate_path: str, profile: str = PROVENANCE_REPORT_PROFILE) -> None:
+def validate_rocrate(rocrate_path: str, profile: str = PROVENANCE_PROFILE) -> None:
     """Validate the RO-Crate folder against the specified profile.
     Raises:
         AssertionError: If the validator reports required-profile issues.
@@ -333,7 +335,7 @@ def run_benchmark(args: Namespace, config: BenchmarkRunnerConfig) -> None:
     with zipfile.ZipFile(args.result_path / args.rocrate_name, "r") as zip_ref:
         zip_ref.extractall(args.result_path / "unpacked_rocrate")
     
-    validate_rocrate(rocrate_path=str(args.result_path / "unpacked_rocrate"), profile=PROVENANCE_REPORT_PROFILE)
+    validate_rocrate(rocrate_path=str(args.result_path / "unpacked_rocrate"), profile=PROVENANCE_PROFILE)
 
 
 def main(config: BenchmarkRunnerConfig) -> None:
