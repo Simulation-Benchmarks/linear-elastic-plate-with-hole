@@ -13,7 +13,6 @@ on:
     - cron: '3 17 * * *'
 
 env:
-  CACHE_NUMBER: 1  # increase to reset cache manually
   EXAMPLE_BENCHMARK_FILE: provenance/benchmark.json
   EXAMPLE_BENCHMARK_ZIP: benchmark/linear-elastic-plate-with-hole.zip
 
@@ -23,23 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - tool_id: fenics
-            software_name: Fenics
-            environment_name: fenics-model-validation
-            environment_file: fenics/environment_benchmark.yml
-            results_artifact: fenics_results_linear-elastic-plate-with-hole
-            provenance_glob: fenics/results/**/Fenics-*.zip
-            aggregate_rocrate_artifact: fenics-aggregate-rocrate
-            rocrate_filename: Fenics-RoCrate.zip
-
-          - tool_id: kratos
-            software_name: Kratos
-            environment_name: kratos-model-validation
-            environment_file: kratos/environment_benchmark.yml
-            results_artifact: kratos_results_linear-elastic-plate-with-hole
-            aggregate_rocrate_artifact: kratos-aggregate-rocrate
-            rocrate_filename: Kratos-RoCrate.zip
+        tool: [fenics, kratos]
 
     steps:
       - name: checkout repo content
@@ -52,110 +35,53 @@ jobs:
             use-mamba: true
             conda-remove-defaults: "true"
         
-      - name: Create ${{ matrix.software_name }} environment
-        run: mamba env create -n ${{ matrix.environment_name }} -f ${{ matrix.environment_file }}
+      - name: Create ${{ matrix.tool }} environment
+        run: mamba env create -n ${{ matrix.tool }} -f ${{ matrix.tool }}/environment_benchmark.yml
 
-      - name: Run linear-elastic-plate-with-hole using ${{ matrix.software_name }}
+      - name: Run linear-elastic-plate-with-hole using ${{ matrix.tool }}
         shell: bash -l {0}
         run: |
-          cd "$GITHUB_WORKSPACE/${{ matrix.tool_id }}/"
-          conda run -n "${{ matrix.environment_name }}" python run_benchmark.py \
+          cd "$GITHUB_WORKSPACE/${{ matrix.tool }}/"
+          conda run -n "${{ matrix.tool }}" python run_benchmark.py \
             --benchmark-file "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}" \
             --benchmark-zip "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_ZIP}" \
-            --rocrate-name "${{ matrix.rocrate_filename }}" \
-            --result-path "${GITHUB_WORKSPACE}/${{ matrix.tool_id }}/results" 
+            --rocrate-name "${{ matrix.tool }}_rocrate.zip" \
+            --result-path "${GITHUB_WORKSPACE}/${{ matrix.tool }}/results" 
 
-      - name: Archive results of the ${{ matrix.software_name }} run of linear-elastic-plate-with-hole
+      - name: Archive results of the ${{ matrix.tool }} run of linear-elastic-plate-with-hole
         uses: actions/upload-artifact@v6
         with:
-            name: ${{ matrix.results_artifact }}
+            name: ${{ matrix.tool }}_results_linear-elastic-plate-with-hole
             path: |
-              ${{ matrix.tool_id }}/results/
+              ${{ matrix.tool }}/results/
 
-      - name: Archive ${{ matrix.software_name }} aggregate RO-Crate artifact
+      - name: Archive ${{ matrix.tool }} aggregate RO-Crate artifact
         uses: actions/upload-artifact@v6
         with:
-          name: ${{ matrix.aggregate_rocrate_artifact }}
-          path: ${{ github.workspace }}/${{ matrix.tool_id }}/results/${{ matrix.rocrate_filename }}
-  
-  process-artifacts:
-    runs-on: ubuntu-latest
-    needs: run-examples
+          name: ${{ matrix.tool }}-aggregate-rocrate
+          path: ${{ github.workspace }}/${{ matrix.tool }}/results/${{ matrix.tool }}_rocrate.zip
 
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - tool_id: fenics
-            software_name: Fenics
-            aggregate_rocrate_artifact: fenics-aggregate-rocrate
-            rocrate_filename: Fenics-RoCrate.zip
-            plot_filename: fenics-element-size-vs-stress-plot.pdf
-            rocrate_title: "NFDI4Ing Provenance (Fenics)"
-
-          - tool_id: kratos
-            software_name: Kratos
-            aggregate_rocrate_artifact: kratos-aggregate-rocrate
-            rocrate_filename: Kratos-RoCrate.zip
-            plot_filename: kratos-element-size-vs-stress-plot.pdf
-            rocrate_title: "NFDI4Ing Provenance (Kratos)"
-
-    steps:
-      - name: Checkout repo content
-        uses: actions/checkout@v6
-
-      - name: Download ${{ matrix.software_name }} aggregate RO-Crate artifact
-        uses: actions/download-artifact@v7
-        with:
-          name: ${{ matrix.aggregate_rocrate_artifact }}
-          path: .
-
-      - name: Setup Mambaforge with provenance env
-        uses: conda-incubator/setup-miniconda@v4
-        with:
-          miniforge-version: latest
-          activate-environment: provenance
-          use-mamba: true
-          environment-file: provenance/environment_provenance.yml
-          conda-remove-defaults: "true"
-
-      - name: Install provenance pip packages
+      - name: Install RoHub upload package
         shell: bash -l {0}
         run: |
           python -m pip install rohub
 
-      - name: Unzip ${{ matrix.software_name }} RO-Crate
-        run: |
-          mkdir -p "./processed/${{ matrix.tool_id }}"
-          unzip -o "${{ matrix.rocrate_filename }}" -d "./processed/${{ matrix.tool_id }}"
-
-      - name: Run ${{ matrix.software_name }} plotting script
-        shell: bash -l {0}
-        run: |
-          python provenance/plot_metrics.py \
-            --provenance_folderpath "./processed/${{ matrix.tool_id }}" \
-            --output_file "${{ matrix.plot_filename }}"
-
-      - name: Upload ${{ matrix.software_name }} plot artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: ${{ matrix.tool_id }}-element-size-vs-stress-plot
-          path: ${{ matrix.plot_filename }}
-
-      - name: Upload ${{ matrix.software_name }} RO-Crate Zip file onto RoHub
+      - name: Upload ${{ matrix.tool }} RO-Crate Zip file onto RoHub
         id: rohub_upload
         shell: bash -l {0}
         continue-on-error: true
         run: |
-          LOG_FILE="${GITHUB_WORKSPACE}/rohub_upload_${{ matrix.tool_id }}_error.log"
+          TOOL="${{ matrix.tool }}"
+          TOOL_NAME="${TOOL^}"
+          LOG_FILE="${GITHUB_WORKSPACE}/rohub_upload_${TOOL}_error.log"
 
           OUTPUT="$(
             python provenance/upload_provenance.py \
-              --provenance_folderpath "./${{ matrix.rocrate_filename }}" \
+              --provenance_folderpath "${GITHUB_WORKSPACE}/${TOOL}/results/${TOOL}_rocrate.zip" \
               --benchmark_name "linear-elastic-plate-with-hole" \
               --username "${{ secrets.ROHUB_USERNAME }}" \
               --password "${{ secrets.ROHUB_PASSWORD }}" \
-              --rocrate-title "${{ matrix.rocrate_title }}"
+              --rocrate-title "NFDI4Ing Provenance (${TOOL_NAME})"
             2>&1
           )"
 
@@ -168,11 +94,49 @@ jobs:
             echo "=== RoHub upload failed, writing log to $LOG_FILE ==="
             printf '%s\n' "$OUTPUT" | tee "$LOG_FILE"
           fi
+  
+  process-artifacts:
+    runs-on: ubuntu-latest
+    needs: run-examples
 
-      - name: Upload ${{ matrix.software_name }} RoHub error log
-        if: always()
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: [fenics, kratos]
+
+    steps:
+      - name: Wait for RoHub processing
+        run: sleep 600
+
+      - name: Checkout repo content
+        uses: actions/checkout@v6
+
+      - name: Setup Mambaforge with provenance env
+        uses: conda-incubator/setup-miniconda@v4
+        with:
+          miniforge-version: latest
+          activate-environment: provenance
+          use-mamba: true
+          environment-file: provenance/environment_provenance.yml
+          conda-remove-defaults: "true"
+
+      - name: Install RoHub query package
+        shell: bash -l {0}
+        run: |
+          python -m pip install rohub
+
+      - name: Run ${{ matrix.tool }} plotting script
+        shell: bash -l {0}
+        run: |
+          python provenance/plot_metrics.py \
+            --benchmark-name "linear-elastic-plate-with-hole" \
+            --tool "${{ matrix.tool }}" \
+            --username "${{ secrets.ROHUB_USERNAME }}" \
+            --password "${{ secrets.ROHUB_PASSWORD }}" \
+            --output_file "${{ matrix.tool }}-element-size-vs-stress-plot.pdf"
+
+      - name: Upload ${{ matrix.tool }} plot artifact
         uses: actions/upload-artifact@v6
         with:
-          name: ${{ matrix.tool_id }}-rohub-upload-error-log
-          path: ${{ github.workspace }}/rohub_upload_${{ matrix.tool_id }}_error.log
-          if-no-files-found: ignore
+          name: ${{ matrix.tool }}-element-size-vs-stress-plot
+          path: ${{ matrix.tool }}-element-size-vs-stress-plot.pdf

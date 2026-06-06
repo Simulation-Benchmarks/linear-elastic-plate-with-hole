@@ -1,6 +1,7 @@
 import argparse
 import pandas as pd
 from provenance import ProvenanceAnalyzer
+from rohub_provenance import fetch_authenticated_benchmark_metric_data
 
 def parse_args():
     """
@@ -8,24 +9,14 @@ def parse_args():
 
     Returns:
         argparse.Namespace: Parsed arguments containing:
-            - provenance_folderpath: Path to the folder with RO-Crate data
-            - provenance_filename: Name of the RO-Crate metadata file
+            - username: RoHub username
+            - password: RoHub password
+            - benchmark_name: Benchmark name used in RoHub annotations
+            - tool: Optional tool name used to filter plotted data
             - output_file: Path for the final visualization output
     """
     parser = argparse.ArgumentParser(
-        description="Process ro-crate-metadata.json artifacts and display simulation results."
-    )
-    parser.add_argument(
-        "--provenance_folderpath",
-        type=str,
-        required=True,
-        help="Path to the folder containing provenance data",
-    )
-    parser.add_argument(
-        "--provenance_filename",
-        type=str,
-        default="ro-crate-metadata.json",
-        help="File name for the provenance graph",
+        description="Fetch benchmark provenance from RoHub and plot simulation metrics."
     )
     parser.add_argument(
         "--output_file",
@@ -33,31 +24,36 @@ def parse_args():
         required=True,
         help="Final visualization file",
     )
+    parser.add_argument(
+        "--username",
+        type=str,
+        required=True,
+        help="Username for RoHub",
+    )
+    parser.add_argument(
+        "--password",
+        type=str,
+        required=True,
+        help="Password for RoHub",
+    )
+    parser.add_argument(
+        "--benchmark-name",
+        type=str,
+        default="linear-elastic-plate-with-hole",
+        help="Benchmark name used in the RoHub semantic annotation",
+    )
+    parser.add_argument(
+        "--tool",
+        type=str,
+        default=None,
+        help="Optional tool name used to filter RoHub results",
+    )
+    parser.add_argument(
+        "--use-production-rohub",
+        action="store_true",
+        help="Use production RoHub instead of the development instance",
+    )
     return parser.parse_args()
-
-
-def sparql_result_to_dataframe(results):
-    """
-    Convert SPARQL query results into a pandas DataFrame.
-
-    Extracts variable bindings from each result row using asdict() and converts
-    RDF values to Python native types using toPython().
-
-    Args:
-        results (rdflib.plugins.sparql.processor.SPARQLResult): SPARQL query results
-                                                                from rdflib.
-
-    Returns:
-        pd.DataFrame: DataFrame where each row represents a query result and columns
-                     correspond to SPARQL variables.
-    """
-    rows = []
-
-    for row in results:
-        row_dict = {k: v.toPython() for k, v in row.asdict().items()}
-        rows.append(row_dict)
-
-    return pd.DataFrame(rows)
 
 
 def apply_custom_filters(data: pd.DataFrame) -> pd.DataFrame:
@@ -74,36 +70,57 @@ def apply_custom_filters(data: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame: Filtered DataFrame with isoparametric_element_degree
                      columns removed and index reset.
     """
-    filtered_df = data[(data["isoparametric_element_degree"] == 1)]
+    filtered_df = data[(data["isoparametric_element_degree"].astype(str) == "1")]
 
     return filtered_df.drop(columns=["isoparametric_element_degree"]).reset_index(
         drop=True
     )
 
 
-def load_and_query_graph(analyzer, parameters, metrics):
+def filter_by_tool(data: pd.DataFrame, tool: str | None) -> pd.DataFrame:
     """
-    Load the RO-Crate graph and execute a SPARQL query to extract provenance data.
+    Filter RoHub query results by tool name.
 
     Args:
-        analyzer (ProvenanceAnalyzer): Initialized analyzer instance.
+        data (pd.DataFrame): RoHub query results with a tool_name column.
+        tool (str | None): Tool name to match case-insensitively.
+
+    Returns:
+        pd.DataFrame: Filtered rows, or the original data when no tool is given.
+    """
+    if not tool:
+        return data
+
+    filtered_df = data[
+        data["tool_name"].astype(str).str.lower() == tool.strip().lower()
+    ].reset_index(drop=True)
+
+    assert len(filtered_df), f"No RoHub data found for tool '{tool}'."
+    return filtered_df
+
+
+def load_and_query_rohub(args, parameters, metrics):
+    """
+    Authenticate with RoHub and query benchmark provenance data.
+
+    Args:
+        args (argparse.Namespace): Parsed command-line arguments.
         parameters (list): List of parameter names to query.
         metrics (list): List of metric names to query.
 
     Returns:
-        pd.DataFrame: DataFrame containing the query results.
-
-    Raises:
-        AssertionError: If the query returns no data.
+        pd.DataFrame: DataFrame containing the RoHub query results.
     """
-    graph = analyzer.load_graph_from_file()
-    query = analyzer.build_dynamic_rocrate_query(parameters, metrics)
-    results = analyzer.run_query_on_graph(graph, query)
+    provenance_df = fetch_authenticated_benchmark_metric_data(
+        username=args.username,
+        password=args.password,
+        benchmark_name=args.benchmark_name,
+        parameters=parameters,
+        metrics=metrics,
+        use_development_version=not args.use_production_rohub,
+    )
 
-    provenance_df = sparql_result_to_dataframe(results)
-    assert len(provenance_df), "No data found for the provenance query."
-
-    return provenance_df
+    return filter_by_tool(provenance_df, args.tool)
 
 
 def plot_results(analyzer, final_df, output_file):
@@ -121,12 +138,13 @@ def plot_results(analyzer, final_df, output_file):
         output_file (str): Path where the plot image will be saved.
     """
     
-    analyzer.plot_provenance_graph(
+    analyzer.plot_provenance_graph_rohub(
         data=final_df.values.tolist(),
         x_axis_label="Element Size",
         y_axis_label="Max Von Mises Stress",
-        x_axis_index=0,
-        y_axis_index=1,
+        group_index=0,
+        x_axis_index=1,
+        y_axis_index=2,
         title="Element Size vs Max Von Mises Stress",
         output_file=output_file,
     )
@@ -138,10 +156,9 @@ def run(args, parameters, metrics):
 
     Performs the following steps:
     1. Initialize the ProvenanceAnalyzer
-    2. Load and query the provenance graph
-    3. Validate query results against summary.json ground truth data
-    4. Apply custom filters to the data
-    5. Generate visualization plot
+    2. Fetch benchmark provenance from RoHub
+    3. Filter the RoHub rows for first-order linear elements
+    4. Generate visualization plot
 
     Args:
         args (argparse.Namespace): Parsed command-line arguments.
@@ -150,12 +167,9 @@ def run(args, parameters, metrics):
         tools (list): List of tool names to process.
     """
 
-    analyzer = ProvenanceAnalyzer(
-        provenance_folderpath=args.provenance_folderpath,
-        provenance_filename=args.provenance_filename,
-    )
+    analyzer = ProvenanceAnalyzer()
 
-    provenance_df = load_and_query_graph(analyzer, parameters, metrics)
+    provenance_df = load_and_query_rohub(args, parameters, metrics)
 
     final_df = apply_custom_filters(provenance_df)
 

@@ -18,6 +18,12 @@ import rohub
 import time
 import sys
 
+from rohub_provenance import (
+    ANNOTATION_PREDICATE,
+    benchmark_annotation_object,
+    configure_rohub,
+)
+
 def parse_args():
     """
     Parse command-line arguments for RoHub provenance upload.
@@ -101,20 +107,9 @@ def run(args):
         The function adds a predefined annotation linking the research object
         to the NFDI4Ing Model Validation Platform benchmark.
     """
-    # Configure API sleep time to avoid rate limiting
-    rohub.settings.SLEEP_TIME = 10
-
     # Toggle between development and production environments
     USE_DEVELOPMENT_VERSION = True
-    
-    if USE_DEVELOPMENT_VERSION:
-        rohub.settings.API_URL = "https://rohub2020-devel.apps.bst2.paas.psnc.pl/api/"
-        rohub.settings.KEYCLOAK_CLIENT_ID = "rohub2020-cli"
-        rohub.settings.KEYCLOAK_CLIENT_SECRET = "714617a7-87bc-4a88-8682-5f9c2f60337d"
-        rohub.settings.KEYCLOAK_URL = "https://keycloak-dev.apps.paas-dev.psnc.pl/auth/realms/rohub/protocol/openid-connect/token"
-        rohub.settings.SPARQL_ENDPOINT = (
-            "https://virtuoso-rohub2020-devel.apps.bst2.paas.psnc.pl/sparql"
-        )
+    configure_rohub(use_development_version=USE_DEVELOPMENT_VERSION)
 
     # Authenticate with RoHub
     rohub.login(args.username, args.password)
@@ -163,14 +158,13 @@ def run(args):
             time.sleep(poll_interval)
 
     # Define semantic annotation linking to the validation platform benchmark
-    ANNOTATION_PREDICATE = "http://w3id.org/nfdi4ing/metadata4ing#investigates"
-    ANNOTATION_OBJECT = f"https://github.com/Simulation-Benchmarks/{args.benchmark_name}"
+    annotation_object = benchmark_annotation_object(args.benchmark_name)
 
     # Add semantic annotations if upload was successful
     if uuid != "":
         _RO = rohub.ros_load(uuid)
         annotation_json = [
-            {"property": ANNOTATION_PREDICATE, "value": ANNOTATION_OBJECT}
+            {"property": ANNOTATION_PREDICATE, "value": annotation_object}
         ]
         add_annotations_result = _RO.add_annotations(
             body_specification_json=annotation_json
