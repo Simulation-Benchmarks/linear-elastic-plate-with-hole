@@ -1,0 +1,4 @@
+{
+  "predicate": "http://w3id.org/nfdi4ing/metadata4ing#investigates",
+  "benchmark_base_url": "https://github.com/Simulation-Benchmarks"
+}

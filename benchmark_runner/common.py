@@ -291,7 +291,7 @@ def resolve_rocrate_path(rocrate_path: Path, benchmark_dir: Path) -> Path:
     return benchmark_dir / output_path
 
 
-def validate_rocrate(rocrate_path: str, profile: str = "ro-crate-1.1") -> None:
+def validate_rocrate(rocrate_path: str, profile: str = PROVENANCE_REPORT_PROFILE) -> None:
     """Validate the RO-Crate folder against the specified profile.
     Raises:
         AssertionError: If the validator reports required-profile issues.

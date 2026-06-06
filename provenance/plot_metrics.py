@@ -1,9 +1,15 @@
 import argparse
 import pandas as pd
-from provenance import ProvenanceAnalyzer
-from rohub_provenance import fetch_authenticated_benchmark_metric_data
+from provenance_plot import ProvenancePlotter
+from rohub_provenance import (
+    build_benchmark_ro_uuids_query,
+    build_named_graph_query,
+    login_to_rohub,
+    query_metric_data_from_named_graphs,
+    query_sparql,
+)
 
-def parse_args():
+def parse_args(argv=None):
     """
     Parse command-line arguments for the provenance processing script.
 
@@ -53,7 +59,7 @@ def parse_args():
         action="store_true",
         help="Use production RoHub instead of the development instance",
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def apply_custom_filters(data: pd.DataFrame) -> pd.DataFrame:
@@ -99,6 +105,72 @@ def filter_by_tool(data: pd.DataFrame, tool: str | None) -> pd.DataFrame:
     return filtered_df
 
 
+def find_benchmark_ro_uuids(benchmark_name: str) -> list[str]:
+    """Find RoHub research object UUIDs annotated with a benchmark IRI."""
+    result = query_sparql(build_benchmark_ro_uuids_query(benchmark_name))
+
+    if result.empty:
+        return []
+
+    return [iri.rstrip("/").split("/")[-1] for iri in result["subject"]]
+
+
+def find_named_graphs_for_uuids(
+    uuids: list[str],
+    use_development_version: bool,
+) -> dict[str, str]:
+    """Find RoHub SPARQL named graphs for research object UUIDs."""
+    named_graphs = {}
+
+    for uuid in uuids:
+        result = query_sparql(
+            build_named_graph_query(
+                uuid,
+                use_development_version=use_development_version,
+            )
+        )
+
+        if not result.empty:
+            named_graphs[uuid] = result.iloc[0]["graph"]
+
+    return named_graphs
+
+
+def fetch_benchmark_data(args, parameters, metrics) -> pd.DataFrame:
+    """Authenticate with RoHub and fetch benchmark parameter/metric data."""
+    use_development_version = not args.use_production_rohub
+
+    login_to_rohub(
+        username=args.username,
+        password=args.password,
+        use_development_version=use_development_version,
+    )
+
+    uuids = find_benchmark_ro_uuids(args.benchmark_name)
+    named_graphs = find_named_graphs_for_uuids(
+        uuids,
+        use_development_version=use_development_version,
+    )
+
+    if not named_graphs:
+        raise RuntimeError(
+            f"No RoHub named graphs found for benchmark {args.benchmark_name}."
+        )
+
+    result = query_metric_data_from_named_graphs(
+        parameters=parameters,
+        metrics=metrics,
+        named_graphs=list(named_graphs.values()),
+    )
+
+    if result.empty:
+        raise RuntimeError(
+            f"No RoHub metric data found for benchmark {args.benchmark_name}."
+        )
+
+    return result
+
+
 def load_and_query_rohub(args, parameters, metrics):
     """
     Authenticate with RoHub and query benchmark provenance data.
@@ -111,19 +183,12 @@ def load_and_query_rohub(args, parameters, metrics):
     Returns:
         pd.DataFrame: DataFrame containing the RoHub query results.
     """
-    provenance_df = fetch_authenticated_benchmark_metric_data(
-        username=args.username,
-        password=args.password,
-        benchmark_name=args.benchmark_name,
-        parameters=parameters,
-        metrics=metrics,
-        use_development_version=not args.use_production_rohub,
-    )
+    provenance_df = fetch_benchmark_data(args, parameters, metrics)
 
     return filter_by_tool(provenance_df, args.tool)
 
 
-def plot_results(analyzer, final_df, output_file):
+def plot_results(plotter, final_df, output_file):
     """
     Generate a visualization plot of the provenance results.
 
@@ -131,14 +196,14 @@ def plot_results(analyzer, final_df, output_file):
     and maximum von Mises stress.
 
     Args:
-        analyzer (ProvenanceAnalyzer): Initialized analyzer instance.
+        plotter (ProvenancePlotter): Initialized plotter instance.
         final_df (pd.DataFrame): DataFrame containing filtered data to plot.
                                 Expected columns: element_size,
                                 max_von_mises_stress (in that order).
         output_file (str): Path where the plot image will be saved.
     """
     
-    analyzer.plot_provenance_graph_rohub(
+    plotter.plot_provenance_graph(
         data=final_df.values.tolist(),
         x_axis_label="Element Size",
         y_axis_label="Max Von Mises Stress",
@@ -155,7 +220,7 @@ def run(args, parameters, metrics):
     Execute the complete provenance analysis workflow.
 
     Performs the following steps:
-    1. Initialize the ProvenanceAnalyzer
+    1. Initialize the ProvenancePlotter
     2. Fetch benchmark provenance from RoHub
     3. Filter the RoHub rows for first-order linear elements
     4. Generate visualization plot
@@ -164,16 +229,15 @@ def run(args, parameters, metrics):
         args (argparse.Namespace): Parsed command-line arguments.
         parameters (list): List of parameter names to extract.
         metrics (list): List of metric names to extract.
-        tools (list): List of tool names to process.
     """
 
-    analyzer = ProvenanceAnalyzer()
+    plotter = ProvenancePlotter()
 
     provenance_df = load_and_query_rohub(args, parameters, metrics)
 
     final_df = apply_custom_filters(provenance_df)
 
-    plot_results(analyzer, final_df, args.output_file)
+    plot_results(plotter, final_df, args.output_file)
 
 
 def main():
