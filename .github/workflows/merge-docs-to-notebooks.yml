@@ -33,7 +33,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet -- notebooks/plate_with_hole.ipynb; then
+          # `git diff` does not include untracked files, so use `git status`
+          # to detect a freshly-created notebook.
+          if [ -z "$(git status --porcelain -- notebooks/plate_with_hole.ipynb)" ]; then
             echo "No changes to the notebook."
             exit 0
           fi
