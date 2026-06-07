@@ -122,11 +122,6 @@ jobs:
           environment-file: provenance/environment_provenance.yml
           conda-remove-defaults: "true"
 
-      - name: Install RoHub query package
-        shell: bash -l {0}
-        run: |
-          python -m pip install rohub
-
       - name: Run ${{ matrix.tool }} plotting script
         shell: bash -l {0}
         run: |

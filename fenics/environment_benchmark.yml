@@ -4,6 +4,7 @@ channels:
   - bioconda
 dependencies:
   - snakemake
+  - rdflib
   - pip
   - pip:
       - rocrate

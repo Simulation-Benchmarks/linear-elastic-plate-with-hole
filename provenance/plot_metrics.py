@@ -1,17 +1,11 @@
 import argparse
 import logging
 from collections import defaultdict
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from rohub_provenance import (
-    build_benchmark_ro_uuids_query,
-    build_named_graph_query,
-    login_to_rohub,
-    query_metric_data_from_named_graphs,
-    query_sparql,
-)
+from rohub_provenance import load_benchmark_metric_data
 
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 LOGGER = logging.getLogger(__name__)
@@ -51,7 +45,7 @@ def plot_provenance_graph(
     output_file: str | None = None,
     figsize: tuple[int, int] = (12, 5),
 ) -> None:
-    """Plot grouped metric series from RoHub provenance query results."""
+    """Plot grouped metric series from tabular benchmark results."""
     grouped_values: dict[str, list[tuple[float, float]]] = defaultdict(list)
     x_tick_set = set()
 
@@ -172,94 +166,6 @@ def parse_args(argv=None):
     return parser.parse_args(argv)
 
 
-def filter_by_tool(data: pd.DataFrame, tool: str | None) -> pd.DataFrame:
-    """
-    Filter RoHub query results by tool name.
-
-    Args:
-        data (pd.DataFrame): RoHub query results with a tool_name column.
-        tool (str | None): Tool name to match case-insensitively.
-
-    Returns:
-        pd.DataFrame: Filtered rows, or the original data when no tool is given.
-    """
-    if not tool:
-        return data
-
-    filtered_df = data[
-        data["tool_name"].astype(str).str.lower() == tool.strip().lower()
-    ].reset_index(drop=True)
-
-    assert len(filtered_df), f"No RoHub data found for tool '{tool}'."
-    return filtered_df
-
-
-def find_benchmark_ro_uuids(benchmark_name: str) -> list[str]:
-    """Find RoHub research object UUIDs annotated with a benchmark IRI."""
-    result = query_sparql(build_benchmark_ro_uuids_query(benchmark_name))
-
-    if result.empty:
-        return []
-
-    return [iri.rstrip("/").split("/")[-1] for iri in result["subject"]]
-
-
-def find_named_graphs_for_uuids(
-    uuids: list[str],
-    use_development_version: bool,
-) -> dict[str, str]:
-    """Find RoHub SPARQL named graphs for research object UUIDs."""
-    named_graphs = {}
-
-    for uuid in uuids:
-        result = query_sparql(
-            build_named_graph_query(
-                uuid,
-                use_development_version=use_development_version,
-            )
-        )
-
-        if not result.empty:
-            named_graphs[uuid] = result.iloc[0]["graph"]
-
-    return named_graphs
-
-
-def fetch_benchmark_data(args, parameters, metrics) -> pd.DataFrame:
-    """Authenticate with RoHub and fetch benchmark parameter/metric data."""
-    use_development_version = not args.use_production_rohub
-
-    login_to_rohub(
-        username=args.username,
-        password=args.password,
-        use_development_version=use_development_version,
-    )
-
-    uuids = find_benchmark_ro_uuids(args.benchmark_name)
-    named_graphs = find_named_graphs_for_uuids(
-        uuids,
-        use_development_version=use_development_version,
-    )
-
-    if not named_graphs:
-        raise RuntimeError(
-            f"No RoHub named graphs found for benchmark {args.benchmark_name}."
-        )
-
-    result = query_metric_data_from_named_graphs(
-        parameters=parameters,
-        metrics=metrics,
-        named_graphs=list(named_graphs.values()),
-    )
-
-    if result.empty:
-        raise RuntimeError(
-            f"No RoHub metric data found for benchmark {args.benchmark_name}."
-        )
-
-    return result
-
-
 def load_and_query_rohub(args, parameters, metrics):
     """
     Authenticate with RoHub and query benchmark provenance data.
@@ -272,12 +178,44 @@ def load_and_query_rohub(args, parameters, metrics):
     Returns:
         pd.DataFrame: DataFrame containing the RoHub query results.
     """
-    provenance_df = fetch_benchmark_data(args, parameters, metrics)
+    return load_benchmark_metric_data(
+        username=args.username,
+        password=args.password,
+        benchmark_name=args.benchmark_name,
+        parameters=parameters,
+        metrics=metrics,
+        tool=args.tool,
+        use_development_version=not args.use_production_rohub,
+    )
 
-    return filter_by_tool(provenance_df, args.tool)
+
+def select_plot_columns(
+    data: pd.DataFrame,
+    parameters: Sequence[str],
+    metrics: Sequence[str],
+    group_column: str = "tool_name",
+) -> pd.DataFrame:
+    """Select the group, x-axis, and y-axis columns used for plotting."""
+    if not parameters:
+        raise ValueError("At least one parameter is required for the x-axis.")
+    if not metrics:
+        raise ValueError("At least one metric is required for the y-axis.")
+
+    plot_columns = [group_column, parameters[0], metrics[0]]
+    missing_columns = [
+        column for column in plot_columns if column not in data.columns
+    ]
+
+    if missing_columns:
+        raise ValueError(
+            "Cannot plot because these columns are missing: "
+            + ", ".join(missing_columns)
+        )
+
+    return data.loc[:, plot_columns].reset_index(drop=True)
 
 
-def plot_results(final_df, args):
+def plot_results(final_df: pd.DataFrame, args) -> None:
     """
     Generate a visualization plot of the provenance results.
 
@@ -303,25 +241,34 @@ def plot_results(final_df, args):
     )
 
 
-def run(args, parameters, metrics):
+def run(
+    args,
+    parameters: Sequence[str],
+    metrics: Sequence[str],
+    prepare_data: Callable[[pd.DataFrame], pd.DataFrame] | None = None,
+) -> None:
     """
     Execute the complete provenance analysis workflow.
 
     Performs the following steps:
     1. Fetch benchmark provenance from RoHub
-    2. Filter the RoHub rows for first-order linear elements
+    2. Select the configured parameter/metric columns
     3. Generate visualization plot
 
     Args:
         args (argparse.Namespace): Parsed command-line arguments.
         parameters (list): List of parameter names to extract.
         metrics (list): List of metric names to extract.
+        prepare_data: Optional hook for benchmark-specific data filtering.
     """
-    final_df = (
-        load_and_query_rohub(args, parameters, metrics)
-        .query("isoparametric_element_degree == '1'")
-        .drop(columns=["isoparametric_element_degree"])
-        .reset_index(drop=True)
+    provenance_df = load_and_query_rohub(args, parameters, metrics)
+    if prepare_data is not None:
+        provenance_df = prepare_data(provenance_df)
+
+    final_df = select_plot_columns(
+        provenance_df,
+        parameters,
+        metrics,
     )
 
     plot_results(final_df, args)

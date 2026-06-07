@@ -4,12 +4,18 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 import json
+import logging
 from pathlib import Path
 import re
-from typing import Iterable
+import time
+from typing import TYPE_CHECKING, Iterable
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
 CONFIG_DIR = Path(__file__).resolve().parent
+LOGGER = logging.getLogger(__name__)
 
 
 def _load_json_config(filename: str) -> dict:
@@ -305,3 +311,200 @@ def query_metric_data_from_named_graphs(
     )
 
     return query_sparql(query)
+
+
+def filter_by_tool(data: pd.DataFrame, tool: str | None) -> pd.DataFrame:
+    """Filter RoHub query results by tool name."""
+    if not tool:
+        return data
+
+    filtered_df = data[
+        data["tool_name"].astype(str).str.lower() == tool.strip().lower()
+    ].reset_index(drop=True)
+
+    if filtered_df.empty:
+        raise RuntimeError(f"No RoHub data found for tool '{tool}'.")
+
+    return filtered_df
+
+
+def find_benchmark_ro_uuids(benchmark_name: str) -> list[str]:
+    """Find RoHub research object UUIDs annotated with a benchmark IRI."""
+    result = query_sparql(build_benchmark_ro_uuids_query(benchmark_name))
+
+    if result.empty:
+        return []
+
+    return [iri.rstrip("/").split("/")[-1] for iri in result["subject"]]
+
+
+def find_named_graphs_for_uuids(
+    uuids: Sequence[str],
+    use_development_version: bool = True,
+) -> dict[str, str]:
+    """Find RoHub SPARQL named graphs for research object UUIDs."""
+    named_graphs = {}
+
+    for uuid in uuids:
+        result = query_sparql(
+            build_named_graph_query(
+                uuid,
+                use_development_version=use_development_version,
+            )
+        )
+
+        if not result.empty:
+            named_graphs[uuid] = result.iloc[0]["graph"]
+
+    return named_graphs
+
+
+def fetch_benchmark_data(
+    username: str,
+    password: str,
+    benchmark_name: str,
+    parameters: Sequence[str],
+    metrics: Sequence[str],
+    use_development_version: bool = True,
+) -> pd.DataFrame:
+    """Authenticate with RoHub and fetch benchmark parameter/metric data."""
+    login_to_rohub(
+        username=username,
+        password=password,
+        use_development_version=use_development_version,
+    )
+
+    uuids = find_benchmark_ro_uuids(benchmark_name)
+    named_graphs = find_named_graphs_for_uuids(
+        uuids,
+        use_development_version=use_development_version,
+    )
+
+    if not named_graphs:
+        raise RuntimeError(
+            f"No RoHub named graphs found for benchmark {benchmark_name}."
+        )
+
+    result = query_metric_data_from_named_graphs(
+        parameters=parameters,
+        metrics=metrics,
+        named_graphs=list(named_graphs.values()),
+    )
+
+    if result.empty:
+        raise RuntimeError(
+            f"No RoHub metric data found for benchmark {benchmark_name}."
+        )
+
+    return result
+
+
+def load_benchmark_metric_data(
+    username: str,
+    password: str,
+    benchmark_name: str,
+    parameters: Sequence[str],
+    metrics: Sequence[str],
+    tool: str | None = None,
+    use_development_version: bool = True,
+) -> pd.DataFrame:
+    """Fetch benchmark metric data from RoHub and optionally filter by tool."""
+    provenance_df = fetch_benchmark_data(
+        username=username,
+        password=password,
+        benchmark_name=benchmark_name,
+        parameters=parameters,
+        metrics=metrics,
+        use_development_version=use_development_version,
+    )
+
+    return filter_by_tool(provenance_df, tool)
+
+
+def delete_research_object_by_title(rocrate_title: str) -> None:
+    """Delete existing user research objects with a matching title."""
+    rohub = _rohub_client()
+    my_ros = rohub.list_my_ros()
+
+    for _, row in my_ros.iterrows():
+        if row["title"].strip().lower() == rocrate_title.strip().lower():
+            rohub.ros_delete(row["identifier"])
+
+
+def upload_research_object(path_to_zip: str) -> tuple[str, str]:
+    """Upload an RO-Crate zip to RoHub and return job id and RO UUID."""
+    rohub = _rohub_client()
+    upload_result = rohub.ros_upload(path_to_zip=path_to_zip)
+    job_id = upload_result["identifier"]
+    uuid = upload_result["results"].rstrip("/").split("/")[-1]
+
+    return job_id, uuid
+
+
+def wait_for_job_success(
+    job_id: str,
+    timeout_seconds: int = 5 * 60,
+    poll_interval: int = 10,
+) -> bool:
+    """Poll a RoHub job until success or timeout."""
+    rohub = _rohub_client()
+    start_time = time.time()
+
+    while True:
+        success_result = rohub.is_job_success(job_id=job_id)
+        status = success_result.get("status", "UNKNOWN")
+
+        if status == "SUCCESS":
+            LOGGER.info("Upload successful: %s", success_result)
+            return True
+
+        if time.time() - start_time > timeout_seconds:
+            LOGGER.warning(
+                "Upload did not succeed within %s seconds. Last status: %s",
+                timeout_seconds,
+                status,
+            )
+            return False
+
+        LOGGER.info("Current status: %s, waiting %ss...", status, poll_interval)
+        time.sleep(poll_interval)
+
+
+def add_benchmark_annotation(uuid: str, benchmark_name: str) -> None:
+    """Add the benchmark semantic annotation to a RoHub research object."""
+    rohub = _rohub_client()
+    research_object = rohub.ros_load(uuid)
+    annotation_json = [
+        {
+            "property": ANNOTATION_PREDICATE,
+            "value": benchmark_annotation_object(benchmark_name),
+        }
+    ]
+    add_annotations_result = research_object.add_annotations(
+        body_specification_json=annotation_json
+    )
+    LOGGER.info("Annotations added: %s", add_annotations_result)
+
+
+def upload_provenance_rocrate(
+    provenance_folderpath: str,
+    benchmark_name: str,
+    username: str,
+    password: str,
+    rocrate_title: str,
+    use_development_version: bool = True,
+) -> str:
+    """Upload a provenance RO-Crate to RoHub and annotate it with a benchmark."""
+    login_to_rohub(
+        username=username,
+        password=password,
+        use_development_version=use_development_version,
+    )
+
+    delete_research_object_by_title(rocrate_title)
+    job_id, uuid = upload_research_object(provenance_folderpath)
+
+    if wait_for_job_success(job_id):
+        add_benchmark_annotation(uuid, benchmark_name)
+
+    return uuid

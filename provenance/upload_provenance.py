@@ -5,7 +5,7 @@ This module handles the upload of research object provenance data to RoHub,
 a platform for research object management and sharing. It processes RO-Crate
 metadata artifacts and manages the complete upload workflow including:
 - Authentication with RoHub
-- Deletion of existing research objects
+- Deletion of existing research objects with the same title
 - Upload of new research objects from zip files
 - Polling for upload completion
 - Adding semantic annotations to uploaded objects
@@ -15,15 +15,9 @@ The module supports both production and development environments of RoHub.
 
 import argparse
 import logging
-import rohub
-import time
 import sys
 
-from rohub_provenance import (
-    ANNOTATION_PREDICATE,
-    benchmark_annotation_object,
-    configure_rohub,
-)
+from rohub_provenance import upload_provenance_rocrate
 
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 LOGGER = logging.getLogger(__name__)
@@ -41,7 +35,7 @@ def parse_args():
             - password (str): RoHub authentication password
     """
     parser = argparse.ArgumentParser(
-        description="Process ro-crate-metadata.json artifacts and display simulation results."
+        description="Upload benchmark provenance RO-Crates to RoHub."
     )
     parser.add_argument(
         "--provenance_folderpath",
@@ -73,6 +67,11 @@ def parse_args():
         required=True,
         help="Title of the RO-Crate to be uploaded",
     )
+    parser.add_argument(
+        "--use-production-rohub",
+        action="store_true",
+        help="Use production RoHub instead of the development instance",
+    )
     return parser.parse_args()
 
 
@@ -80,13 +79,13 @@ def run(args):
     """
     Execute the complete RoHub upload workflow.
 
-    This function performs the following operations:
-    1. Configures RoHub settings (API endpoints, authentication)
-    2. Authenticates with RoHub using provided credentials
-    3. Deletes all existing research objects owned by the user
-    4. Uploads the new research object from the specified zip file
-    5. Polls the upload job status until completion or timeout
-    6. Adds semantic annotations to the successfully uploaded object
+    This function delegates the RoHub-specific operations to
+    rohub_provenance.upload_provenance_rocrate:
+    1. Configure and authenticate with RoHub
+    2. Delete existing research objects with the same RO-Crate title
+    3. Upload the new research object from the specified zip file
+    4. Poll the upload job status until completion or timeout
+    5. Add semantic annotations to the successfully uploaded object
 
     Args:
         args (argparse.Namespace): Parsed command-line arguments containing:
@@ -97,7 +96,7 @@ def run(args):
     Raises:
         Exception: If authentication fails
         Exception: If upload fails
-        Exception: If deletion of existing ROs fails
+        Exception: If deletion of an existing RO fails
 
     Configuration:
         USE_DEVELOPMENT_VERSION (bool): When True, uses RoHub development server.
@@ -106,78 +105,18 @@ def run(args):
         Timeout Settings:
             - Upload timeout: 5 minutes (300 seconds)
             - Poll interval: 10 seconds between status checks
-            - Sleep time: 10 seconds between API calls
-
     Annotations:
         The function adds a predefined annotation linking the research object
         to the NFDI4Ing Model Validation Platform benchmark.
     """
-    # Toggle between development and production environments
-    USE_DEVELOPMENT_VERSION = True
-    configure_rohub(use_development_version=USE_DEVELOPMENT_VERSION)
-
-    # Authenticate with RoHub
-    rohub.login(args.username, args.password)
-
-    # Retrieve list of user's existing research objects
-    my_ros = rohub.list_my_ros()
-
-    # Delete all existing research objects to ensure clean upload
-    try:
-        for _, row in my_ros.iterrows():
-            if row["title"].strip().lower() == args.rocrate_title.strip().lower():
-                rohub.ros_delete(row["identifier"])
-    except Exception as error:
-        LOGGER.error("Error on deleting RoHub research object: %s", error)
-
-    # Initialize tracking variables for upload
-    identifier = ""  # Job identifier for status polling
-    uuid = ""        # UUID of the uploaded research object
-
-    # Upload the research object zip file
-    try:
-        upload_result = rohub.ros_upload(path_to_zip=args.provenance_folderpath)
-        identifier = upload_result["identifier"]
-        uuid = upload_result["results"].rstrip("/").split("/")[-1]
-    except Exception as error:
-        LOGGER.error("Error on uploading RoHub research object: %s", error)
-
-    # Configure polling parameters
-    timeout_seconds = 5 * 60  # 5 minutes maximum wait time
-    poll_interval = 10        # Check status every 10 seconds
-    start_time = time.time()
-
-    # Poll upload job status until completion or timeout
-    while True:
-        success_result = rohub.is_job_success(job_id=identifier)
-        status = success_result.get("status", "UNKNOWN")
-
-        if status == "SUCCESS":
-            LOGGER.info("Upload successful: %s", success_result)
-            break
-        elif time.time() - start_time > timeout_seconds:
-            LOGGER.warning(
-                "Upload did not succeed within 5 minutes. Last status: %s",
-                status,
-            )
-            break
-        else:
-            LOGGER.info("Current status: %s, waiting %ss...", status, poll_interval)
-            time.sleep(poll_interval)
-
-    # Define semantic annotation linking to the validation platform benchmark
-    annotation_object = benchmark_annotation_object(args.benchmark_name)
-
-    # Add semantic annotations if upload was successful
-    if uuid != "":
-        _RO = rohub.ros_load(uuid)
-        annotation_json = [
-            {"property": ANNOTATION_PREDICATE, "value": annotation_object}
-        ]
-        add_annotations_result = _RO.add_annotations(
-            body_specification_json=annotation_json
-        )
-        LOGGER.info("Annotations added: %s", add_annotations_result)
+    upload_provenance_rocrate(
+        provenance_folderpath=args.provenance_folderpath,
+        benchmark_name=args.benchmark_name,
+        username=args.username,
+        password=args.password,
+        rocrate_title=args.rocrate_title,
+        use_development_version=not args.use_production_rohub,
+    )
 
 
 def main():
@@ -196,7 +135,7 @@ def main():
     Note:
         - Ensure the provenance file is a valid zip containing RO-Crate metadata
         - Valid RoHub credentials are required for authentication
-        - The script will delete all existing research objects before uploading
+        - The script deletes existing research objects with the same title
         - Upload process may take up to 5 minutes
 
     Exits:

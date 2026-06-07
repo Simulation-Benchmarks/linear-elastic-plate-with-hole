@@ -1,6 +1,8 @@
 import argparse
 import logging
 
+import pandas as pd
+
 from plot_metrics import parse_args, run
 
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
@@ -84,11 +86,24 @@ def build_plot_args(args):
     )
 
 
+def keep_first_order_linear_elements(data: pd.DataFrame) -> pd.DataFrame:
+    """Keep only first-order linear elements for this benchmark plot."""
+    return (
+        data.query("isoparametric_element_degree == '1'")
+        .reset_index(drop=True)
+    )
+
+
 def main():
     logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
     args = build_plot_args(parse_workflow_args())
 
-    run(args, PARAMETERS, METRICS)
+    run(
+        args,
+        PARAMETERS,
+        METRICS,
+        prepare_data=keep_first_order_linear_elements,
+    )
 
 
 if __name__ == "__main__":

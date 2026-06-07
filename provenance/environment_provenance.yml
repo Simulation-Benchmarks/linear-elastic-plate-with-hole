@@ -12,3 +12,5 @@ dependencies:
   - matplotlib
   - pandas
   - pip
+  - pip:
+      - rohub
