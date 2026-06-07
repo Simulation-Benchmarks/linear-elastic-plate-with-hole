@@ -1,4 +1,4 @@
-name: Merge docs into notebook
+name: Merge docs and script into notebook
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  merge-docs:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -20,16 +20,16 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Merge docs into plate-with-hole notebook
+      - name: Build notebook from docs and script
         run: |
-          python scripts/merge_docs_to_notebook.py \
+          python scripts/build_notebook.py \
             --doc docs/plate-with-hole.md \
+            --script scripts/postprocess_plate.py \
             --notebook notebooks/plate_with_hole.ipynb \
             --repo "${{ github.repository }}" \
-            --branch "${{ github.ref_name }}" \
-            --new notebooks/plate_with_hole.ipynb
+            --branch "${{ github.ref_name }}"
 
-      - name: Commit merged notebook back to the repo
+      - name: Commit generated notebook back to the repo
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -38,7 +38,7 @@ jobs:
             exit 0
           fi
           git add notebooks/plate_with_hole.ipynb
-          git commit -m "Auto-merge docs into plate-with-hole notebook [skip ci]"
+          git commit -m "Auto-build plate-with-hole notebook from docs and script [skip ci]"
           git push
 
       - name: Upload generated notebook as artifact
