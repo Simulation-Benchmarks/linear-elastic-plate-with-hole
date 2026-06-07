@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import uuid
 import zipfile
 from pathlib import Path
@@ -12,6 +13,9 @@ import re
 
 from rocrate.rocrate import ROCrate
 import semantic_benchmark
+
+LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
+LOGGER = logging.getLogger(__name__)
 
 ROCRATE_CONFORMS_TO = [
     {"@id": "https://w3id.org/ro/crate/1.1"},
@@ -772,7 +776,10 @@ def create_main_ro(
     if not input_path.is_dir():
         raise NotADirectoryError(f"{path} is not a valid directory")
 
-    print(f"Creating aggregate RO-Crate from simulation results in {input_path}...")
+    LOGGER.info(
+        "Creating aggregate RO-Crate from simulation results in %s...",
+        input_path,
+    )
     subfolders = _iter_subfolders(input_path)
     subcrates = _collect_subcrates(subfolders)
     _unzip_subcrates_at_root(subcrates)
@@ -851,6 +858,7 @@ def main() -> None:
         None. The function loads the benchmark description and writes the
         aggregate RO-Crate requested by the CLI arguments.
     """
+    logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
     args = parse_args()
     benchmark_object = semantic_benchmark.BenchmarkLoader(args.benchmark_file).load()
     create_main_ro(

@@ -14,6 +14,7 @@ The module supports both production and development environments of RoHub.
 """
 
 import argparse
+import logging
 import rohub
 import time
 import sys
@@ -23,6 +24,10 @@ from rohub_provenance import (
     benchmark_annotation_object,
     configure_rohub,
 )
+
+LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
+LOGGER = logging.getLogger(__name__)
+
 
 def parse_args():
     """
@@ -123,7 +128,7 @@ def run(args):
             if row["title"].strip().lower() == args.rocrate_title.strip().lower():
                 rohub.ros_delete(row["identifier"])
     except Exception as error:
-        print(f"Error on Deleting RoHub: {error}")
+        LOGGER.error("Error on deleting RoHub research object: %s", error)
 
     # Initialize tracking variables for upload
     identifier = ""  # Job identifier for status polling
@@ -135,7 +140,7 @@ def run(args):
         identifier = upload_result["identifier"]
         uuid = upload_result["results"].rstrip("/").split("/")[-1]
     except Exception as error:
-        print(f"Error on Upload RoHub: {error}")
+        LOGGER.error("Error on uploading RoHub research object: %s", error)
 
     # Configure polling parameters
     timeout_seconds = 5 * 60  # 5 minutes maximum wait time
@@ -148,13 +153,16 @@ def run(args):
         status = success_result.get("status", "UNKNOWN")
 
         if status == "SUCCESS":
-            print(f"Upload successful: {success_result}")
+            LOGGER.info("Upload successful: %s", success_result)
             break
         elif time.time() - start_time > timeout_seconds:
-            print(f"Upload did not succeed within 5 minutes. Last status: {status}")
+            LOGGER.warning(
+                "Upload did not succeed within 5 minutes. Last status: %s",
+                status,
+            )
             break
         else:
-            print(f"Current status: {status}, waiting {poll_interval}s...")
+            LOGGER.info("Current status: %s, waiting %ss...", status, poll_interval)
             time.sleep(poll_interval)
 
     # Define semantic annotation linking to the validation platform benchmark
@@ -169,7 +177,7 @@ def run(args):
         add_annotations_result = _RO.add_annotations(
             body_specification_json=annotation_json
         )
-        print(add_annotations_result)
+        LOGGER.info("Annotations added: %s", add_annotations_result)
 
 
 def main():
@@ -195,13 +203,13 @@ def main():
         The script will exit with a non-zero status code if authentication
         or upload fails, or if required arguments are not provided.
     """
+    logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
     args = parse_args()
     try:
         run(args)
         sys.exit(0)
     except Exception as error:
-        print("RoHub upload failed:")
-        print(error)
+        LOGGER.exception("RoHub upload failed: %s", error)
         sys.exit(1)
 
 

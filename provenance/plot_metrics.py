@@ -1,4 +1,5 @@
 import argparse
+import logging
 import pandas as pd
 from provenance_plot import ProvenancePlotter
 from rohub_provenance import (
@@ -8,6 +9,8 @@ from rohub_provenance import (
     query_metric_data_from_named_graphs,
     query_sparql,
 )
+
+LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 
 
 def parse_args(argv=None):
@@ -98,27 +101,6 @@ def parse_args(argv=None):
         help="Metric names to query from RoHub.",
     )
     return parser.parse_args(argv)
-
-
-def apply_custom_filters(data: pd.DataFrame) -> pd.DataFrame:
-    """
-    Filter provenance data to include only first-order linear elements.
-
-    Filters rows where isoparametric_element_degree = 1 then removes
-    these filtering columns from the result.
-
-    Args:
-        data (pd.DataFrame): Input DataFrame containing isoparametric_element_degree column.
-
-    Returns:
-        pd.DataFrame: Filtered DataFrame with isoparametric_element_degree
-                     columns removed and index reset.
-    """
-    filtered_df = data[(data["isoparametric_element_degree"].astype(str) == "1")]
-
-    return filtered_df.drop(columns=["isoparametric_element_degree"]).reset_index(
-        drop=True
-    )
 
 
 def filter_by_tool(data: pd.DataFrame, tool: str | None) -> pd.DataFrame:
@@ -271,9 +253,12 @@ def run(args, parameters, metrics):
 
     plotter = ProvenancePlotter()
 
-    provenance_df = load_and_query_rohub(args, parameters, metrics)
-
-    final_df = apply_custom_filters(provenance_df)
+    final_df = (
+        load_and_query_rohub(args, parameters, metrics)
+        .query("isoparametric_element_degree == 1")
+        .drop(columns=["isoparametric_element_degree"])
+        .reset_index(drop=True)
+    )
 
     plot_results(plotter, final_df, args)
 
@@ -284,6 +269,7 @@ def main():
 
     Parses command-line arguments and executes the analysis workflow.
     """
+    logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
     args = parse_args()
 
     if args.parameters is None or args.metrics is None:

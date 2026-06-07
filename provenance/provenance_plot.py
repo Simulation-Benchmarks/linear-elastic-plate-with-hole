@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from typing import Any, Sequence
 
 import matplotlib.pyplot as plt
+
+LOGGER = logging.getLogger(__name__)
 
 
 class ProvenancePlotter:
@@ -30,7 +33,7 @@ class ProvenancePlotter:
 
         if output_file:
             plt.savefig(output_file)
-            print(f"Plot saved to: {output_file}")
+            LOGGER.info("Plot saved to: %s", output_file)
         else:
             plt.show()
 

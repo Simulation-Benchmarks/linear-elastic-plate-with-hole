@@ -1,7 +1,9 @@
 import argparse
+import logging
 
 from plot_metrics import parse_args, run
 
+LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 
 BENCHMARK_NAME = "linear-elastic-plate-with-hole"
 PARAMETERS = ["element_size", "isoparametric_element_degree"]
@@ -83,6 +85,7 @@ def build_plot_args(args):
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
     args = build_plot_args(parse_workflow_args())
 
     run(args, PARAMETERS, METRICS)
