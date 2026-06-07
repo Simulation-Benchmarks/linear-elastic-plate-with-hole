@@ -3,9 +3,10 @@ name: Merge docs into notebook
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   merge-docs:
@@ -13,6 +14,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -26,12 +29,24 @@ jobs:
             --notebook notebooks/plate_with_hole.ipynb \
             --repo "${{ github.repository }}" \
             --branch "${{ github.ref_name }}" \
-            --new notebooks/plate_with_hole.generated.ipynb
+            --new notebooks/plate_with_hole.ipynb
+
+      - name: Commit merged notebook back to the repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- notebooks/plate_with_hole.ipynb; then
+            echo "No changes to the notebook."
+            exit 0
+          fi
+          git add notebooks/plate_with_hole.ipynb
+          git commit -m "Auto-merge docs into plate-with-hole notebook [skip ci]"
+          git push
 
       - name: Upload generated notebook as artifact
         uses: actions/upload-artifact@v4
         with:
           name: notebook-plate-with-hole
-          path: notebooks/plate_with_hole.generated.ipynb
+          path: notebooks/plate_with_hole.ipynb
           if-no-files-found: error
           retention-days: 14
