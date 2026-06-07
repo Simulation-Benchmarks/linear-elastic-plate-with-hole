@@ -214,6 +214,9 @@ def main() -> None:
         branch=args.branch,
     )
 
+    notebook_dir = os.path.dirname(os.path.abspath(args.notebook))
+    os.makedirs(notebook_dir, exist_ok=True)
+
     with open(args.notebook, "w", encoding="utf-8") as f:
         json.dump(nb, f, ensure_ascii=False, indent=1)
         f.write("\n")
