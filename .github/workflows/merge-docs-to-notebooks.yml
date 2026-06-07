@@ -1,0 +1,37 @@
+name: Merge docs into notebook
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  merge-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Merge docs into plate-with-hole notebook
+        run: |
+          python scripts/merge_docs_to_notebook.py \
+            --doc docs/plate-with-hole.md \
+            --notebook notebooks/plate_with_hole.ipynb \
+            --repo "${{ github.repository }}" \
+            --branch "${{ github.ref_name }}" \
+            --new notebooks/plate_with_hole.generated.ipynb
+
+      - name: Upload generated notebook as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: notebook-plate-with-hole
+          path: notebooks/plate_with_hole.generated.ipynb
+          if-no-files-found: error
+          retention-days: 14
