@@ -1,7 +1,10 @@
 import argparse
 import logging
+from collections import defaultdict
+from typing import Any, Sequence
+
+import matplotlib.pyplot as plt
 import pandas as pd
-from provenance_plot import ProvenancePlotter
 from rohub_provenance import (
     build_benchmark_ro_uuids_query,
     build_named_graph_query,
@@ -11,6 +14,72 @@ from rohub_provenance import (
 )
 
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
+LOGGER = logging.getLogger(__name__)
+
+
+def finish_plot(
+    x_axis_label: str,
+    y_axis_label: str,
+    title: str,
+    x_ticks: Sequence[float],
+    output_file: str | None,
+) -> None:
+    """Apply common plot formatting and save or display the result."""
+    plt.xlabel(x_axis_label)
+    plt.ylabel(y_axis_label)
+    plt.title(title)
+    plt.grid(True)
+    plt.xscale("log")
+    plt.xticks(ticks=x_ticks, labels=[str(x) for x in x_ticks], rotation=45)
+    plt.tight_layout()
+
+    if output_file:
+        plt.savefig(output_file)
+        LOGGER.info("Plot saved to: %s", output_file)
+    else:
+        plt.show()
+
+
+def plot_provenance_graph(
+    data: Sequence[Sequence[Any]],
+    x_axis_label: str,
+    y_axis_label: str,
+    group_index: int,
+    x_axis_index: int,
+    y_axis_index: int,
+    title: str,
+    output_file: str | None = None,
+    figsize: tuple[int, int] = (12, 5),
+) -> None:
+    """Plot grouped metric series from RoHub provenance query results."""
+    grouped_values: dict[str, list[tuple[float, float]]] = defaultdict(list)
+    x_tick_set = set()
+
+    for row in data:
+        group = str(row[group_index])
+        x_value = float(row[x_axis_index])
+        y_value = float(row[y_axis_index])
+
+        grouped_values[group].append((x_value, y_value))
+        x_tick_set.add(x_value)
+
+    plt.figure(figsize=figsize)
+
+    for group, values in grouped_values.items():
+        values.sort()
+        x_values, y_values = zip(*values)
+        plt.plot(x_values, y_values, marker="o", linestyle="-", label=group)
+
+    if grouped_values:
+        plt.legend()
+
+    finish_plot(
+        x_axis_label,
+        y_axis_label,
+        title,
+        sorted(x_tick_set),
+        output_file,
+    )
 
 
 def parse_args(argv=None):
@@ -208,7 +277,7 @@ def load_and_query_rohub(args, parameters, metrics):
     return filter_by_tool(provenance_df, args.tool)
 
 
-def plot_results(plotter, final_df, args):
+def plot_results(final_df, args):
     """
     Generate a visualization plot of the provenance results.
 
@@ -216,14 +285,13 @@ def plot_results(plotter, final_df, args):
     and maximum von Mises stress.
 
     Args:
-        plotter (ProvenancePlotter): Initialized plotter instance.
         final_df (pd.DataFrame): DataFrame containing filtered data to plot.
                                 Expected columns: element_size,
                                 max_von_mises_stress (in that order).
         args (argparse.Namespace): Plot configuration arguments.
     """
 
-    plotter.plot_provenance_graph(
+    plot_provenance_graph(
         data=final_df.values.tolist(),
         x_axis_label=args.x_axis_label,
         y_axis_label=args.y_axis_label,
@@ -240,27 +308,23 @@ def run(args, parameters, metrics):
     Execute the complete provenance analysis workflow.
 
     Performs the following steps:
-    1. Initialize the ProvenancePlotter
-    2. Fetch benchmark provenance from RoHub
-    3. Filter the RoHub rows for first-order linear elements
-    4. Generate visualization plot
+    1. Fetch benchmark provenance from RoHub
+    2. Filter the RoHub rows for first-order linear elements
+    3. Generate visualization plot
 
     Args:
         args (argparse.Namespace): Parsed command-line arguments.
         parameters (list): List of parameter names to extract.
         metrics (list): List of metric names to extract.
     """
-
-    plotter = ProvenancePlotter()
-
     final_df = (
         load_and_query_rohub(args, parameters, metrics)
-        .query("isoparametric_element_degree == 1")
+        .query("isoparametric_element_degree == '1'")
         .drop(columns=["isoparametric_element_degree"])
         .reset_index(drop=True)
     )
 
-    plot_results(plotter, final_df, args)
+    plot_results(final_df, args)
 
 
 def main():
