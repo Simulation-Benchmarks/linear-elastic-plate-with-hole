@@ -1,0 +1,18 @@
+{
+  "sleep_time": 10,
+  "development": {
+    "api_url": "https://rohub2020-devel.apps.bst2.paas.psnc.pl/api/",
+    "keycloak_client_id": "rohub2020-cli",
+    "keycloak_client_secret": "714617a7-87bc-4a88-8682-5f9c2f60337d",
+    "keycloak_url": "https://keycloak-dev.apps.paas-dev.psnc.pl/auth/realms/rohub/protocol/openid-connect/token",
+    "sparql_endpoint": "https://virtuoso-rohub2020-devel.apps.bst2.paas.psnc.pl/sparql",
+    "ro_id_base": "ro-id-dev"
+  },
+  "production": {
+    "api_url": "https://api.rohub.org/api/",
+    "keycloak_client_id": "rohub2020-public-cli",
+    "keycloak_url": "https://login.rohub.org/auth/realms/rohub/protocol/openid-connect/token",
+    "sparql_endpoint": "https://virtuoso-rohub2020-production.apps.bst2.paas.psnc.pl/sparql",
+    "ro_id_base": "ro-id"
+  }
+}

@@ -1,0 +1,16 @@
+name: provenance
+# Environment file for provenance scripts. Called by provenance step.
+
+channels:
+  - conda-forge
+
+channel_priority: strict
+
+dependencies:
+  - python=3.10
+  - rdflib
+  - matplotlib
+  - pandas
+  - pip
+  - pip:
+      - rohub
