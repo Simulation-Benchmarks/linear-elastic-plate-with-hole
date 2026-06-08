@@ -22,21 +22,21 @@ struct Metrics
     max_von_mises_stress_nodes::Float64
 end
 
-function value_with_unit(json::JSON.Object{String,Any})
-    res = uparse(string(json["value"])*json["unit"])
-    return res
-end
+#function value_with_unit(json::JSON.Object{String,Any})
+#    res = uparse(string(json["value"])*json["unit"])
+#    return res
+#end
 
 
 function parse_config(configfile::String)
     config = JSON.parsefile(configfile)
     id =  config["configuration"]
-    F = ustrip(u"Pa",value_with_unit(config["load"]))
-    E = ustrip(u"Pa",value_with_unit(config["young-modulus"]))
-    ν = config["poisson-ratio"]["value"]
-    radius = ustrip(u"m",value_with_unit(config["radius"]))
-    length = ustrip(u"m",value_with_unit(config["length"]))
-    element_order = config["element-order"]
+    F = config["load[Pa]"] #ustrip(u"Pa",value_with_unit(config["load[Pa]"]))
+    E = config["youngs_modulus[Pa]"] #ustrip(u"Pa",value_with_unit(config["young_modulus[Pa]"]))
+    ν = config["poissons_ratio"]
+    radius = config["radius[m]"] #ustrip(u"m",value_with_unit(config["radius[m]"]))
+    length = config["length[m]"] #ustrip(u"m",value_with_unit(config["length[m]"]))
+    element_order = config["isoparametric_element_degree"]
     return PlateConfig(id,F,E,ν,radius,length,element_order)
 end
 

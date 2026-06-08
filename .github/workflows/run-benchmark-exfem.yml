@@ -1,0 +1,61 @@
+name: ExtendableFEM CI
+on:
+  push:
+
+  pull_request:
+    branches: [ main ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+  # Runs the workflow once per day at 3:15am
+  schedule:
+    - cron: '3 17 * * *'
+
+env:
+  EXAMPLE_BENCHMARK_FILE: provenance/benchmark.json
+  EXAMPLE_BENCHMARK_ZIP: benchmark/linear-elastic-plate-with-hole.zip
+
+jobs:
+  run-examples:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: [extendablefem]
+
+    steps:
+      - name: checkout repo content
+        uses: actions/checkout@v6
+
+      - name: Setup Mambaforge
+        uses: conda-incubator/setup-miniconda@v4
+        with:
+            miniforge-version: latest
+            use-mamba: true
+            conda-remove-defaults: "true"
+        
+      - name: Create ${{ matrix.tool }} environment
+        run: mamba env create -n ${{ matrix.tool }} -f ${{ matrix.tool }}/environment_benchmark.yml
+
+      - name: Setup Apptainer
+        uses: eWaterCycle/setup-apptainer@v2
+        with:
+          apptainer-version: 1.4.5
+
+      - name: Run linear-elastic-plate-with-hole using ${{ matrix.tool }}
+        shell: bash -l {0}
+        run: |
+          cd "$GITHUB_WORKSPACE/${{ matrix.tool }}/"
+          conda run -n "${{ matrix.tool }}" python run_benchmark.py \
+            --benchmark-file "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}" \
+            --benchmark-zip "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_ZIP}" \
+
+      - name: Archive results of the ${{ matrix.tool }} run of linear-elastic-plate-with-hole
+        uses: actions/upload-artifact@v6
+        with:
+            name: ${{ matrix.tool }}_results_linear-elastic-plate-with-hole
+            path: |
+              ${{ matrix.tool }}/results/
+
+
