@@ -23,7 +23,7 @@ import semantic_benchmark
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 LOGGER = logging.getLogger(__name__)
 
-TOOL_NAME = "Fenics"
+TOOL_NAME = "ExtendableFEM"
 BENCHMARK_DIR = Path(__file__).resolve().parent
 
 PROVENANCE_REPORTER_NAME = "metadata4ing"
@@ -158,10 +158,12 @@ def create_configuration_output_dir(benchmark_dir: Path, configuration: str) -> 
     return output_dir
 
 
-def create_parameter_file(configuration_data: dict, output_dir: Path) -> None:
+def create_parameter_file(configuration_data: dict, output_dir: Path) -> Path:
     """Write the selected configuration as parameters.json in the result directory."""
-    with open(output_dir / "parameters.json", "w") as outfile:
+    result_dir_parameter_file = output_dir / "parameters.json"
+    with open(result_dir_parameter_file, "w") as outfile:
         json.dump(configuration_data, outfile, indent=2)
+    return result_dir_parameter_file
 
 
 def copy_benchmark_files_to_output_dir(benchmark_dir: Path, output_dir: Path) -> None:
@@ -178,7 +180,7 @@ def copy_benchmark_files_to_output_dir(benchmark_dir: Path, output_dir: Path) ->
 
 def build_snakemake_command(
     parameter_file: Path,
-    #shared_env_dir: Path,
+    shared_env_dir: Path,
 ) -> list[str]:
     """Build the base Snakemake command for one configuration."""
     return [
@@ -187,8 +189,8 @@ def build_snakemake_command(
         "--use-apptainer",
         "--cores",
         "all",
-        #"--conda-prefix",
-        #str(shared_env_dir),
+        "--conda-prefix",
+        str(shared_env_dir),
         "--configfile",
         str(parameter_file),
     ]
@@ -216,20 +218,20 @@ def run_snakemake_workflow(
     parameter_file: Path,
     configuration: str,
     output_dir: Path,
-    #shared_env_dir: Path,
+    shared_env_dir: Path,
 ) -> None:
     """Run the Snakemake workflow normally and then with provenance reporting."""
-    base_cmd = build_snakemake_command(parameter_file)#, shared_env_dir)
-    reporter_args = build_provenance_reporter_args(configuration)
+    base_cmd = build_snakemake_command(parameter_file, shared_env_dir)
+    #reporter_args = build_provenance_reporter_args(configuration)
 
     subprocess.run(base_cmd, check=True, cwd=output_dir)
-    subprocess.run(base_cmd + reporter_args, check=True, cwd=output_dir)
+    #subprocess.run(base_cmd + reporter_args, check=True, cwd=output_dir)
 
 
 def run_configuration(
     parameter_file: Path,
     benchmark_dir: Path,
-    #shared_env_dir: Path,
+    shared_env_dir: Path,
 ) -> None:
     """Prepare and execute one benchmark configuration."""
     configuration_data = load_parameter_file(parameter_file)
@@ -239,13 +241,13 @@ def run_configuration(
 
     output_dir = create_configuration_output_dir(benchmark_dir, configuration)
 
-    create_parameter_file(configuration_data, output_dir)
+    result_dir_parameter_file = create_parameter_file(configuration_data, output_dir)
     copy_benchmark_files_to_output_dir(benchmark_dir, output_dir)
     run_snakemake_workflow(
-        parameter_file,
+        result_dir_parameter_file,
         configuration,
         output_dir,
-        #shared_env_dir,
+        shared_env_dir,
     )
 
     LOGGER.info("Workflow executed successfully for configuration %s.", configuration)
@@ -288,13 +290,13 @@ def run_benchmark(args: Namespace) -> None:
     configure_logging()
 
     extract_benchmark_archive(args.benchmark_zip, BENCHMARK_DIR)
-    #shared_env_dir = create_shared_conda_env_dir(BENCHMARK_DIR)
+    shared_env_dir = create_shared_conda_env_dir(BENCHMARK_DIR)
 
     benchmark = load_benchmark(args.benchmark_file)
     create_parameter_files_from_benchmark(benchmark, BENCHMARK_DIR)
 
     for parameter_file in sorted(BENCHMARK_DIR.glob("parameters_*.json")):
-        run_configuration(parameter_file, BENCHMARK_DIR)#, shared_env_dir)
+        run_configuration(parameter_file, BENCHMARK_DIR, shared_env_dir)
     
     """ 
     create_aggregate_rocrate(

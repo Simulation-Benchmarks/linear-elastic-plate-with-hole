@@ -142,7 +142,7 @@ function solve_plate_with_hole(config::PlateConfig,grid::ExtendableGrid,outputzi
 
     metrics = Metrics(maximum(vonMises_stresses))
 
-    outputvtk = splitdir(outputzip)[1]*"/results_"*config.id*".vtu";
+    outputvtk = "results_"*config.id*".vtu" #splitdir(outputzip)[1]*"/results_"*config.id*".vtu";
     writeVTK(outputvtk,grid;compress=false, u_x=u_x,u_y=u_y,u_mag=u_mag,uexx=u_exx,uexy=u_exy,uex=uex_mag)
     f = open(outputvtk,"r")
     vtkcontent = read(f,String)
