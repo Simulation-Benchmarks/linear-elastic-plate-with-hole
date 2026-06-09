@@ -95,21 +95,26 @@ jobs:
             printf '%s\n' "$OUTPUT" | tee "$LOG_FILE"
           fi
   
-  process-artifacts:
+  wait-for-rohub-processing:
     runs-on: ubuntu-latest
     needs: run-examples
+    steps:
+      - name: Wait for RoHub processing
+        run: sleep 600
+
+  process-artifacts:
+    runs-on: ubuntu-latest
+    needs: wait-for-rohub-processing
     env:
       PLOT_OUTPUT_FILE: ${{ matrix.tool }}-element-size-vs-stress-plot.pdf
 
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         tool: [fenics, kratos]
 
     steps:
-      - name: Wait for RoHub processing
-        run: sleep 600
-
       - name: Checkout repo content
         uses: actions/checkout@v6
 
