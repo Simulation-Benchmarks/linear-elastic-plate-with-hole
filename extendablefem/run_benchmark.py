@@ -102,6 +102,12 @@ def create_shared_conda_env_dir(benchmark_dir: Path) -> Path:
     shared_env_dir.mkdir(parents=True, exist_ok=True)
     return shared_env_dir
 
+def create_shared_apptainer_env_dir(benchmark_dir: Path) -> Path:
+    """Create and return the shared Snakemake Apptainer environment directory."""
+    shared_env_dir = benchmark_dir / "apptainer_envs"
+    shared_env_dir.mkdir(parents=True, exist_ok=True)
+    return shared_env_dir
+
 
 def parameter_json_key(parameter) -> str:
     """Build the parameters.json key, including the unit suffix when present."""
@@ -180,7 +186,8 @@ def copy_benchmark_files_to_output_dir(benchmark_dir: Path, output_dir: Path) ->
 
 def build_snakemake_command(
     parameter_file: Path,
-    shared_env_dir: Path,
+    shared_env_dir_conda: Path,
+    shared_env_dir_apptainer: Path,
 ) -> list[str]:
     """Build the base Snakemake command for one configuration."""
     return [
@@ -190,7 +197,9 @@ def build_snakemake_command(
         "--cores",
         "all",
         "--conda-prefix",
-        str(shared_env_dir),
+        str(shared_env_dir_conda),
+        "--apptainer-prefix",
+        str(shared_env_dir_apptainer),
         "--configfile",
         str(parameter_file),
     ]
@@ -218,10 +227,11 @@ def run_snakemake_workflow(
     parameter_file: Path,
     configuration: str,
     output_dir: Path,
-    shared_env_dir: Path,
+    shared_env_dir_conda: Path,
+    shared_env_dir_apptainer: Path,
 ) -> None:
     """Run the Snakemake workflow normally and then with provenance reporting."""
-    base_cmd = build_snakemake_command(parameter_file, shared_env_dir)
+    base_cmd = build_snakemake_command(parameter_file, shared_env_dir_conda, shared_env_dir_apptainer)
     #reporter_args = build_provenance_reporter_args(configuration)
 
     subprocess.run(base_cmd, check=True, cwd=output_dir)
@@ -231,7 +241,8 @@ def run_snakemake_workflow(
 def run_configuration(
     parameter_file: Path,
     benchmark_dir: Path,
-    shared_env_dir: Path,
+    shared_env_dir_conda: Path,
+    shared_env_dir_apptainer: Path,
 ) -> None:
     """Prepare and execute one benchmark configuration."""
     configuration_data = load_parameter_file(parameter_file)
@@ -247,7 +258,8 @@ def run_configuration(
         result_dir_parameter_file,
         configuration,
         output_dir,
-        shared_env_dir,
+        shared_env_dir_conda,
+        shared_env_dir_apptainer,
     )
 
     LOGGER.info("Workflow executed successfully for configuration %s.", configuration)
@@ -290,13 +302,18 @@ def run_benchmark(args: Namespace) -> None:
     configure_logging()
 
     extract_benchmark_archive(args.benchmark_zip, BENCHMARK_DIR)
-    shared_env_dir = create_shared_conda_env_dir(BENCHMARK_DIR)
+    shared_env_dir_conda = create_shared_conda_env_dir(BENCHMARK_DIR)
+    shared_env_dir_apptainer = create_shared_apptainer_env_dir(BENCHMARK_DIR)
 
     benchmark = load_benchmark(args.benchmark_file)
     create_parameter_files_from_benchmark(benchmark, BENCHMARK_DIR)
 
     for parameter_file in sorted(BENCHMARK_DIR.glob("parameters_*.json")):
-        run_configuration(parameter_file, BENCHMARK_DIR, shared_env_dir)
+        with open(parameter_file, 'r') as f:
+            params = json.load(f)
+        
+        if params.get("isoparametric_element_degree") == 1:
+            run_configuration(parameter_file, BENCHMARK_DIR, shared_env_dir_conda, shared_env_dir_apptainer)
     
     """ 
     create_aggregate_rocrate(

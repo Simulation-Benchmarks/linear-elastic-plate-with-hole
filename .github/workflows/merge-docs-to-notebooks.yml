@@ -1,0 +1,52 @@
+name: Merge docs and script into notebook
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build notebook from docs and source notebook
+        run: |
+          python scripts/build_notebook.py \
+            --doc docs/plate-with-hole.md \
+            --source-notebook notebooks/RoCrate.ipynb \
+            --notebook notebooks/plate_with_hole.ipynb \
+            --repo "${{ github.repository }}" \
+            --branch "${{ github.ref_name }}"
+
+      - name: Commit generated notebook back to the repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # `git diff` does not include untracked files, so use `git status`
+          # to detect a freshly-created notebook.
+          if [ -z "$(git status --porcelain -- notebooks/plate_with_hole.ipynb)" ]; then
+            echo "No changes to the notebook."
+            exit 0
+          fi
+          git add notebooks/plate_with_hole.ipynb
+          git commit -m "Auto-build plate-with-hole notebook from docs and script [skip ci]"
+          git push
+
+      - name: Upload generated notebook as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: notebook-plate-with-hole
+          path: notebooks/plate_with_hole.ipynb
+          if-no-files-found: error
+          retention-days: 14
