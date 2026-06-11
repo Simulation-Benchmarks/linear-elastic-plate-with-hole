@@ -10,6 +10,14 @@ import zipfile
 from argparse import Namespace
 from pathlib import Path
 
+# Monkey-patch pulp for compatibility with newer versions
+try:
+    import pulp
+    if not hasattr(pulp, 'list_solvers') and hasattr(pulp, 'listSolvers'):
+        pulp.list_solvers = pulp.listSolvers
+except ImportError:
+    pass
+
 from rocrate_validator import models, services
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
