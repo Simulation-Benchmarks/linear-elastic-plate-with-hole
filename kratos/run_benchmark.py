@@ -201,7 +201,7 @@ def build_snakemake_command(
         str(shared_env_dir),
         "--configfile",
         str(parameter_file),
-        "--conda-cleanup",
+        "--conda-cleanup-pkgs",
         "none",
     ]
 
