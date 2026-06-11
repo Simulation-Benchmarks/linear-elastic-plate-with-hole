@@ -1,28 +1,15 @@
 """Build a Jupyter notebook by combining a markdown documentation file with
-a Python postprocessing script.
+a source notebook.
 
 The generated notebook is structured as:
 
   cell 0 : markdown  -- the documentation (with a Binder badge)
-  cell 1+ : code    -- chunks produced from the .py file
+  cell 1+ : cells from the source notebook (cell type preserved)
 
-The .py file is parsed with ast.parse. The top-level body is split into
-chunks:
-
-  * A leading "header" cell containing all module-level imports,
-    assignments, and expressions that appear before the first
-    FunctionDef / AsyncFunctionDef / ClassDef.
-  * One cell per top-level FunctionDef, AsyncFunctionDef, or ClassDef.
-  * An `if __name__ == "__main__":` block becomes a cell with the guard
-    stripped, prefixed with a comment explaining what it does.
-
-No external dependencies (no nbformat). The notebook is hand-rolled as
-JSON, matching the layout produced by the reference
-`merge_docs_to_notebook.py` in the berndExample.
+No external dependencies (no nbformat). The notebook is hand-rolled as JSON.
 """
 
 import argparse
-import ast
 import json
 import os
 import re
@@ -63,90 +50,32 @@ def make_markdown_cell(source: str) -> dict:
     }
 
 
-def make_code_cell(source: str) -> dict:
-    return {
-        "cell_type": "code",
-        "execution_count": None,
-        "metadata": {},
-        "outputs": [],
-        "source": source.splitlines(keepends=True),
-    }
+def extract_cells_from_notebook(source_notebook_path: str) -> list:
+    """Return a list of notebook cells from an existing .ipynb file.
 
-
-def split_script_into_chunks(script_path: str) -> list:
-    """Parse the .py file and return a list of (kind, source) pairs.
-
-    Each pair is one chunk. `kind` is "code" for all chunks. The first
-    chunk is a "header" with the leading module-level imports/assignments;
-    subsequent chunks are top-level functions/classes and (stripped)
-    __main__ blocks.
+    Each cell is a dict with at least ``cell_type`` and ``source``.
+    Outputs and execution counts are cleared so the output notebook is clean.
     """
-    with open(script_path, "r", encoding="utf-8") as f:
-        source = f.read()
+    with open(source_notebook_path, "r", encoding="utf-8") as f:
+        nb = json.load(f)
 
-    tree = ast.parse(source, filename=script_path)
-    if not isinstance(tree, ast.Module):
-        raise ValueError(f"{script_path}: top-level is not a Module")
-
-    lines = source.splitlines(keepends=True)
-
-    def slice_source(node):
-        # ast lineno / end_lineno are 1-indexed and inclusive
-        start = node.lineno - 1
-        end = node.end_lineno
-        return "".join(lines[start:end])
-
-    chunks = []
-    header_nodes = []
-    main_block = None
-    for node in tree.body:
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            chunks.append(slice_source(node))
-        elif isinstance(node, ast.If):
-            test = node.test
-            is_main = (
-                isinstance(test, ast.Compare)
-                and isinstance(test.left, ast.Name)
-                and test.left.id == "__name__"
-                and len(test.ops) == 1
-                and isinstance(test.ops[0], ast.Eq)
-                and len(test.comparators) == 1
-                and isinstance(test.comparators[0], ast.Constant)
-                and test.comparators[0].value == "__main__"
-            )
-            if is_main:
-                main_block = node
-            else:
-                header_nodes.append(node)
-        else:
-            header_nodes.append(node)
-
-    header_source = "".join(slice_source(n) for n in header_nodes).strip("\n")
-    if header_source:
-        chunks.insert(0, header_source + "\n")
-
-    if main_block is not None:
-        body_source = "".join(slice_source(n) for n in main_block.body)
-        if body_source:
-            # Dedent: the body of `if __name__ == "__main__":` is indented
-            # in the source; we strip the guard so the cell must be at
-            # module level.
-            import textwrap
-            body_source = textwrap.dedent(body_source).strip("\n")
-            if body_source:
-                chunks.append(
-                    "# Run as __main__: the `if __name__ == \"__main__\":` "
-                    "guard has been stripped by build_notebook.py.\n"
-                    + body_source
-                    + "\n"
-                )
-
-    return chunks
+    cells = []
+    for cell in nb.get("cells", []):
+        clean = {
+            "cell_type": cell["cell_type"],
+            "metadata": cell.get("metadata", {}),
+            "source": cell.get("source", []),
+        }
+        if cell["cell_type"] == "code":
+            clean["execution_count"] = None
+            clean["outputs"] = []
+        cells.append(clean)
+    return cells
 
 
 def build_notebook(
     doc_path: str,
-    script_path: str,
+    source_notebook_path: str,
     notebook_path: str,
     repo: str,
     branch: str,
@@ -162,8 +91,7 @@ def build_notebook(
     doc_cell_source = f"{MARKER}\n{badge_md}\n\n{doc_text}"
 
     cells = [make_markdown_cell(doc_cell_source)]
-    for chunk_source in split_script_into_chunks(script_path):
-        cells.append(make_code_cell(chunk_source))
+    cells.extend(extract_cells_from_notebook(source_notebook_path))
 
     return {
         "cells": cells,
@@ -184,14 +112,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
             "Build a Jupyter notebook by combining a markdown documentation "
-            "file with a Python postprocessing script."
+            "file with a source notebook."
         )
     )
     parser.add_argument("--doc", required=True, help="Path to the markdown doc file.")
     parser.add_argument(
-        "--script",
+        "--source-notebook",
         required=True,
-        help="Path to the Python postprocessing script (source of truth).",
+        help="Path to the source notebook whose cells are appended.",
     )
     parser.add_argument(
         "--notebook",
@@ -208,7 +136,7 @@ def main() -> None:
 
     nb = build_notebook(
         doc_path=args.doc,
-        script_path=args.script,
+        source_notebook_path=args.source_notebook,
         notebook_path=args.notebook,
         repo=args.repo,
         branch=args.branch,
