@@ -1,0 +1,21 @@
+name: linear-elastic-plate-with-hole
+dependencies:
+  - python>=3.11
+  - pandas
+  - matplotlib
+  - rohub
+  - rdflib
+  - rocrate
+  - roc-validator
+  - numpy
+  - scipy
+  - sympy
+  - pyvista
+  - meshio
+  - gmsh
+  - pint
+  - snakemake>=7.0
+  - pulp<2.8
+  - mpi4py
+  - pip:
+      - "git+https://github.com/izus-fokus/snakemake-report-plugin-metadata4ing@v2.0.2#egg=snakemake-report-plugin-metadata4ing"
