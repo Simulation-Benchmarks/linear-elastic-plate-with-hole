@@ -108,6 +108,11 @@ def create_shared_conda_env_dir(benchmark_dir: Path) -> Path:
     if shared_env_dir.exists():
         shutil.rmtree(shared_env_dir)
     shared_env_dir.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        ["conda", "config", "--set", "channel_priority", "strict"],
+        check=False,
+        capture_output=True
+    )
     return shared_env_dir
 
 
@@ -200,7 +205,7 @@ def build_snakemake_command(
         "--configfile",
         str(parameter_file),
         "--conda-cleanup-pkgs",
-        "never",
+        "--conda-cleanup-envs"
     ]
 
 
