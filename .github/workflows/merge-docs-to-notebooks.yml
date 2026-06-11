@@ -23,9 +23,9 @@ jobs:
       - name: Build notebook from docs and script
         run: |
           python scripts/build_notebook.py \
-            --doc docs/plate-with-hole.md \
+            --doc docs/benchmark-documentation.md \
             --script scripts/postprocess_plate.py \
-            --notebook notebooks/plate_with_hole.ipynb \
+            --notebook notebooks/benchmark-results.ipynb \
             --repo "${{ github.repository }}" \
             --branch "${{ github.ref_name }}"
 
@@ -35,18 +35,18 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           # `git diff` does not include untracked files, so use `git status`
           # to detect a freshly-created notebook.
-          if [ -z "$(git status --porcelain -- notebooks/plate_with_hole.ipynb)" ]; then
+          if [ -z "$(git status --porcelain -- notebooks/benchmark-results.ipynb)" ]; then
             echo "No changes to the notebook."
             exit 0
           fi
-          git add notebooks/plate_with_hole.ipynb
-          git commit -m "Auto-build plate-with-hole notebook from docs and script [skip ci]"
+          git add notebooks/benchmark-results.ipynb
+          git commit -m "Auto-build benchmark results notebook from docs and script [skip ci]"
           git push
 
       - name: Upload generated notebook as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: notebook-plate-with-hole
-          path: notebooks/plate_with_hole.ipynb
+          name: notebook-benchmark-results
+          path: notebooks/benchmark-results.ipynb
           if-no-files-found: error
           retention-days: 14

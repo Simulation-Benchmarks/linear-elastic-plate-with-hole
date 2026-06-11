@@ -4,4 +4,4 @@ A benchmark for the linear elastic infinite plate with a hole problem, solved us
 
 ## Problem Definition
 
-See the [documentation](docs/plate-with-hole.md) for a detailed problem definition and mathematical formulation.
+See the [documentation](docs/benchmark-documentation.md) for a detailed problem definition and mathematical formulation.

@@ -1,8 +1,8 @@
 """Postprocessing for the linear-elastic plate with a hole benchmark.
 
 This script is the source of truth for the postprocessing logic. The
-notebooks/plate_with_hole.ipynb notebook is auto-generated from this
-file plus docs/plate-with-hole.md by the merge-docs-to-notebooks GitHub
+notebooks/notebook-results.ipynb notebook is auto-generated from this
+file plus docs/benchmark-documentation.md by the merge-docs-to-notebooks GitHub
 Actions workflow (see docs/notebook-pipeline.md).
 """
 import json
