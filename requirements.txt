@@ -3,7 +3,6 @@ matplotlib>=3.0.0
 rohub>=0.4.0
 rdflib>=6.0.0
 rocrate>=0.10.0
-rocrate-validator>=0.3.0
 numpy>=1.20.0
 scipy>=1.7.0
 sympy>=1.9
