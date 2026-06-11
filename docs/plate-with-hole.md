@@ -152,13 +152,3 @@ In order to solve the weak formulation, the finite-element method (FEM) can be u
 
 
 ## Numerical Results
-
-### FEniCS
-
-[![Jupyter4NFDI](https://nfdi-jupyter.de/images/jupyter4nfdi_badge.svg)](https://hub.nfdi-jupyter.de/v2/gh/BAMresearch/NFDI4IngModelValidationPlatform/HEAD?labpath=notebooks%2Fplate_with_hole_fenics.ipynb)
-
-### Kratos
-
-[![Jupyter4NFDI](https://nfdi-jupyter.de/images/jupyter4nfdi_badge.svg)](https://hub.nfdi-jupyter.de/v2/gh/BAMresearch/NFDI4IngModelValidationPlatform/HEAD?labpath=notebooks%2Fplate_with_hole_Kratos.ipynb)
-
-smallTest-2
