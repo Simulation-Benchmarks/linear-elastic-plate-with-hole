@@ -11,15 +11,20 @@ BENCHMARK_ZIP="$BENCHMARK_DIR/linear-elastic-plate-with-hole.zip"
 BENCHMARK_FILE="$BENCHMARK_DIR/linear-elastic-plate-with-hole.jsonld"
 EXTRACTED_BENCHMARK_DIR="$BENCHMARK_DIR/extracted"
 
-echo "Extracting benchmark archive..."
+echo "Setting up benchmark configuration..."
 mkdir -p "$EXTRACTED_BENCHMARK_DIR"
 unzip -q "$BENCHMARK_ZIP" -d "$EXTRACTED_BENCHMARK_DIR"
 
-# Find the actual benchmark file
-if [ -f "$EXTRACTED_BENCHMARK_DIR/linear-elastic-plate-with-hole.jsonld" ]; then
-    BENCHMARK_FILE="$EXTRACTED_BENCHMARK_DIR/linear-elastic-plate-with-hole.jsonld"
-elif [ -f "$EXTRACTED_BENCHMARK_DIR"/*.jsonld ]; then
-    BENCHMARK_FILE=$(find "$EXTRACTED_BENCHMARK_DIR" -name "*.jsonld" | head -1)
+# Create benchmark file if it doesn't exist
+if [ ! -f "$BENCHMARK_FILE" ]; then
+    PROVENANCE_BENCHMARK="$REPO_ROOT/provenance/benchmark.json"
+    if [ -f "$PROVENANCE_BENCHMARK" ]; then
+        cp "$PROVENANCE_BENCHMARK" "$BENCHMARK_FILE"
+        echo "Created benchmark file from provenance: $BENCHMARK_FILE"
+    else
+        echo "Error: Could not find benchmark configuration"
+        exit 1
+    fi
 fi
 
 # Run Fenics benchmark
