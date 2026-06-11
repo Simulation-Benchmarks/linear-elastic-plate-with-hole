@@ -14,13 +14,17 @@ The module supports both production and development environments of RoHub.
 """
 
 import argparse
-import logging
-import sys
 
 from rohub_provenance import upload_provenance_rocrate
 
-LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
-LOGGER = logging.getLogger(__name__)
+
+def parse_bool(value):
+    normalized_value = value.lower()
+    if normalized_value == "true":
+        return True
+    if normalized_value == "false":
+        return False
+    raise argparse.ArgumentTypeError("Expected 'true' or 'false'.")
 
 
 def parse_args():
@@ -69,8 +73,9 @@ def parse_args():
     )
     parser.add_argument(
         "--use-production-rohub",
-        action="store_true",
-        help="Use production RoHub instead of the development instance",
+        type=parse_bool,
+        default=False,
+        help="Use production RoHub instead of the development instance (true/false)",
     )
     return parser.parse_args()
 
@@ -142,14 +147,8 @@ def main():
         The script will exit with a non-zero status code if authentication
         or upload fails, or if required arguments are not provided.
     """
-    logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
     args = parse_args()
-    try:
-        run(args)
-        sys.exit(0)
-    except Exception as error:
-        LOGGER.exception("RoHub upload failed: %s", error)
-        sys.exit(1)
+    run(args)
 
 
 if __name__ == "__main__":

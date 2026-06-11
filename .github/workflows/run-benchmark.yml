@@ -13,8 +13,11 @@ on:
     - cron: '3 17 * * *'
 
 env:
-  EXAMPLE_BENCHMARK_FILE: provenance/benchmark.json
-  EXAMPLE_BENCHMARK_ZIP: benchmark/linear-elastic-plate-with-hole.zip
+  BENCHMARK_ROHUB_IDENTIFIER: 68b027dd-666b-4b32-a416-952960022c2c
+  EXAMPLE_BENCHMARK_FILE: downloaded-benchmark/benchmark.json
+  EXAMPLE_BENCHMARK_ZIP: downloaded-benchmark/linear-elastic-plate-with-hole.zip
+  BRANCH_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  USE_PRODUCTION_ROHUB: ${{ github.ref == 'refs/heads/main' }}
 
 jobs:
   run-examples:
@@ -37,6 +40,24 @@ jobs:
         
       - name: Create ${{ matrix.tool }} environment
         run: mamba env create -n ${{ matrix.tool }} -f ${{ matrix.tool }}/environment_benchmark.yml
+
+      - name: Install RoHub package
+        shell: bash -l {0}
+        run: |
+          python -m pip install rohub
+
+      - name: Download benchmark resources from RoHub
+        shell: bash -l {0}
+        run: |
+          mkdir -p "${GITHUB_WORKSPACE}/downloaded-benchmark"
+
+          python provenance/download_benchmark.py \
+            --identifier "${BENCHMARK_ROHUB_IDENTIFIER}" \
+            --username "${{ secrets.ROHUB_PROD_USERNAME }}" \
+            --password "${{ secrets.ROHUB_PROD_PASSWORD }}" \
+            --zip-resource-filename "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_ZIP}" \
+            --semantic-resource-filename "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}" \
+            --use-production-rohub True
 
       - name: Run linear-elastic-plate-with-hole using ${{ matrix.tool }}
         shell: bash -l {0}
@@ -61,11 +82,6 @@ jobs:
           name: ${{ matrix.tool }}-aggregate-rocrate
           path: ${{ github.workspace }}/${{ matrix.tool }}/results/${{ matrix.tool }}_rocrate.zip
 
-      - name: Install RoHub upload package
-        shell: bash -l {0}
-        run: |
-          python -m pip install rohub
-
       - name: Upload ${{ matrix.tool }} RO-Crate Zip file onto RoHub
         id: rohub_upload
         shell: bash -l {0}
@@ -73,27 +89,24 @@ jobs:
         run: |
           TOOL="${{ matrix.tool }}"
           TOOL_NAME="${TOOL^}"
-          LOG_FILE="${GITHUB_WORKSPACE}/rohub_upload_${TOOL}_error.log"
+          ROCRATE_TITLE="NFDI4Ing Provenance (${TOOL_NAME})"
 
-          OUTPUT="$(
-            python provenance/upload_provenance.py \
-              --provenance_folderpath "${GITHUB_WORKSPACE}/${TOOL}/results/${TOOL}_rocrate.zip" \
-              --benchmark_name "linear-elastic-plate-with-hole" \
-              --username "${{ secrets.ROHUB_USERNAME }}" \
-              --password "${{ secrets.ROHUB_PASSWORD }}" \
-              --rocrate-title "NFDI4Ing Provenance (${TOOL_NAME})"
-            2>&1
-          )"
-
-          PYTHON_EXIT_CODE=$?
-
-          if [ "$PYTHON_EXIT_CODE" -eq 0 ]; then
-            echo "RoHub upload succeeded"
-            rm -f "$LOG_FILE" || true
+          if [ "${USE_PRODUCTION_ROHUB}" = "true" ]; then
+            ROHUB_USERNAME="${{ secrets.ROHUB_PROD_USERNAME }}"
+            ROHUB_PASSWORD="${{ secrets.ROHUB_PROD_PASSWORD }}"
           else
-            echo "=== RoHub upload failed, writing log to $LOG_FILE ==="
-            printf '%s\n' "$OUTPUT" | tee "$LOG_FILE"
+            ROHUB_USERNAME="${{ secrets.ROHUB_DEV_USERNAME }}"
+            ROHUB_PASSWORD="${{ secrets.ROHUB_DEV_PASSWORD }}"
+            ROCRATE_TITLE="${ROCRATE_TITLE} (${BRANCH_COMMIT_SHA:0:7})"
           fi
+
+          python provenance/upload_provenance.py \
+            --provenance_folderpath "${GITHUB_WORKSPACE}/${TOOL}/results/${TOOL}_rocrate.zip" \
+            --benchmark_name "linear-elastic-plate-with-hole" \
+            --username "${ROHUB_USERNAME}" \
+            --password "${ROHUB_PASSWORD}" \
+            --rocrate-title "${ROCRATE_TITLE}" \
+            --use-production-rohub "${USE_PRODUCTION_ROHUB}"
   
   wait-for-rohub-processing:
     runs-on: ubuntu-latest
@@ -130,11 +143,23 @@ jobs:
       - name: Run ${{ matrix.tool }} plotting script
         shell: bash -l {0}
         run: |
+          PLOT_ROHUB_ENV_ARGS=()
+
+          if [ "${USE_PRODUCTION_ROHUB}" = "true" ]; then
+            ROHUB_USERNAME="${{ secrets.ROHUB_PROD_USERNAME }}"
+            ROHUB_PASSWORD="${{ secrets.ROHUB_PROD_PASSWORD }}"
+            PLOT_ROHUB_ENV_ARGS+=(--use-production-rohub)
+          else
+            ROHUB_USERNAME="${{ secrets.ROHUB_DEV_USERNAME }}"
+            ROHUB_PASSWORD="${{ secrets.ROHUB_DEV_PASSWORD }}"
+          fi
+
           python provenance/plot_plate_with_hole_metrics.py \
             --tool "${{ matrix.tool }}" \
-            --username "${{ secrets.ROHUB_USERNAME }}" \
-            --password "${{ secrets.ROHUB_PASSWORD }}" \
-            --output-file "${PLOT_OUTPUT_FILE}"
+            --username "${ROHUB_USERNAME}" \
+            --password "${ROHUB_PASSWORD}" \
+            --output-file "${PLOT_OUTPUT_FILE}" \
+            "${PLOT_ROHUB_ENV_ARGS[@]}"
 
       - name: Upload ${{ matrix.tool }} plot artifact
         uses: actions/upload-artifact@v6
