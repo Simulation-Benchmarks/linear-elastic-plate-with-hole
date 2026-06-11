@@ -8,6 +8,17 @@ dependencies:
   - rdflib
   - pip
   - pip:
+      - pandas
+      - matplotlib
+      - rohub
+      - numpy
+      - scipy
+      - sympy
+      - pyvista
+      - meshio
+      - gmsh
+      - pint
+      - mpi4py
       - rocrate
       - roc-validator
       - "git+https://github.com/izus-fokus/snakemake-report-plugin-metadata4ing@v2.0.2#egg=snakemake-report-plugin-metadata4ing"
