@@ -11,6 +11,6 @@ pyvista
 meshio
 gmsh
 pint
-snakemake
-pulp
+snakemake>=7.0
+pulp<2.8
 mpi4py
