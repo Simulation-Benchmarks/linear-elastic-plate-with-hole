@@ -105,6 +105,8 @@ def extract_benchmark_archive(benchmark_zip: Path, output_dir: Path) -> None:
 def create_shared_conda_env_dir(benchmark_dir: Path) -> Path:
     """Create and return the shared Snakemake conda environment directory."""
     shared_env_dir = benchmark_dir / "conda_envs"
+    if shared_env_dir.exists():
+        shutil.rmtree(shared_env_dir)
     shared_env_dir.mkdir(parents=True, exist_ok=True)
     return shared_env_dir
 
@@ -199,6 +201,8 @@ def build_snakemake_command(
         str(shared_env_dir),
         "--configfile",
         str(parameter_file),
+        "--conda-cleanup",
+        "none",
     ]
 
 
