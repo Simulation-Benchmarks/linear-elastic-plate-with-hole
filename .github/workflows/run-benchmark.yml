@@ -17,7 +17,7 @@ env:
   EXAMPLE_BENCHMARK_FILE: downloaded-benchmark/benchmark.json
   EXAMPLE_BENCHMARK_ZIP: downloaded-benchmark/linear-elastic-plate-with-hole.zip
   BRANCH_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-  USE_PRODUCTION_ROHUB: ${{ github.ref == 'refs/heads/main' }}
+  USE_PRODUCTION_ROHUB: true 
 
 jobs:
   run-examples:
