@@ -181,8 +181,6 @@ def build_snakemake_command(
     """Build the base Snakemake command for one configuration."""
     return [
         "snakemake",
-        "--snakefile",
-        "Snakefile",
         "--use-conda",
         "--force",
         "--cores",

@@ -14,6 +14,7 @@ on:
 
 env:
   BENCHMARK_ROHUB_IDENTIFIER: 68b027dd-666b-4b32-a416-952960022c2c
+  BENCHMARK_VERSION: 1.0.0
   EXAMPLE_BENCHMARK_FILE: downloaded-benchmark/benchmark.json
   EXAMPLE_BENCHMARK_ZIP: downloaded-benchmark/linear-elastic-plate-with-hole.zip
   BRANCH_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -89,7 +90,7 @@ jobs:
         run: |
           TOOL="${{ matrix.tool }}"
           TOOL_NAME="${TOOL^}"
-          ROCRATE_TITLE="NFDI4Ing Provenance (${TOOL_NAME})"
+          ROCRATE_TITLE="NFDI4Ing Provenance (${TOOL_NAME}) ${BENCHMARK_VERSION}"
 
           if [ "${USE_PRODUCTION_ROHUB}" = "true" ]; then
             ROHUB_USERNAME="${{ secrets.ROHUB_PROD_USERNAME }}"
@@ -97,7 +98,7 @@ jobs:
           else
             ROHUB_USERNAME="${{ secrets.ROHUB_DEV_USERNAME }}"
             ROHUB_PASSWORD="${{ secrets.ROHUB_DEV_PASSWORD }}"
-            ROCRATE_TITLE="${ROCRATE_TITLE} (${BRANCH_COMMIT_SHA:0:7})"
+            ROCRATE_TITLE="${ROCRATE_TITLE}_${BRANCH_COMMIT_SHA:0:7}"
           fi
 
           python provenance/upload_provenance.py \
