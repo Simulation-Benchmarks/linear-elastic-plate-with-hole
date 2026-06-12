@@ -13,10 +13,11 @@ on:
     - cron: '3 17 * * *'
 
 env:
+  BENCHMARK_NAME: linear-elastic-plate-with-hole
   BENCHMARK_ROHUB_IDENTIFIER: 68b027dd-666b-4b32-a416-952960022c2c
   BENCHMARK_VERSION: 1.0.0
   EXAMPLE_BENCHMARK_FILE: downloaded-benchmark/benchmark.json
-  EXAMPLE_BENCHMARK_ZIP: downloaded-benchmark/linear-elastic-plate-with-hole.zip
+  EXAMPLE_BENCHMARK_DIR: downloaded-benchmark
   BRANCH_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
   USE_PRODUCTION_ROHUB: true 
 
@@ -56,24 +57,24 @@ jobs:
             --identifier "${BENCHMARK_ROHUB_IDENTIFIER}" \
             --username "${{ secrets.ROHUB_PROD_USERNAME }}" \
             --password "${{ secrets.ROHUB_PROD_PASSWORD }}" \
-            --zip-resource-filename "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_ZIP}" \
+            --zip-resource-filename "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_DIR}/${BENCHMARK_NAME}.zip" \
             --semantic-resource-filename "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}" \
             --use-production-rohub True
 
-      - name: Run linear-elastic-plate-with-hole using ${{ matrix.tool }}
+      - name: Run ${{ env.BENCHMARK_NAME }} using ${{ matrix.tool }}
         shell: bash -l {0}
         run: |
           cd "$GITHUB_WORKSPACE/${{ matrix.tool }}/"
           conda run -n "${{ matrix.tool }}" python run_benchmark.py \
             --benchmark-file "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}" \
-            --benchmark-zip "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_ZIP}" \
+            --benchmark-zip "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_DIR}/${BENCHMARK_NAME}.zip" \
             --rocrate-name "${{ matrix.tool }}_rocrate.zip" \
             --result-path "${GITHUB_WORKSPACE}/${{ matrix.tool }}/results" 
 
-      - name: Archive results of the ${{ matrix.tool }} run of linear-elastic-plate-with-hole
+      - name: Archive results of the ${{ matrix.tool }} run of ${{ env.BENCHMARK_NAME }}
         uses: actions/upload-artifact@v6
         with:
-            name: ${{ matrix.tool }}_results_linear-elastic-plate-with-hole
+            name: ${{ matrix.tool }}_results_${{ env.BENCHMARK_NAME }}
             path: |
               ${{ matrix.tool }}/results/
 
@@ -103,7 +104,7 @@ jobs:
 
           python provenance/upload_provenance.py \
             --provenance_folderpath "${GITHUB_WORKSPACE}/${TOOL}/results/${TOOL}_rocrate.zip" \
-            --benchmark_name "linear-elastic-plate-with-hole" \
+            --benchmark_name "${BENCHMARK_NAME}" \
             --username "${ROHUB_USERNAME}" \
             --password "${ROHUB_PASSWORD}" \
             --rocrate-title "${ROCRATE_TITLE}" \
