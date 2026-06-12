@@ -8,8 +8,8 @@ resource by its RoHub type, and downloads it to a filename provided by the user.
 import argparse
 import logging
 from uuid import UUID
-
-from rohub_provenance import _rohub_client, login_to_rohub
+import rohub
+from rohub_provenance import configure_rohub
 
 SOFTWARE_SOURCE_CODE_TYPE = "Software source code"
 ANNOTATION_COLLECTION_TYPE = "Annotation Collection"
@@ -70,7 +70,6 @@ def _download_benchmark_resource(
     resource_type: str,
 ) -> str:
     """Load a research object and download its resource of the given type."""
-    rohub = _rohub_client()
     research_object = rohub.ros_load(identifier)
     resources = research_object.list_resources()
     resource_identifier = _select_resource_identifier(resources, resource_type)
@@ -83,46 +82,6 @@ def _download_benchmark_resource(
     )
     rohub.resource_download(resource_identifier, resource_filename)
     return resource_identifier
-
-
-def load_benchmark_zip(
-    identifier: str,
-    resource_filename: str,
-    username: str,
-    password: str,
-    use_development_version: bool = True,
-) -> str:
-    """Download the benchmark source-code zip resource from a RoHub RO."""
-    login_to_rohub(
-        username=username,
-        password=password,
-        use_development_version=use_development_version,
-    )
-    return _download_benchmark_resource(
-        identifier=identifier,
-        resource_filename=resource_filename,
-        resource_type=SOFTWARE_SOURCE_CODE_TYPE,
-    )
-
-
-def load_benchmark_semantic(
-    identifier: str,
-    resource_filename: str,
-    username: str,
-    password: str,
-    use_development_version: bool = True,
-) -> str:
-    """Download the benchmark semantic annotation collection from a RoHub RO."""
-    login_to_rohub(
-        username=username,
-        password=password,
-        use_development_version=use_development_version,
-    )
-    return _download_benchmark_resource(
-        identifier=identifier,
-        resource_filename=resource_filename,
-        resource_type=ANNOTATION_COLLECTION_TYPE,
-    )
 
 
 def parse_args(argv=None):
@@ -173,12 +132,8 @@ def run(args) -> dict[str, str]:
         raise ValueError(
             "Provide --zip-resource-filename, --semantic-resource-filename, or both."
         )
-
-    login_to_rohub(
-        username=args.username,
-        password=args.password,
-        use_development_version=not args.use_production_rohub,
-    )
+    configure_rohub(use_production_rohub=args.use_production_rohub)
+    
     downloaded_resources = {}
 
     if args.zip_resource_filename:
