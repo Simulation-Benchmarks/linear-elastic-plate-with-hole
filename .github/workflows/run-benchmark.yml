@@ -146,7 +146,7 @@ jobs:
           python provenance/plot_plate_with_hole_metrics.py \
             --tool "${{ matrix.tool }}" \
             --output-file "${PLOT_OUTPUT_FILE}" \
-            --use-production-rohub ${USE_PRODUCTION_ROHUB}
+            --use-production-rohub "${USE_PRODUCTION_ROHUB}"
 
       - name: Upload ${{ matrix.tool }} plot artifact
         uses: actions/upload-artifact@v6
