@@ -220,9 +220,9 @@ def build_dynamic_query(
     )
 
 
-def configure_rohub(use_development_version: bool = True) -> None:
+def configure_rohub(use_production_rohub: bool = True) -> None:
     """Configure RoHub client settings for development or production."""
-    environment = "development" if use_development_version else "production"
+    environment = "development" if not use_production_rohub else "production"
     config = ROHUB_CONFIG[environment]
 
     rohub.settings.SLEEP_TIME = ROHUB_CONFIG["sleep_time"]
@@ -238,10 +238,10 @@ def configure_rohub(use_development_version: bool = True) -> None:
 def login_to_rohub(
     username: str,
     password: str,
-    use_development_version: bool = True,
+    use_production_rohub: bool = True,
 ) -> None:
     """Configure the RoHub client and authenticate with username/password."""
-    configure_rohub(use_development_version=use_development_version)
+    configure_rohub(use_production_rohub=use_production_rohub)
     rohub.login(username=username, password=password)
 
 

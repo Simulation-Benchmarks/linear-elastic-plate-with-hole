@@ -104,9 +104,9 @@ def run(args):
         Exception: If deletion of an existing RO fails
 
     Configuration:
-        USE_DEVELOPMENT_VERSION (bool): When True, uses RoHub development server.
-                                       Set to False for production environment.
-        
+        USE_PRODUCTION_ROHUB (bool): When True, uses RoHub production server.
+                                     Set to False for development environment.
+
         Timeout Settings:
             - Upload timeout: 5 minutes (300 seconds)
             - Poll interval: 10 seconds between status checks
@@ -120,7 +120,7 @@ def run(args):
         username=args.username,
         password=args.password,
         rocrate_title=args.rocrate_title,
-        use_development_version=not args.use_production_rohub,
+        use_production_rohub=args.use_production_rohub,
     )
 
 
