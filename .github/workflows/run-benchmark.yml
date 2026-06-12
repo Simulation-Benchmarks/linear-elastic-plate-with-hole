@@ -143,16 +143,10 @@ jobs:
       - name: Run ${{ matrix.tool }} plotting script
         shell: bash -l {0}
         run: |
-          PLOT_ROHUB_ENV_ARGS=()
-
-          if [ "${USE_PRODUCTION_ROHUB}" = "true" ]; then
-            PLOT_ROHUB_ENV_ARGS+=(--use-production-rohub)
-          fi
-
           python provenance/plot_plate_with_hole_metrics.py \
             --tool "${{ matrix.tool }}" \
             --output-file "${PLOT_OUTPUT_FILE}" \
-            "${PLOT_ROHUB_ENV_ARGS[@]}"
+            --use-production-rohub ${USE_PRODUCTION_ROHUB}
 
       - name: Upload ${{ matrix.tool }} plot artifact
         uses: actions/upload-artifact@v6
