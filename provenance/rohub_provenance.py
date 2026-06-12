@@ -298,7 +298,7 @@ def query_metric_data_from_named_graphs(
         metrics,
         named_graphs,
     )
-
+    
     return query_sparql(query)
 
 
