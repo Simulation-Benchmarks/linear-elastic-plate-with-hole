@@ -360,19 +360,27 @@ def find_named_graphs_for_uuids(
 
 
 def fetch_benchmark_data(
-    username: str,
-    password: str,
+    username: str | None,
+    password: str | None,
     benchmark_name: str,
     parameters: Sequence[str],
     metrics: Sequence[str],
     use_development_version: bool = True,
 ) -> pd.DataFrame:
-    """Authenticate with RoHub and fetch benchmark parameter/metric data."""
-    login_to_rohub(
-        username=username,
-        password=password,
-        use_development_version=use_development_version,
-    )
+    """Configure RoHub and fetch benchmark parameter/metric data.
+
+    When username and password are provided, authenticates before querying.
+    Otherwise, only configures the client settings and queries the public
+    SPARQL endpoint without logging in.
+    """
+    if username and password:
+        login_to_rohub(
+            username=username,
+            password=password,
+            use_development_version=use_development_version,
+        )
+    else:
+        configure_rohub(use_development_version=use_development_version)
 
     uuids = find_benchmark_ro_uuids(benchmark_name)
     named_graphs = find_named_graphs_for_uuids(
@@ -400,8 +408,8 @@ def fetch_benchmark_data(
 
 
 def load_benchmark_metric_data(
-    username: str,
-    password: str,
+    username: str | None,
+    password: str | None,
     benchmark_name: str,
     parameters: Sequence[str],
     metrics: Sequence[str],

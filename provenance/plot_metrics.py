@@ -125,14 +125,16 @@ def parse_args(argv=None):
     parser.add_argument(
         "--username",
         type=str,
-        required=True,
-        help="Username for RoHub",
+        required=False,
+        default=None,
+        help="Username for RoHub (omit to query without authentication)",
     )
     parser.add_argument(
         "--password",
         type=str,
-        required=True,
-        help="Password for RoHub",
+        required=False,
+        default=None,
+        help="Password for RoHub (omit to query without authentication)",
     )
     parser.add_argument(
         "--benchmark-name",
