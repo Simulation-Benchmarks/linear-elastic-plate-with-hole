@@ -9,7 +9,7 @@ import argparse
 import logging
 from uuid import UUID
 import rohub
-from rohub_provenance import configure_rohub
+from rohub_provenance import login_to_rohub
 
 SOFTWARE_SOURCE_CODE_TYPE = "Software source code"
 ANNOTATION_COLLECTION_TYPE = "Annotation Collection"
@@ -132,7 +132,11 @@ def run(args) -> dict[str, str]:
         raise ValueError(
             "Provide --zip-resource-filename, --semantic-resource-filename, or both."
         )
-    configure_rohub(use_production_rohub=args.use_production_rohub)
+    login_to_rohub(
+        username=args.username,
+        password=args.password,
+        use_production_rohub=args.use_production_rohub
+    )
     
     downloaded_resources = {}
 
