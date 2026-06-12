@@ -10,6 +10,13 @@ from rohub_provenance import load_benchmark_metric_data
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 LOGGER = logging.getLogger(__name__)
 
+def parse_bool(value):
+    normalized_value = value.lower()
+    if normalized_value == "true":
+        return True
+    if normalized_value == "false":
+        return False
+    raise argparse.ArgumentTypeError("Expected 'true' or 'false'.")
 
 def finish_plot(
     x_axis_label: str,
@@ -82,8 +89,6 @@ def parse_args(argv=None):
 
     Returns:
         argparse.Namespace: Parsed arguments containing:
-            - username: RoHub username
-            - password: RoHub password
             - benchmark_name: Benchmark name used in RoHub annotations
             - tool: Optional tool name used to filter plotted data
             - output_file: Path for the final visualization output
@@ -123,18 +128,6 @@ def parse_args(argv=None):
         help="Title for the plot.",
     )
     parser.add_argument(
-        "--username",
-        type=str,
-        required=True,
-        help="Username for RoHub",
-    )
-    parser.add_argument(
-        "--password",
-        type=str,
-        required=True,
-        help="Password for RoHub",
-    )
-    parser.add_argument(
         "--benchmark-name",
         type=str,
         default="linear-elastic-plate-with-hole",
@@ -148,7 +141,8 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--use-production-rohub",
-        action="store_true",
+        type=parse_bool,
+        default=True,
         help="Use production RoHub instead of the development instance",
     )
     parser.add_argument(
@@ -179,13 +173,11 @@ def load_and_query_rohub(args, parameters, metrics):
         pd.DataFrame: DataFrame containing the RoHub query results.
     """
     return load_benchmark_metric_data(
-        username=args.username,
-        password=args.password,
         benchmark_name=args.benchmark_name,
         parameters=parameters,
         metrics=metrics,
         tool=args.tool,
-        use_development_version=not args.use_production_rohub,
+        use_production_rohub=args.use_production_rohub,
     )
 
 

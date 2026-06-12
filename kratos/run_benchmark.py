@@ -182,7 +182,7 @@ def build_snakemake_command(
     return [
         "snakemake",
         "--snakefile",
-        "Snakefile.smk",
+        "Snakefile",
         "--use-conda",
         "--force",
         "--cores",

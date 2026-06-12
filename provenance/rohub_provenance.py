@@ -8,10 +8,9 @@ import logging
 from pathlib import Path
 import re
 import time
-from typing import TYPE_CHECKING, Iterable
-
-if TYPE_CHECKING:
-    import pandas as pd
+from typing import Iterable
+import pandas as pd
+import rohub
 
 
 CONFIG_DIR = Path(__file__).resolve().parent
@@ -32,13 +31,6 @@ ANNOTATION_PREDICATE = ANNOTATION_CONFIG["predicate"]
 SCHEMA_PREFIX = "PREFIX schema: <http://schema.org/>"
 FORMAL_PARAMETER_TYPE = "<https://bioschemas.org/FormalParameter>"
 FOAF_NAME = "<http://xmlns.com/foaf/0.1/name>"
-
-
-def _rohub_client():
-    """Import and return the RoHub client only when network operations need it."""
-    import rohub
-
-    return rohub
 
 
 def sanitize_variable_name(name: str) -> str:
@@ -232,7 +224,6 @@ def configure_rohub(use_development_version: bool = True) -> None:
     """Configure RoHub client settings for development or production."""
     environment = "development" if use_development_version else "production"
     config = ROHUB_CONFIG[environment]
-    rohub = _rohub_client()
 
     rohub.settings.SLEEP_TIME = ROHUB_CONFIG["sleep_time"]
     rohub.settings.API_URL = config["api_url"]
@@ -251,7 +242,6 @@ def login_to_rohub(
 ) -> None:
     """Configure the RoHub client and authenticate with username/password."""
     configure_rohub(use_development_version=use_development_version)
-    rohub = _rohub_client()
     rohub.login(username=username, password=password)
 
 
@@ -272,7 +262,6 @@ def build_benchmark_ro_uuids_query(benchmark_name: str) -> str:
 
 def query_sparql(query: str):
     """Run a SPARQL query against the configured RoHub endpoint."""
-    rohub = _rohub_client()
     return rohub.query_sparql_endpoint(
         query,
         endpoint_url=rohub.settings.SPARQL_ENDPOINT,
@@ -281,10 +270,10 @@ def query_sparql(query: str):
 
 def build_named_graph_query(
     uuid: str,
-    use_development_version: bool = True,
+    use_production_rohub: bool = False,
 ) -> str:
     """Build a query for the SPARQL named graph of a research object UUID."""
-    environment = "development" if use_development_version else "production"
+    environment = "production" if use_production_rohub else "development"
     ro_id_base = ROHUB_CONFIG[environment]["ro_id_base"]
 
     return f"""
@@ -340,7 +329,7 @@ def find_benchmark_ro_uuids(benchmark_name: str) -> list[str]:
 
 def find_named_graphs_for_uuids(
     uuids: Sequence[str],
-    use_development_version: bool = True,
+    use_production_rohub: bool = False,
 ) -> dict[str, str]:
     """Find RoHub SPARQL named graphs for research object UUIDs."""
     named_graphs = {}
@@ -349,7 +338,7 @@ def find_named_graphs_for_uuids(
         result = query_sparql(
             build_named_graph_query(
                 uuid,
-                use_development_version=use_development_version,
+                use_production_rohub=use_production_rohub,
             )
         )
 
@@ -360,24 +349,16 @@ def find_named_graphs_for_uuids(
 
 
 def fetch_benchmark_data(
-    username: str,
-    password: str,
     benchmark_name: str,
     parameters: Sequence[str],
     metrics: Sequence[str],
-    use_development_version: bool = True,
+    use_production_rohub: bool = False,
 ) -> pd.DataFrame:
     """Authenticate with RoHub and fetch benchmark parameter/metric data."""
-    login_to_rohub(
-        username=username,
-        password=password,
-        use_development_version=use_development_version,
-    )
-
     uuids = find_benchmark_ro_uuids(benchmark_name)
     named_graphs = find_named_graphs_for_uuids(
         uuids,
-        use_development_version=use_development_version,
+        use_production_rohub=use_production_rohub,
     )
 
     if not named_graphs:
@@ -400,22 +381,19 @@ def fetch_benchmark_data(
 
 
 def load_benchmark_metric_data(
-    username: str,
-    password: str,
     benchmark_name: str,
     parameters: Sequence[str],
     metrics: Sequence[str],
     tool: str | None = None,
-    use_development_version: bool = True,
+    use_production_rohub: bool = False,
 ) -> pd.DataFrame:
     """Fetch benchmark metric data from RoHub and optionally filter by tool."""
+    configure_rohub(use_production_rohub)
     provenance_df = fetch_benchmark_data(
-        username=username,
-        password=password,
         benchmark_name=benchmark_name,
         parameters=parameters,
         metrics=metrics,
-        use_development_version=use_development_version,
+        use_production_rohub=use_production_rohub,
     )
 
     return filter_by_tool(provenance_df, tool)
@@ -423,7 +401,6 @@ def load_benchmark_metric_data(
 
 def delete_research_object_by_title(rocrate_title: str) -> None:
     """Delete existing user research objects with a matching title."""
-    rohub = _rohub_client()
     my_ros = rohub.list_my_ros()
 
     for _, row in my_ros.iterrows():
@@ -433,7 +410,6 @@ def delete_research_object_by_title(rocrate_title: str) -> None:
 
 def upload_research_object(path_to_zip: str) -> tuple[str, str]:
     """Upload an RO-Crate zip to RoHub and return job id and RO UUID."""
-    rohub = _rohub_client()
     upload_result = rohub.ros_upload(path_to_zip=path_to_zip)
     job_id = upload_result["identifier"]
     uuid = upload_result["results"].rstrip("/").split("/")[-1]
@@ -447,7 +423,6 @@ def wait_for_job_success(
     poll_interval: int = 10,
 ) -> bool:
     """Poll a RoHub job until success or timeout."""
-    rohub = _rohub_client()
     start_time = time.time()
 
     while True:
@@ -472,7 +447,6 @@ def wait_for_job_success(
 
 def add_benchmark_annotation(uuid: str, benchmark_name: str) -> None:
     """Add the benchmark semantic annotation to a RoHub research object."""
-    rohub = _rohub_client()
     research_object = rohub.ros_load(uuid)
     annotation_json = [
         {
@@ -492,13 +466,13 @@ def upload_provenance_rocrate(
     username: str,
     password: str,
     rocrate_title: str,
-    use_development_version: bool = True,
+    use_production_rohub: bool = False,
 ) -> str:
     """Upload a provenance RO-Crate to RoHub and annotate it with a benchmark."""
     login_to_rohub(
         username=username,
         password=password,
-        use_development_version=use_development_version,
+        use_production_rohub=use_production_rohub,
     )
 
     delete_research_object_by_title(rocrate_title)

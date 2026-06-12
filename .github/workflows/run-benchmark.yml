@@ -146,18 +146,11 @@ jobs:
           PLOT_ROHUB_ENV_ARGS=()
 
           if [ "${USE_PRODUCTION_ROHUB}" = "true" ]; then
-            ROHUB_USERNAME="${{ secrets.ROHUB_PROD_USERNAME }}"
-            ROHUB_PASSWORD="${{ secrets.ROHUB_PROD_PASSWORD }}"
             PLOT_ROHUB_ENV_ARGS+=(--use-production-rohub)
-          else
-            ROHUB_USERNAME="${{ secrets.ROHUB_DEV_USERNAME }}"
-            ROHUB_PASSWORD="${{ secrets.ROHUB_DEV_PASSWORD }}"
           fi
 
           python provenance/plot_plate_with_hole_metrics.py \
             --tool "${{ matrix.tool }}" \
-            --username "${ROHUB_USERNAME}" \
-            --password "${ROHUB_PASSWORD}" \
             --output-file "${PLOT_OUTPUT_FILE}" \
             "${PLOT_ROHUB_ENV_ARGS[@]}"
 

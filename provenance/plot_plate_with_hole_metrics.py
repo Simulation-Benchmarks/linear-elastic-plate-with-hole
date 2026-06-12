@@ -22,18 +22,6 @@ def parse_workflow_args(argv=None):
         description="Plot the plate-with-hole benchmark stress metric from RoHub."
     )
     parser.add_argument(
-        "--username",
-        type=str,
-        required=True,
-        help="Username for RoHub",
-    )
-    parser.add_argument(
-        "--password",
-        type=str,
-        required=True,
-        help="Password for RoHub",
-    )
-    parser.add_argument(
         "--tool",
         type=str,
         required=True,
@@ -65,10 +53,6 @@ def build_plot_args(args):
             *METRICS,
             "--tool",
             args.tool,
-            "--username",
-            args.username,
-            "--password",
-            args.password,
             "--x-axis-label",
             X_AXIS_LABEL,
             "--y-axis-label",
