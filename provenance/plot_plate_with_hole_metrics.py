@@ -15,6 +15,13 @@ Y_AXIS_LABEL = "Max Von Mises Stress"
 PLOT_TITLE = "Element Size vs Max Von Mises Stress"
 OUTPUT_FILE_TEMPLATE = "{tool}-element-size-vs-stress-plot.pdf"
 
+def parse_bool(value):
+    normalized_value = value.lower()
+    if normalized_value == "true":
+        return True
+    if normalized_value == "false":
+        return False
+    raise argparse.ArgumentTypeError("Expected 'true' or 'false'.")
 
 def parse_workflow_args(argv=None):
     """Parse only the arguments that vary in the benchmark workflow."""
@@ -35,8 +42,9 @@ def parse_workflow_args(argv=None):
     )
     parser.add_argument(
         "--use-production-rohub",
-        action="store_true",
-        help="Use production RoHub instead of the development instance",
+        type=parse_bool,
+        default=False,
+        help="Use production RoHub instead of the development instance (true/false).",
     )
     return parser.parse_args(argv)
 
