@@ -220,7 +220,7 @@ def build_dynamic_query(
     )
 
 
-def configure_rohub(use_production_rohub: bool = True) -> None:
+def configure_rohub(use_production_rohub: bool = False) -> None:
     """Configure RoHub client settings for development or production."""
     environment = "development" if not use_production_rohub else "production"
     config = ROHUB_CONFIG[environment]
@@ -238,7 +238,7 @@ def configure_rohub(use_production_rohub: bool = True) -> None:
 def login_to_rohub(
     username: str,
     password: str,
-    use_production_rohub: bool = True,
+    use_production_rohub: bool = False,
 ) -> None:
     """Configure the RoHub client and authenticate with username/password."""
     configure_rohub(use_production_rohub=use_production_rohub)
