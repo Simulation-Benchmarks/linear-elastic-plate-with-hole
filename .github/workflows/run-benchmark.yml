@@ -20,6 +20,7 @@ env:
   EXAMPLE_BENCHMARK_DIR: downloaded-benchmark
   BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
   BRANCH_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  CODE_REPOSITORY_URL: https://github.com/${{ github.repository }}/tree/${{ github.head_ref || github.ref_name }}
   USE_PRODUCTION_ROHUB: true 
 
 jobs:
@@ -28,7 +29,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        tool: [fenics, kratos]
+        include:
+          - tool: fenics
+            used_software_url: https://zbmath.org/software/4314
+          - tool: kratos
+            used_software_url: https://zbmath.org/software/7804
 
     steps:
       - name: checkout repo content
@@ -112,6 +117,8 @@ jobs:
             --username "${ROHUB_USERNAME}" \
             --password "${ROHUB_PASSWORD}" \
             --rocrate-title "${ROCRATE_TITLE}" \
+            --code-repository-url "${CODE_REPOSITORY_URL}" \
+            --used-software-url "${{ matrix.used_software_url }}" \
             --use-production-rohub "${USE_PRODUCTION_ROHUB}"
   
   wait-for-rohub-processing:

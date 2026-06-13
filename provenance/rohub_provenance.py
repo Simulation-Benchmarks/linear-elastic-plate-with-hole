@@ -26,6 +26,8 @@ def _load_json_config(filename: str) -> dict:
 ROHUB_CONFIG = _load_json_config("rohub_config.json")
 ANNOTATION_CONFIG = _load_json_config("annotation_config.json")
 ANNOTATION_PREDICATE = ANNOTATION_CONFIG["predicate"]
+CODE_REPOSITORY_PREDICATE = "https://schema.org/codeRepository"
+SOFTWARE_USED_PREDICATE = "http://www.w3.org/ns/prov#used"
 
 
 SCHEMA_PREFIX = "PREFIX schema: <http://schema.org/>"
@@ -260,6 +262,32 @@ def build_benchmark_ro_uuids_query(benchmark_name: str) -> str:
     """
 
 
+def build_annotated_ro_uuids_query(
+    benchmark_name: str,
+    code_repository_url: str | None = None,
+    used_software_url: str | None = None,
+) -> str:
+    """Build a query for research objects matching upload annotations."""
+    annotation_pairs = [
+        (ANNOTATION_PREDICATE, benchmark_annotation_object(benchmark_name)),
+    ]
+
+    if code_repository_url:
+        annotation_pairs.append((CODE_REPOSITORY_PREDICATE, code_repository_url))
+
+    if used_software_url:
+        annotation_pairs.append((SOFTWARE_USED_PREDICATE, used_software_url))
+
+    annotation_patterns = "\n".join(
+        f"      ?subject <{predicate}> <{value}> ."
+        for predicate, value in annotation_pairs
+    )
+
+    return f"""
+    SELECT ?subject
+    WHERE {{ {annotation_patterns} }}
+    """
+
 def query_sparql(query: str):
     """Run a SPARQL query against the configured RoHub endpoint."""
     return rohub.query_sparql_endpoint(
@@ -324,7 +352,37 @@ def find_benchmark_ro_uuids(benchmark_name: str) -> list[str]:
     if result.empty:
         return []
 
-    return [iri.rstrip("/").split("/")[-1] for iri in result["subject"]]
+    return extract_uuids_from_subjects(result["subject"])
+
+
+def extract_uuids_from_subjects(subjects: Iterable[str]) -> list[str]:
+    """Extract unique UUIDs from RoHub subject IRIs."""
+    return list(
+        dict.fromkeys(
+            str(subject).rstrip("/").split("/")[-1]
+            for subject in subjects
+        )
+    )
+
+
+def find_annotated_ro_uuids(
+    benchmark_name: str,
+    code_repository_url: str | None = None,
+    used_software_url: str | None = None,
+) -> list[str]:
+    """Find RoHub research object UUIDs matching upload annotations."""
+    result = query_sparql(
+        build_annotated_ro_uuids_query(
+            benchmark_name=benchmark_name,
+            code_repository_url=code_repository_url,
+            used_software_url=used_software_url,
+        )
+    )
+
+    if result.empty:
+        return []
+
+    return extract_uuids_from_subjects(result["subject"])
 
 
 def find_named_graphs_for_uuids(
@@ -399,13 +457,25 @@ def load_benchmark_metric_data(
     return filter_by_tool(provenance_df, tool)
 
 
-def delete_research_object_by_title(rocrate_title: str) -> None:
-    """Delete existing user research objects with a matching title."""
-    my_ros = rohub.list_my_ros()
+def delete_research_objects_by_annotations(
+    benchmark_name: str,
+    code_repository_url: str | None = None,
+    used_software_url: str | None = None,
+) -> None:
+    """Delete existing research objects matching upload annotations."""
+    uuids = find_annotated_ro_uuids(
+        benchmark_name=benchmark_name,
+        code_repository_url=code_repository_url,
+        used_software_url=used_software_url,
+    )
 
-    for _, row in my_ros.iterrows():
-        if row["title"].strip().lower() == rocrate_title.strip().lower():
-            rohub.ros_delete(row["identifier"])
+    if not uuids:
+        LOGGER.info("No existing annotated research objects found to delete.")
+        return
+
+    for uuid in uuids:
+        LOGGER.info("Deleting existing annotated research object: %s", uuid)
+        rohub.ros_delete(uuid)
 
 
 def upload_research_object(path_to_zip: str) -> tuple[str, str]:
@@ -445,8 +515,13 @@ def wait_for_job_success(
         time.sleep(poll_interval)
 
 
-def add_benchmark_annotation(uuid: str, benchmark_name: str) -> None:
-    """Add the benchmark semantic annotation to a RoHub research object."""
+def add_benchmark_annotation(
+    uuid: str,
+    benchmark_name: str,
+    code_repository_url: str | None = None,
+    used_software_url: str | None = None,
+) -> None:
+    """Add benchmark semantic annotations to a RoHub research object."""
     research_object = rohub.ros_load(uuid)
     annotation_json = [
         {
@@ -454,6 +529,23 @@ def add_benchmark_annotation(uuid: str, benchmark_name: str) -> None:
             "value": benchmark_annotation_object(benchmark_name),
         }
     ]
+
+    if code_repository_url:
+        annotation_json.append(
+            {
+                "property": CODE_REPOSITORY_PREDICATE,
+                "value": code_repository_url,
+            }
+        )
+
+    if used_software_url:
+        annotation_json.append(
+            {
+                "property": SOFTWARE_USED_PREDICATE,
+                "value": used_software_url,
+            }
+        )
+
     add_annotations_result = research_object.add_annotations(
         body_specification_json=annotation_json
     )
@@ -466,19 +558,32 @@ def upload_provenance_rocrate(
     username: str,
     password: str,
     rocrate_title: str,
+    code_repository_url: str | None = None,
+    used_software_url: str | None = None,
     use_production_rohub: bool = False,
 ) -> str:
-    """Upload a provenance RO-Crate to RoHub and annotate it with a benchmark."""
+    """Upload a provenance RO-Crate to RoHub and add semantic annotations."""
+    _ = rocrate_title
+
     login_to_rohub(
         username=username,
         password=password,
         use_production_rohub=use_production_rohub,
     )
 
-    delete_research_object_by_title(rocrate_title)
+    delete_research_objects_by_annotations(
+        benchmark_name=benchmark_name,
+        code_repository_url=code_repository_url,
+        used_software_url=used_software_url,
+    )
     job_id, uuid = upload_research_object(provenance_folderpath)
 
     if wait_for_job_success(job_id):
-        add_benchmark_annotation(uuid, benchmark_name)
+        add_benchmark_annotation(
+            uuid,
+            benchmark_name,
+            code_repository_url=code_repository_url,
+            used_software_url=used_software_url,
+        )
 
     return uuid

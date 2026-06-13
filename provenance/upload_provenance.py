@@ -72,6 +72,18 @@ def parse_args():
         help="Title of the RO-Crate to be uploaded",
     )
     parser.add_argument(
+        "--code-repository-url",
+        type=str,
+        default=None,
+        help="Full GitHub branch URL to annotate as schema.org/codeRepository",
+    )
+    parser.add_argument(
+        "--used-software-url",
+        type=str,
+        default=None,
+        help="Software identifier URL to annotate as prov:used",
+    )
+    parser.add_argument(
         "--use-production-rohub",
         type=parse_bool,
         default=False,
@@ -120,6 +132,8 @@ def run(args):
         username=args.username,
         password=args.password,
         rocrate_title=args.rocrate_title,
+        code_repository_url=args.code_repository_url,
+        used_software_url=args.used_software_url,
         use_production_rohub=args.use_production_rohub,
     )
 
