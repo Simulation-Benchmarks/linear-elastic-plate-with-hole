@@ -48,7 +48,7 @@ def parse_args():
         help="Path to the folder containing provenance data",
     )
     parser.add_argument(
-        "--benchmark_name",
+        "--benchmark-name",
         type=str,
         required=True,
         help="Name of the benchmark to be uploaded",
