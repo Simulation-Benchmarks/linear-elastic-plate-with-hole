@@ -17,6 +17,7 @@ def finish_plot(
     title: str,
     x_ticks: Sequence[float],
     output_file: str | None,
+    log_y: bool = False,
 ) -> None:
     """Apply common plot formatting and save or display the result."""
     plt.xlabel(x_axis_label)
@@ -24,6 +25,8 @@ def finish_plot(
     plt.title(title)
     plt.grid(True)
     plt.xscale("log")
+    if log_y:
+        plt.yscale("log")
     plt.xticks(ticks=x_ticks, labels=[str(x) for x in x_ticks], rotation=45)
     plt.tight_layout()
 
@@ -44,6 +47,7 @@ def plot_provenance_graph(
     title: str,
     output_file: str | None = None,
     figsize: tuple[int, int] = (12, 5),
+    log_y: bool = False,
 ) -> None:
     """Plot grouped metric series from tabular benchmark results."""
     grouped_values: dict[str, list[tuple[float, float]]] = defaultdict(list)
@@ -73,6 +77,7 @@ def plot_provenance_graph(
         title,
         sorted(x_tick_set),
         output_file,
+        log_y=log_y,
     )
 
 
@@ -165,6 +170,11 @@ def parse_args(argv=None):
         default=None,
         help="Metric names to query from RoHub.",
     )
+    parser.add_argument(
+        "--log-y",
+        action="store_true",
+        help="Use a logarithmic scale for the y-axis.",
+    )
     return parser.parse_args(argv)
 
 
@@ -253,6 +263,7 @@ def plot_results(final_df: pd.DataFrame, args) -> None:
         y_axis_index=2,
         title=args.plot_title,
         output_file=args.output_file,
+        log_y=args.log_y,
     )
 
 
