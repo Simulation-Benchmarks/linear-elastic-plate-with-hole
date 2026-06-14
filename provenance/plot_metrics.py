@@ -197,16 +197,19 @@ def select_plot_columns(
     metrics: Sequence[str],
     group_column: str = "tool_name",
 ) -> pd.DataFrame:
-    """Select the group, x-axis, and y-axis columns used for plotting."""
+    """Select the group, x-axis, and y-axis columns used for plotting.
+
+    Parameters beyond the first are folded into the group label so that
+    runs differing only in a secondary parameter become distinct series.
+    """
     if not parameters:
         raise ValueError("At least one parameter is required for the x-axis.")
     if not metrics:
         raise ValueError("At least one metric is required for the y-axis.")
 
-    plot_columns = [group_column, parameters[0], metrics[0]]
-    missing_columns = [
-        column for column in plot_columns if column not in data.columns
-    ]
+    extra_params = list(parameters[1:])
+    required_columns = [group_column, parameters[0], metrics[0]] + extra_params
+    missing_columns = [col for col in required_columns if col not in data.columns]
 
     if missing_columns:
         raise ValueError(
@@ -214,7 +217,17 @@ def select_plot_columns(
             + ", ".join(missing_columns)
         )
 
-    return data.loc[:, plot_columns].reset_index(drop=True)
+    df = data.loc[:, required_columns].copy()
+    if extra_params:
+        df[group_column] = df.apply(
+            lambda row: ", ".join(
+                [str(row[group_column])]
+                + [f"{p}={row[p]}" for p in extra_params]
+            ),
+            axis=1,
+        )
+
+    return df.loc[:, [group_column, parameters[0], metrics[0]]].reset_index(drop=True)
 
 
 def plot_results(final_df: pd.DataFrame, args) -> None:
