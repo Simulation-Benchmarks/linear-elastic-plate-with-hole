@@ -20,11 +20,11 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Build notebook from docs and script
+      - name: Build notebook from docs and source notebook
         run: |
           python scripts/build_notebook.py \
             --doc docs/plate-with-hole.md \
-            --script scripts/postprocess_plate.py \
+            --source-notebook notebooks/RoCrate.ipynb \
             --notebook notebooks/plate_with_hole.ipynb \
             --repo "${{ github.repository }}" \
             --branch "${{ github.ref_name }}"

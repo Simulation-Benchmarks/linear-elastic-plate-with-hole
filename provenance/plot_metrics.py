@@ -17,6 +17,7 @@ def finish_plot(
     title: str,
     x_ticks: Sequence[float],
     output_file: str | None,
+    log_y: bool = False,
 ) -> None:
     """Apply common plot formatting and save or display the result."""
     plt.xlabel(x_axis_label)
@@ -24,6 +25,8 @@ def finish_plot(
     plt.title(title)
     plt.grid(True)
     plt.xscale("log")
+    if log_y:
+        plt.yscale("log")
     plt.xticks(ticks=x_ticks, labels=[str(x) for x in x_ticks], rotation=45)
     plt.tight_layout()
 
@@ -44,6 +47,7 @@ def plot_provenance_graph(
     title: str,
     output_file: str | None = None,
     figsize: tuple[int, int] = (12, 5),
+    log_y: bool = False,
 ) -> None:
     """Plot grouped metric series from tabular benchmark results."""
     grouped_values: dict[str, list[tuple[float, float]]] = defaultdict(list)
@@ -73,6 +77,7 @@ def plot_provenance_graph(
         title,
         sorted(x_tick_set),
         output_file,
+        log_y=log_y,
     )
 
 
@@ -125,14 +130,16 @@ def parse_args(argv=None):
     parser.add_argument(
         "--username",
         type=str,
-        required=True,
-        help="Username for RoHub",
+        required=False,
+        default=None,
+        help="Username for RoHub (omit to query without authentication)",
     )
     parser.add_argument(
         "--password",
         type=str,
-        required=True,
-        help="Password for RoHub",
+        required=False,
+        default=None,
+        help="Password for RoHub (omit to query without authentication)",
     )
     parser.add_argument(
         "--benchmark-name",
@@ -162,6 +169,11 @@ def parse_args(argv=None):
         nargs="+",
         default=None,
         help="Metric names to query from RoHub.",
+    )
+    parser.add_argument(
+        "--log-y",
+        action="store_true",
+        help="Use a logarithmic scale for the y-axis.",
     )
     return parser.parse_args(argv)
 
@@ -195,16 +207,19 @@ def select_plot_columns(
     metrics: Sequence[str],
     group_column: str = "tool_name",
 ) -> pd.DataFrame:
-    """Select the group, x-axis, and y-axis columns used for plotting."""
+    """Select the group, x-axis, and y-axis columns used for plotting.
+
+    Parameters beyond the first are folded into the group label so that
+    runs differing only in a secondary parameter become distinct series.
+    """
     if not parameters:
         raise ValueError("At least one parameter is required for the x-axis.")
     if not metrics:
         raise ValueError("At least one metric is required for the y-axis.")
 
-    plot_columns = [group_column, parameters[0], metrics[0]]
-    missing_columns = [
-        column for column in plot_columns if column not in data.columns
-    ]
+    extra_params = list(parameters[1:])
+    required_columns = [group_column, parameters[0], metrics[0]] + extra_params
+    missing_columns = [col for col in required_columns if col not in data.columns]
 
     if missing_columns:
         raise ValueError(
@@ -212,7 +227,17 @@ def select_plot_columns(
             + ", ".join(missing_columns)
         )
 
-    return data.loc[:, plot_columns].reset_index(drop=True)
+    df = data.loc[:, required_columns].copy()
+    if extra_params:
+        df[group_column] = df.apply(
+            lambda row: ", ".join(
+                [str(row[group_column])]
+                + [f"{p}={row[p]}" for p in extra_params]
+            ),
+            axis=1,
+        )
+
+    return df.loc[:, [group_column, parameters[0], metrics[0]]].reset_index(drop=True)
 
 
 def plot_results(final_df: pd.DataFrame, args) -> None:
@@ -238,6 +263,7 @@ def plot_results(final_df: pd.DataFrame, args) -> None:
         y_axis_index=2,
         title=args.plot_title,
         output_file=args.output_file,
+        log_y=args.log_y,
     )
 
 
