@@ -10,21 +10,13 @@ import logging
 from uuid import UUID
 import rohub
 from rohub_provenance import login_to_rohub
+from utils import parse_bool
 
 SOFTWARE_SOURCE_CODE_TYPE = "Software source code"
 ANNOTATION_COLLECTION_TYPE = "Annotation Collection"
 
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 LOGGER = logging.getLogger(__name__)
-
-
-def parse_bool(value):
-    normalized_value = value.lower()
-    if normalized_value == "true":
-        return True
-    if normalized_value == "false":
-        return False
-    raise argparse.ArgumentTypeError("Expected 'true' or 'false'.")
 
 
 def validate_uuid(value: str) -> str:

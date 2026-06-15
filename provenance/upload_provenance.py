@@ -16,15 +16,7 @@ The module supports both production and development environments of RoHub.
 import argparse
 
 from rohub_provenance import upload_provenance_rocrate
-
-
-def parse_bool(value):
-    normalized_value = value.lower()
-    if normalized_value == "true":
-        return True
-    if normalized_value == "false":
-        return False
-    raise argparse.ArgumentTypeError("Expected 'true' or 'false'.")
+from utils import parse_bool
 
 
 def parse_args():

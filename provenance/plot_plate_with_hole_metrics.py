@@ -4,6 +4,7 @@ import logging
 import pandas as pd
 
 from plot_metrics import parse_args, run
+from utils import parse_bool
 
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 
@@ -14,14 +15,6 @@ X_AXIS_LABEL = "Element Size"
 Y_AXIS_LABEL = "Max Von Mises Stress"
 PLOT_TITLE = "Element Size vs Max Von Mises Stress"
 OUTPUT_FILE_TEMPLATE = "{tool}-element-size-vs-stress-plot.pdf"
-
-def parse_bool(value):
-    normalized_value = value.lower()
-    if normalized_value == "true":
-        return True
-    if normalized_value == "false":
-        return False
-    raise argparse.ArgumentTypeError("Expected 'true' or 'false'.")
 
 def parse_workflow_args(argv=None):
     """Parse only the arguments that vary in the benchmark workflow."""
