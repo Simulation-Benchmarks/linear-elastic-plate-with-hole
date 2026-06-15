@@ -8,10 +8,9 @@ import logging
 from pathlib import Path
 import re
 import time
-from typing import TYPE_CHECKING, Iterable
-
-if TYPE_CHECKING:
-    import pandas as pd
+from typing import Iterable
+import pandas as pd
+import rohub
 
 
 CONFIG_DIR = Path(__file__).resolve().parent
@@ -27,18 +26,13 @@ def _load_json_config(filename: str) -> dict:
 ROHUB_CONFIG = _load_json_config("rohub_config.json")
 ANNOTATION_CONFIG = _load_json_config("annotation_config.json")
 ANNOTATION_PREDICATE = ANNOTATION_CONFIG["predicate"]
+CODE_REPOSITORY_PREDICATE = "https://schema.org/codeRepository"
+SOFTWARE_USED_PREDICATE = "http://www.w3.org/ns/prov#used"
 
 
 SCHEMA_PREFIX = "PREFIX schema: <http://schema.org/>"
 FORMAL_PARAMETER_TYPE = "<https://bioschemas.org/FormalParameter>"
 FOAF_NAME = "<http://xmlns.com/foaf/0.1/name>"
-
-
-def _rohub_client():
-    """Import and return the RoHub client only when network operations need it."""
-    import rohub
-
-    return rohub
 
 
 def sanitize_variable_name(name: str) -> str:
@@ -228,11 +222,10 @@ def build_dynamic_query(
     )
 
 
-def configure_rohub(use_development_version: bool = True) -> None:
+def configure_rohub(use_production_rohub: bool = False) -> None:
     """Configure RoHub client settings for development or production."""
-    environment = "development" if use_development_version else "production"
+    environment = "development" if not use_production_rohub else "production"
     config = ROHUB_CONFIG[environment]
-    rohub = _rohub_client()
 
     rohub.settings.SLEEP_TIME = ROHUB_CONFIG["sleep_time"]
     rohub.settings.API_URL = config["api_url"]
@@ -247,11 +240,10 @@ def configure_rohub(use_development_version: bool = True) -> None:
 def login_to_rohub(
     username: str,
     password: str,
-    use_development_version: bool = True,
+    use_production_rohub: bool = False,
 ) -> None:
     """Configure the RoHub client and authenticate with username/password."""
-    configure_rohub(use_development_version=use_development_version)
-    rohub = _rohub_client()
+    configure_rohub(use_production_rohub=use_production_rohub)
     rohub.login(username=username, password=password)
 
 
@@ -270,9 +262,34 @@ def build_benchmark_ro_uuids_query(benchmark_name: str) -> str:
     """
 
 
+def build_annotated_ro_uuids_query(
+    benchmark_name: str,
+    code_repository_url: str | None = None,
+    used_software_url: str | None = None,
+) -> str:
+    """Build a query for research objects matching upload annotations."""
+    annotation_pairs = [
+        (ANNOTATION_PREDICATE, benchmark_annotation_object(benchmark_name)),
+    ]
+
+    if code_repository_url:
+        annotation_pairs.append((CODE_REPOSITORY_PREDICATE, code_repository_url))
+
+    if used_software_url:
+        annotation_pairs.append((SOFTWARE_USED_PREDICATE, used_software_url))
+
+    annotation_patterns = "\n".join(
+        f"      ?subject <{predicate}> <{value}> ."
+        for predicate, value in annotation_pairs
+    )
+
+    return f"""
+    SELECT ?subject
+    WHERE {{ {annotation_patterns} }}
+    """
+
 def query_sparql(query: str):
     """Run a SPARQL query against the configured RoHub endpoint."""
-    rohub = _rohub_client()
     return rohub.query_sparql_endpoint(
         query,
         endpoint_url=rohub.settings.SPARQL_ENDPOINT,
@@ -281,10 +298,10 @@ def query_sparql(query: str):
 
 def build_named_graph_query(
     uuid: str,
-    use_development_version: bool = True,
+    use_production_rohub: bool = False,
 ) -> str:
     """Build a query for the SPARQL named graph of a research object UUID."""
-    environment = "development" if use_development_version else "production"
+    environment = "production" if use_production_rohub else "development"
     ro_id_base = ROHUB_CONFIG[environment]["ro_id_base"]
 
     return f"""
@@ -309,7 +326,7 @@ def query_metric_data_from_named_graphs(
         metrics,
         named_graphs,
     )
-
+    
     return query_sparql(query)
 
 
@@ -335,12 +352,42 @@ def find_benchmark_ro_uuids(benchmark_name: str) -> list[str]:
     if result.empty:
         return []
 
-    return [iri.rstrip("/").split("/")[-1] for iri in result["subject"]]
+    return extract_uuids_from_subjects(result["subject"])
+
+
+def extract_uuids_from_subjects(subjects: Iterable[str]) -> list[str]:
+    """Extract unique UUIDs from RoHub subject IRIs."""
+    return list(
+        dict.fromkeys(
+            str(subject).rstrip("/").split("/")[-1]
+            for subject in subjects
+        )
+    )
+
+
+def find_annotated_ro_uuids(
+    benchmark_name: str,
+    code_repository_url: str | None = None,
+    used_software_url: str | None = None,
+) -> list[str]:
+    """Find RoHub research object UUIDs matching upload annotations."""
+    result = query_sparql(
+        build_annotated_ro_uuids_query(
+            benchmark_name=benchmark_name,
+            code_repository_url=code_repository_url,
+            used_software_url=used_software_url,
+        )
+    )
+
+    if result.empty:
+        return []
+
+    return extract_uuids_from_subjects(result["subject"])
 
 
 def find_named_graphs_for_uuids(
     uuids: Sequence[str],
-    use_development_version: bool = True,
+    use_production_rohub: bool = False,
 ) -> dict[str, str]:
     """Find RoHub SPARQL named graphs for research object UUIDs."""
     named_graphs = {}
@@ -349,7 +396,7 @@ def find_named_graphs_for_uuids(
         result = query_sparql(
             build_named_graph_query(
                 uuid,
-                use_development_version=use_development_version,
+                use_production_rohub=use_production_rohub,
             )
         )
 
@@ -360,32 +407,16 @@ def find_named_graphs_for_uuids(
 
 
 def fetch_benchmark_data(
-    username: str | None,
-    password: str | None,
     benchmark_name: str,
     parameters: Sequence[str],
     metrics: Sequence[str],
-    use_development_version: bool = True,
+    use_production_rohub: bool = False,
 ) -> pd.DataFrame:
-    """Configure RoHub and fetch benchmark parameter/metric data.
-
-    When username and password are provided, authenticates before querying.
-    Otherwise, only configures the client settings and queries the public
-    SPARQL endpoint without logging in.
-    """
-    if username and password:
-        login_to_rohub(
-            username=username,
-            password=password,
-            use_development_version=use_development_version,
-        )
-    else:
-        configure_rohub(use_development_version=use_development_version)
-
+    """Authenticate with RoHub and fetch benchmark parameter/metric data."""
     uuids = find_benchmark_ro_uuids(benchmark_name)
     named_graphs = find_named_graphs_for_uuids(
         uuids,
-        use_development_version=use_development_version,
+        use_production_rohub=use_production_rohub,
     )
 
     if not named_graphs:
@@ -408,40 +439,47 @@ def fetch_benchmark_data(
 
 
 def load_benchmark_metric_data(
-    username: str | None,
-    password: str | None,
     benchmark_name: str,
     parameters: Sequence[str],
     metrics: Sequence[str],
     tool: str | None = None,
-    use_development_version: bool = True,
+    use_production_rohub: bool = False,
 ) -> pd.DataFrame:
     """Fetch benchmark metric data from RoHub and optionally filter by tool."""
+    configure_rohub(use_production_rohub)
     provenance_df = fetch_benchmark_data(
-        username=username,
-        password=password,
         benchmark_name=benchmark_name,
         parameters=parameters,
         metrics=metrics,
-        use_development_version=use_development_version,
+        use_production_rohub=use_production_rohub,
     )
 
     return filter_by_tool(provenance_df, tool)
 
 
-def delete_research_object_by_title(rocrate_title: str) -> None:
-    """Delete existing user research objects with a matching title."""
-    rohub = _rohub_client()
-    my_ros = rohub.list_my_ros()
+def delete_research_objects_by_annotations(
+    benchmark_name: str,
+    code_repository_url: str | None = None,
+    used_software_url: str | None = None,
+) -> None:
+    """Delete existing research objects matching upload annotations."""
+    uuids = find_annotated_ro_uuids(
+        benchmark_name=benchmark_name,
+        code_repository_url=code_repository_url,
+        used_software_url=used_software_url,
+    )
 
-    for _, row in my_ros.iterrows():
-        if row["title"].strip().lower() == rocrate_title.strip().lower():
-            rohub.ros_delete(row["identifier"])
+    if not uuids:
+        LOGGER.info("No existing annotated research objects found to delete.")
+        return
+
+    for uuid in uuids:
+        LOGGER.info("Deleting existing annotated research object: %s", uuid)
+        rohub.ros_delete(uuid)
 
 
 def upload_research_object(path_to_zip: str) -> tuple[str, str]:
     """Upload an RO-Crate zip to RoHub and return job id and RO UUID."""
-    rohub = _rohub_client()
     upload_result = rohub.ros_upload(path_to_zip=path_to_zip)
     job_id = upload_result["identifier"]
     uuid = upload_result["results"].rstrip("/").split("/")[-1]
@@ -455,7 +493,6 @@ def wait_for_job_success(
     poll_interval: int = 10,
 ) -> bool:
     """Poll a RoHub job until success or timeout."""
-    rohub = _rohub_client()
     start_time = time.time()
 
     while True:
@@ -478,9 +515,13 @@ def wait_for_job_success(
         time.sleep(poll_interval)
 
 
-def add_benchmark_annotation(uuid: str, benchmark_name: str) -> None:
-    """Add the benchmark semantic annotation to a RoHub research object."""
-    rohub = _rohub_client()
+def add_benchmark_annotation(
+    uuid: str,
+    benchmark_name: str,
+    code_repository_url: str | None = None,
+    used_software_url: str | None = None,
+) -> None:
+    """Add benchmark semantic annotations to a RoHub research object."""
     research_object = rohub.ros_load(uuid)
     annotation_json = [
         {
@@ -488,6 +529,23 @@ def add_benchmark_annotation(uuid: str, benchmark_name: str) -> None:
             "value": benchmark_annotation_object(benchmark_name),
         }
     ]
+
+    if code_repository_url:
+        annotation_json.append(
+            {
+                "property": CODE_REPOSITORY_PREDICATE,
+                "value": code_repository_url,
+            }
+        )
+
+    if used_software_url:
+        annotation_json.append(
+            {
+                "property": SOFTWARE_USED_PREDICATE,
+                "value": used_software_url,
+            }
+        )
+
     add_annotations_result = research_object.add_annotations(
         body_specification_json=annotation_json
     )
@@ -500,19 +558,32 @@ def upload_provenance_rocrate(
     username: str,
     password: str,
     rocrate_title: str,
-    use_development_version: bool = True,
+    code_repository_url: str | None = None,
+    used_software_url: str | None = None,
+    use_production_rohub: bool = False,
 ) -> str:
-    """Upload a provenance RO-Crate to RoHub and annotate it with a benchmark."""
+    """Upload a provenance RO-Crate to RoHub and add semantic annotations."""
+    _ = rocrate_title
+
     login_to_rohub(
         username=username,
         password=password,
-        use_development_version=use_development_version,
+        use_production_rohub=use_production_rohub,
     )
 
-    delete_research_object_by_title(rocrate_title)
+    delete_research_objects_by_annotations(
+        benchmark_name=benchmark_name,
+        code_repository_url=code_repository_url,
+        used_software_url=used_software_url,
+    )
     job_id, uuid = upload_research_object(provenance_folderpath)
 
     if wait_for_job_success(job_id):
-        add_benchmark_annotation(uuid, benchmark_name)
+        add_benchmark_annotation(
+            uuid,
+            benchmark_name,
+            code_repository_url=code_repository_url,
+            used_software_url=used_software_url,
+        )
 
     return uuid

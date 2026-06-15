@@ -4,6 +4,7 @@ import logging
 import pandas as pd
 
 from plot_metrics import parse_args, run
+from utils import parse_bool
 
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 
@@ -15,23 +16,10 @@ Y_AXIS_LABEL = "Max Von Mises Stress"
 PLOT_TITLE = "Element Size vs Max Von Mises Stress"
 OUTPUT_FILE_TEMPLATE = "{tool}-element-size-vs-stress-plot.pdf"
 
-
 def parse_workflow_args(argv=None):
     """Parse only the arguments that vary in the benchmark workflow."""
     parser = argparse.ArgumentParser(
         description="Plot the plate-with-hole benchmark stress metric from RoHub."
-    )
-    parser.add_argument(
-        "--username",
-        type=str,
-        required=True,
-        help="Username for RoHub",
-    )
-    parser.add_argument(
-        "--password",
-        type=str,
-        required=True,
-        help="Password for RoHub",
     )
     parser.add_argument(
         "--tool",
@@ -47,8 +35,9 @@ def parse_workflow_args(argv=None):
     )
     parser.add_argument(
         "--use-production-rohub",
-        action="store_true",
-        help="Use production RoHub instead of the development instance",
+        type=parse_bool,
+        default=False,
+        help="Use production RoHub instead of the development instance (true/false).",
     )
     return parser.parse_args(argv)
 
@@ -65,10 +54,6 @@ def build_plot_args(args):
             *METRICS,
             "--tool",
             args.tool,
-            "--username",
-            args.username,
-            "--password",
-            args.password,
             "--x-axis-label",
             X_AXIS_LABEL,
             "--y-axis-label",
@@ -77,11 +62,8 @@ def build_plot_args(args):
             f"{PLOT_TITLE} ({args.tool})",
             "--output-file",
             args.output_file or OUTPUT_FILE_TEMPLATE.format(tool=args.tool),
-            *(
-                ["--use-production-rohub"]
-                if args.use_production_rohub
-                else []
-            ),
+            "--use-production-rohub",
+            str(args.use_production_rohub).lower(),
         ]
     )
 

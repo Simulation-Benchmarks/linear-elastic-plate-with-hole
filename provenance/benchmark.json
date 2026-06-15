@@ -615,7 +615,8 @@
       ],
       "describedAsDocumentedBy": {
         "@id": "local:publication"
-      }
+      },
+      "schema:version":"1.0.0"
     },
     {
       "@id": "https://portal.mardi4nfdi.de/entity/Q6775295",
