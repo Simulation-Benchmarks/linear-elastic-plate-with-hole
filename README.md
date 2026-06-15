@@ -20,7 +20,7 @@ Implementations are provided for three FE frameworks, each with its own subdirec
 | Tool | Directory | Language |
 |------|-----------|----------|
 | [FEniCS](https://fenicsproject.org) | `fenics/` | Python |
-| [ExtendableFEM.jl](https://github.com/chmerdon/ExtendableFEM.jl) | `extendablefem/` | Julia |
+| [ExtendableFEM.jl](https://github.com/WIAS-PDELib/ExtendableFEM.jl) | `extendablefem/` | Julia |
 | [KratosMultiphysics](https://kratosmultiphysics.github.io) | `kratos/` | Python |
 
 Each implementation varies the element size and the isoparametric element degree and stores results as RO-Crates uploaded to RoHub for provenance tracking.
