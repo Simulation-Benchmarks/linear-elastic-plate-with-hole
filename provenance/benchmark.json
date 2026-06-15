@@ -611,6 +611,18 @@
         },
         {
           "@id": "local:configuration_fun2fine"
+        },
+        {
+          "@id": "local:configuration_fun2_025"
+        },
+        {
+          "@id": "local:configuration_fun2_0125"
+        },
+        {
+          "@id": "local:configuration_fun2_00625"
+        },
+        {
+          "@id": "local:configuration_fun2_003125"
         }
       ],
       "describedAsDocumentedBy": {
@@ -944,6 +956,18 @@
         },
         {
           "@id": "local:configuration_fun2fine"
+        },
+        {
+          "@id": "local:configuration_fun2_025"
+        },
+        {
+          "@id": "local:configuration_fun2_0125"
+        },
+        {
+          "@id": "local:configuration_fun2_00625"
+        },
+        {
+          "@id": "local:configuration_fun2_003125"
         }
       ],
       "has employed tool": [
@@ -1697,6 +1721,134 @@
         },
         {
           "@id": "local:variable_element_size_1"
+        },
+        {
+          "@id": "local:variable_isoparametric_element_degree_2"
+        },
+        {
+          "@id": "local:variable_cell_type"
+        },
+        {
+          "@id": "local:variable_youngs_modulus"
+        },
+        {
+          "@id": "local:variable_poissons_ratio"
+        }
+      ]
+    },
+    {
+      "@id": "local:configuration_fun2_025",
+      "@type": "m4i:ParameterSet",
+      "label": "Configuration fun2_025",
+      "identifier": "fun2_025",
+      "has part": [
+        {
+          "@id": "local:variable_radius"
+        },
+        {
+          "@id": "local:variable_length"
+        },
+        {
+          "@id": "local:variable_load"
+        },
+        {
+          "@id": "local:variable_element_size_025"
+        },
+        {
+          "@id": "local:variable_isoparametric_element_degree_2"
+        },
+        {
+          "@id": "local:variable_cell_type"
+        },
+        {
+          "@id": "local:variable_youngs_modulus"
+        },
+        {
+          "@id": "local:variable_poissons_ratio"
+        }
+      ]
+    },
+    {
+      "@id": "local:configuration_fun2_0125",
+      "@type": "m4i:ParameterSet",
+      "label": "Configuration fun2_0125",
+      "identifier": "fun2_0125",
+      "has part": [
+        {
+          "@id": "local:variable_radius"
+        },
+        {
+          "@id": "local:variable_length"
+        },
+        {
+          "@id": "local:variable_load"
+        },
+        {
+          "@id": "local:variable_element_size_0125"
+        },
+        {
+          "@id": "local:variable_isoparametric_element_degree_2"
+        },
+        {
+          "@id": "local:variable_cell_type"
+        },
+        {
+          "@id": "local:variable_youngs_modulus"
+        },
+        {
+          "@id": "local:variable_poissons_ratio"
+        }
+      ]
+    },
+    {
+      "@id": "local:configuration_fun2_00625",
+      "@type": "m4i:ParameterSet",
+      "label": "Configuration fun2_00625",
+      "identifier": "fun2_00625",
+      "has part": [
+        {
+          "@id": "local:variable_radius"
+        },
+        {
+          "@id": "local:variable_length"
+        },
+        {
+          "@id": "local:variable_load"
+        },
+        {
+          "@id": "local:variable_element_size_00625"
+        },
+        {
+          "@id": "local:variable_isoparametric_element_degree_2"
+        },
+        {
+          "@id": "local:variable_cell_type"
+        },
+        {
+          "@id": "local:variable_youngs_modulus"
+        },
+        {
+          "@id": "local:variable_poissons_ratio"
+        }
+      ]
+    },
+    {
+      "@id": "local:configuration_fun2_003125",
+      "@type": "m4i:ParameterSet",
+      "label": "Configuration fun2_003125",
+      "identifier": "fun2_003125",
+      "has part": [
+        {
+          "@id": "local:variable_radius"
+        },
+        {
+          "@id": "local:variable_length"
+        },
+        {
+          "@id": "local:variable_load"
+        },
+        {
+          "@id": "local:variable_element_size_003125"
         },
         {
           "@id": "local:variable_isoparametric_element_degree_2"
