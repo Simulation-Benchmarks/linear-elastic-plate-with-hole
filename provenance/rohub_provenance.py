@@ -475,8 +475,10 @@ def delete_research_objects_by_annotations(
 
     for uuid in uuids:
         LOGGER.info("Deleting existing annotated research object: %s", uuid)
-        rohub.ros_delete(uuid)
-
+        try:
+            rohub.ros_delete(uuid)
+        except SystemExit as e:
+            LOGGER.error("Failed to delete research object %s: %s", uuid, e)
 
 def upload_research_object(path_to_zip: str) -> tuple[str, str]:
     """Upload an RO-Crate zip to RoHub and return job id and RO UUID."""
