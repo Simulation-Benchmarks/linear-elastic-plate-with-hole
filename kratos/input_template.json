@@ -22,8 +22,7 @@
         },
         "time_stepping": {
             "time_step": 1.0
-        },
-        "integration_order": 3
+        }
     },
     "processes": {
         "constraints_process_list": [
