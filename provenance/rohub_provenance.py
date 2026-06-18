@@ -413,7 +413,11 @@ def fetch_benchmark_data(
     use_production_rohub: bool = False,
 ) -> pd.DataFrame:
     """Authenticate with RoHub and fetch benchmark parameter/metric data."""
-    uuids = find_benchmark_ro_uuids(benchmark_name)
+    main_branch_url = ANNOTATION_CONFIG.get("main_branch_url")
+    if main_branch_url:
+        uuids = find_annotated_ro_uuids(benchmark_name, code_repository_url=main_branch_url)
+    else:
+        uuids = find_benchmark_ro_uuids(benchmark_name)
     named_graphs = find_named_graphs_for_uuids(
         uuids,
         use_production_rohub=use_production_rohub,
