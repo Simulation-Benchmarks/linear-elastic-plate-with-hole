@@ -22,7 +22,8 @@
         },
         "time_stepping": {
             "time_step": 1.0
-        }
+        },
+        "auxiliary_variables_list": ["LINE_LOAD"]
     },
     "processes": {
         "constraints_process_list": [
@@ -73,11 +74,12 @@
         ],
         "loads_process_list": [
             {
-                "python_module": "assign_vector_variable_to_conditions_process",
+                "python_module": "assign_vector_variable_process",
                 "kratos_module": "KratosMultiphysics",
                 "Parameters": {
                     "model_part_name": "Structure.boundary_right",
                     "variable_name": "LINE_LOAD",
+                    "constrained": [false, false, false],
                     "value": [
                         "{{BOUNDARY_RIGHT_TRACTION_X}}",
                         "{{BOUNDARY_RIGHT_TRACTION_Y}}",
@@ -90,11 +92,12 @@
                 }
             },
             {
-                "python_module": "assign_vector_variable_to_conditions_process",
+                "python_module": "assign_vector_variable_process",
                 "kratos_module": "KratosMultiphysics",
                 "Parameters": {
                     "model_part_name": "Structure.boundary_top",
                     "variable_name": "LINE_LOAD",
+                    "constrained": [false, false, false],
                     "value": [
                         "{{BOUNDARY_TOP_TRACTION_X}}",
                         "{{BOUNDARY_TOP_TRACTION_Y}}",
