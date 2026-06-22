@@ -9,6 +9,7 @@ from rdflib import Graph, Literal, Namespace, RDF, RDFS, URIRef
 M4I = Namespace("http://w3id.org/nfdi4ing/metadata4ing#")
 OBO = Namespace("http://purl.obolibrary.org/obo/")
 CR = Namespace("http://mlcommons.org/croissant/")
+SCHEMA = Namespace("https://schema.org/")
 
 HAS_NUMERICAL_VALUE = M4I.hasNumericalValue
 HAS_STRING_VALUE = M4I.hasStringValue
@@ -28,6 +29,8 @@ DESCRIBED_BY = URIRef("https://mardi4nfdi.de/mathmoddb#describedAsDocumentedBy")
 REPRESENTS = URIRef("http://semanticscience.org/resource/SIO_000210")
 HAS_SOURCE = CR.source
 HAS_EXTRACT = CR.extract
+VERSION = SCHEMA.version
+VERSION_ALT = URIRef("http://schema.org/version")
 
 HAS_FILE_OBJECT = URIRef("http://mlcommons.org/croissant/FileObject")
 HAS_FILE_OBJECT_ALT = URIRef("http://mlcommons.org/croissant/fileObject")
@@ -120,6 +123,7 @@ class ProcessingStep(KGNode):
 
 @dataclass
 class SemanticBenchmark(KGNode):
+    version: Optional[str] = None
     investigates: Optional[ResearchProblem] = None
     uses: Optional[MathematicalModel] = None
     evaluates: list[NumericalVariable] = field(default_factory=list)
@@ -272,10 +276,14 @@ class BenchmarkLoader:
         research_problem_uri = self.graph.value(benchmark_uri, INVESTIGATES)
         model_uri = self.graph.value(benchmark_uri, USES)
         publication_uri = self.graph.value(benchmark_uri, DESCRIBED_BY)
+        version = self._scalar(benchmark_uri, VERSION) or self._scalar(
+            benchmark_uri, VERSION_ALT
+        )
 
         return SemanticBenchmark(
             id=self._str(benchmark_uri),
             label=self._label(benchmark_uri),
+            version=version,
             investigates=(
                 ResearchProblem(
                     id=self._str(research_problem_uri),

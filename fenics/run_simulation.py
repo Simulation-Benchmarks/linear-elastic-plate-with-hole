@@ -139,9 +139,9 @@ def run_fenics_simulation(
         bcs=[bc_left, bc_bottom],
         u=u,
         petsc_options={
-            "ksp_type": "gmres",
-            "ksp_rtol": 1e-14,
-            "ksp_atol": 1e-14,
+            "ksp_type": "preonly",
+            "pc_type": "lu",
+            "pc_factor_mat_solver_type": "mumps",
         },
     )
     solver.solve()
