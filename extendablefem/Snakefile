@@ -1,32 +1,43 @@
-
 import json
 import os
 
-tool = "extendablefem"
-result_dir = "snakemake_results/" + config["benchmark"] 
-configuration_to_parameter_file = config["configuration_to_parameter_file"]
-configurations = config["configurations"]
+rule all:
+    input:
+        "solution_field_data.zip",
+        "solution_metrics.json"
+
+rule create_mesh:    
+    input:
+        script = "create_mesh.py",
+        parameters = workflow.configfiles[0],
+    output:
+        mesh = "mesh.msh",
+    conda: "environment_mesh.yml"
+    shell:
+        """
+        python3 {input.script} --input_parameter_file {input.parameters} --output_mesh_file {output.mesh}
+        """
 
 rule setup_julia_environment:
-    input: f"{tool}/Project.toml"
-    output: manifest=f"{tool}/Manifest.toml"
+    input: "Project.toml"
+    output: manifest= "Manifest.toml"
     singularity: "docker://julia:1.12.2-bookworm"
     shell: 
         """
-        julia --project={tool} -e 'using Pkg;Pkg.instantiate()'
+        julia --project=. -e 'using Pkg;Pkg.instantiate()'
         """
 
 rule run_extendablefem_simulation:
     input: 
-        parameters = lambda wildcards: configuration_to_parameter_file[wildcards.configuration],
-        mesh = f"{result_dir}/mesh/mesh_{{configuration}}.msh",
-        manifest = f"{tool}/Manifest.toml",
+        parameters = workflow.configfiles[0],
+        mesh = "mesh.msh",
+        manifest = "Manifest.toml",
     output:
-        zip = f"{result_dir}/{{tool}}/solution_field_data_{{configuration}}.zip",
-        metrics = f"{result_dir}/{{tool}}/solution_metrics_{{configuration}}.json",
+        zip = "solution_field_data.zip",
+        metrics = "solution_metrics.json",
     singularity: "docker://julia:1.12.2-bookworm"
     shell:
         """
-        julia --project={tool} {tool}/run_extendablefem_simulation.jl --configfile {input.parameters} --meshfile {input.mesh} --outputzip {output.zip} --outputmetrics {output.metrics}
+        julia --project=. run_extendablefem_simulation.jl --configfile {input.parameters} --meshfile {input.mesh} --outputzip {output.zip} --outputmetrics {output.metrics}
         """
 

@@ -1,0 +1,12 @@
+name: extendablefem-model-validation
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - snakemake
+  - rdflib
+  - pip
+  - pip:
+      - rocrate
+      - roc-validator
+      - "git+https://github.com/izus-fokus/snakemake-report-plugin-metadata4ing@v2.0.2#egg=snakemake-report-plugin-metadata4ing"
