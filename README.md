@@ -11,7 +11,7 @@ Metrics reported for each run:
 - **Max displacement error** — pointwise maximum of the displacement error against the analytical solution
 - **L2 displacement error** — L2 norm of the displacement error over the domain
 
-See [docs/plate-with-hole.md](docs/plate-with-hole.md) for the full mathematical formulation.
+See [documentation](docs/benchmark-documentation.md) for the full mathematical formulation.
 
 ## Simulation Tools
 

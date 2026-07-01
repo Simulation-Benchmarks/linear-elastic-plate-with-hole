@@ -1,15 +1,15 @@
 # Notebook pipeline
 
-The `notebooks/plate_with_hole.ipynb` notebook in this repository is
+The `notebooks/benchmark-results.ipynb` notebook in this repository is
 **auto-generated** on every push to `main` (and on manual
 `workflow_dispatch`).
 
 ## Inputs
 
-- Documentation: `docs/plate-with-hole.md`
+- Documentation: `docs/benchmark-documentation.md`
 - Source notebook: `notebooks/RoCrate.ipynb` (source of truth for the
   code cells)
-- Output: `notebooks/plate_with_hole.ipynb`
+- Output: `notebooks/benchmark-results.ipynb`
 
 ## How it works
 
@@ -27,8 +27,14 @@ The result is committed back to `main` with `[skip ci]`.
 ## Regenerating locally
 
     python scripts/build_notebook.py \
+<<<<<<< HEAD
+      --doc docs/benchmark-documentation.md \
+      --script scripts/postprocess_plate.py \
+      --notebook notebooks/benchmark-results.ipynb \
+=======
       --doc docs/plate-with-hole.md \
       --source-notebook notebooks/RoCrate.ipynb \
       --notebook notebooks/plate_with_hole.ipynb \
+>>>>>>> main
       --repo Simulation-Benchmarks/linear-elastic-plate-with-hole \
       --branch main
