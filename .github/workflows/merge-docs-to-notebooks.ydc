@@ -1,9 +1,9 @@
 name: Merge docs and script into notebook
 
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+on: {}
+#  push:
+#    branches: [main]
+#  workflow_dispatch:
 
 permissions:
   contents: write
@@ -20,11 +20,12 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Build notebook from docs and script
+      - name: Build notebook from docs and source notebook
         run: |
           python scripts/build_notebook.py \
-            --doc docs/benchmark-documentation.md \
-            --script scripts/postprocess_plate.py \
+
+            --doc docs/benchmark-documentation.md.md \
+            --source-notebook notebooks/RoCrate.ipynb \
             --notebook notebooks/benchmark-results.ipynb \
             --repo "${{ github.repository }}" \
             --branch "${{ github.ref_name }}"

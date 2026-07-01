@@ -1,4 +1,5 @@
 {
   "predicate": "http://w3id.org/nfdi4ing/metadata4ing#investigates",
-  "benchmark_base_url": "https://github.com/Simulation-Benchmarks"
+  "benchmark_base_url": "https://github.com/Simulation-Benchmarks",
+  "main_branch_url": "https://github.com/Simulation-Benchmarks/linear-elastic-plate-with-hole/tree/main"
 }

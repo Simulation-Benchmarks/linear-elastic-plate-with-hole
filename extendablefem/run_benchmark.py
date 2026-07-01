@@ -1,4 +1,4 @@
-"""Run the Kratos benchmark for each semantic benchmark configuration."""
+"""Run the Fenics benchmark for each semantic benchmark configuration."""
 
 import argparse
 import json
@@ -23,7 +23,7 @@ import semantic_benchmark
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 LOGGER = logging.getLogger(__name__)
 
-TOOL_NAME = "Kratos"
+TOOL_NAME = "ExtendableFEM"
 BENCHMARK_DIR = Path(__file__).resolve().parent
 
 PROVENANCE_REPORTER_NAME = "metadata4ing"
@@ -49,7 +49,7 @@ def build_default_rocrate_name() -> str:
 
 
 def parse_arguments() -> Namespace:
-    """Parse command-line arguments for the Kratos benchmark runner."""
+    """Parse command-line arguments for the Fenics benchmark runner."""
     parser = argparse.ArgumentParser(
         description=(
             f"Run the {TOOL_NAME} benchmark workflow for all benchmark "
@@ -68,6 +68,7 @@ def parse_arguments() -> Namespace:
         required=True,
         help="Path to the zipped benchmark archive to extract.",
     )
+    """ 
     parser.add_argument(
         "--result-path",
         type=Path,
@@ -85,6 +86,7 @@ def parse_arguments() -> Namespace:
         default=TOOL_NAME,
         help="Software name recorded in the generated aggregate RO-Crate.",
     )
+    """
     return parser.parse_args()
 
 
@@ -97,6 +99,12 @@ def extract_benchmark_archive(benchmark_zip: Path, output_dir: Path) -> None:
 def create_shared_conda_env_dir(benchmark_dir: Path) -> Path:
     """Create and return the shared Snakemake conda environment directory."""
     shared_env_dir = benchmark_dir / "conda_envs"
+    shared_env_dir.mkdir(parents=True, exist_ok=True)
+    return shared_env_dir
+
+def create_shared_apptainer_env_dir(benchmark_dir: Path) -> Path:
+    """Create and return the shared Snakemake Apptainer environment directory."""
+    shared_env_dir = benchmark_dir / "apptainer_envs"
     shared_env_dir.mkdir(parents=True, exist_ok=True)
     return shared_env_dir
 
@@ -156,10 +164,12 @@ def create_configuration_output_dir(benchmark_dir: Path, configuration: str) -> 
     return output_dir
 
 
-def create_parameter_file(configuration_data: dict, output_dir: Path) -> None:
+def create_parameter_file(configuration_data: dict, output_dir: Path) -> Path:
     """Write the selected configuration as parameters.json in the result directory."""
-    with open(output_dir / "parameters.json", "w") as outfile:
+    result_dir_parameter_file = output_dir / "parameters.json"
+    with open(result_dir_parameter_file, "w") as outfile:
         json.dump(configuration_data, outfile, indent=2)
+    return result_dir_parameter_file
 
 
 def copy_benchmark_files_to_output_dir(benchmark_dir: Path, output_dir: Path) -> None:
@@ -176,17 +186,20 @@ def copy_benchmark_files_to_output_dir(benchmark_dir: Path, output_dir: Path) ->
 
 def build_snakemake_command(
     parameter_file: Path,
-    shared_env_dir: Path,
+    shared_env_dir_conda: Path,
+    shared_env_dir_apptainer: Path,
 ) -> list[str]:
     """Build the base Snakemake command for one configuration."""
     return [
         "snakemake",
         "--use-conda",
-        "--force",
+        "--use-apptainer",
         "--cores",
         "all",
         "--conda-prefix",
-        str(shared_env_dir),
+        str(shared_env_dir_conda),
+        "--apptainer-prefix",
+        str(shared_env_dir_apptainer),
         "--configfile",
         str(parameter_file),
     ]
@@ -214,20 +227,22 @@ def run_snakemake_workflow(
     parameter_file: Path,
     configuration: str,
     output_dir: Path,
-    shared_env_dir: Path,
+    shared_env_dir_conda: Path,
+    shared_env_dir_apptainer: Path,
 ) -> None:
     """Run the Snakemake workflow normally and then with provenance reporting."""
-    base_cmd = build_snakemake_command(parameter_file, shared_env_dir)
-    reporter_args = build_provenance_reporter_args(configuration)
+    base_cmd = build_snakemake_command(parameter_file, shared_env_dir_conda, shared_env_dir_apptainer)
+    #reporter_args = build_provenance_reporter_args(configuration)
 
     subprocess.run(base_cmd, check=True, cwd=output_dir)
-    subprocess.run(base_cmd + reporter_args, check=True, cwd=output_dir)
+    #subprocess.run(base_cmd + reporter_args, check=True, cwd=output_dir)
 
 
 def run_configuration(
     parameter_file: Path,
     benchmark_dir: Path,
-    shared_env_dir: Path,
+    shared_env_dir_conda: Path,
+    shared_env_dir_apptainer: Path,
 ) -> None:
     """Prepare and execute one benchmark configuration."""
     configuration_data = load_parameter_file(parameter_file)
@@ -237,13 +252,14 @@ def run_configuration(
 
     output_dir = create_configuration_output_dir(benchmark_dir, configuration)
 
-    create_parameter_file(configuration_data, output_dir)
+    result_dir_parameter_file = create_parameter_file(configuration_data, output_dir)
     copy_benchmark_files_to_output_dir(benchmark_dir, output_dir)
     run_snakemake_workflow(
-        parameter_file,
+        result_dir_parameter_file,
         configuration,
         output_dir,
-        shared_env_dir,
+        shared_env_dir_conda,
+        shared_env_dir_apptainer,
     )
 
     LOGGER.info("Workflow executed successfully for configuration %s.", configuration)
@@ -282,18 +298,24 @@ def validate_rocrate(rocrate_path: str, profile: str = PROVENANCE_PROFILE) -> No
 
 
 def run_benchmark(args: Namespace) -> None:
-    """Run a complete Kratos benchmark workflow from parsed arguments."""
+    """Run a complete Fenics benchmark workflow from parsed arguments."""
     configure_logging()
 
     extract_benchmark_archive(args.benchmark_zip, BENCHMARK_DIR)
-    shared_env_dir = create_shared_conda_env_dir(BENCHMARK_DIR)
+    shared_env_dir_conda = create_shared_conda_env_dir(BENCHMARK_DIR)
+    shared_env_dir_apptainer = create_shared_apptainer_env_dir(BENCHMARK_DIR)
 
     benchmark = load_benchmark(args.benchmark_file)
     create_parameter_files_from_benchmark(benchmark, BENCHMARK_DIR)
 
     for parameter_file in sorted(BENCHMARK_DIR.glob("parameters_*.json")):
-        run_configuration(parameter_file, BENCHMARK_DIR, shared_env_dir)
-
+        with open(parameter_file, 'r') as f:
+            params = json.load(f)
+        
+        if params.get("isoparametric_element_degree") == 1:
+            run_configuration(parameter_file, BENCHMARK_DIR, shared_env_dir_conda, shared_env_dir_apptainer)
+    
+    """ 
     create_aggregate_rocrate(
         args.result_path,
         benchmark,
@@ -308,13 +330,16 @@ def run_benchmark(args: Namespace) -> None:
         rocrate_path=str(args.result_path / "unpacked_rocrate"),
         profile=PROVENANCE_PROFILE,
     )
+    """
 
 
 def main() -> None:
-    """Parse arguments and run the Kratos benchmark."""
+    """Parse arguments and run the Fenics benchmark."""
     configure_logging()
     run_benchmark(parse_arguments())
 
 
 if __name__ == "__main__":
     main()
+
+#python run_benchmark.py --benchmark-file ../provenance/benchmark.json --benchmark-zip ../benchmark/linear-elastic-plate-with-hole.zip

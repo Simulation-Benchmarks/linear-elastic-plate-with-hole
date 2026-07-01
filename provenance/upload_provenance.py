@@ -14,13 +14,9 @@ The module supports both production and development environments of RoHub.
 """
 
 import argparse
-import logging
-import sys
 
 from rohub_provenance import upload_provenance_rocrate
-
-LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
-LOGGER = logging.getLogger(__name__)
+from utils import parse_bool
 
 
 def parse_args():
@@ -44,7 +40,7 @@ def parse_args():
         help="Path to the folder containing provenance data",
     )
     parser.add_argument(
-        "--benchmark_name",
+        "--benchmark-name",
         type=str,
         required=True,
         help="Name of the benchmark to be uploaded",
@@ -68,9 +64,22 @@ def parse_args():
         help="Title of the RO-Crate to be uploaded",
     )
     parser.add_argument(
+        "--code-repository-url",
+        type=str,
+        default=None,
+        help="Full GitHub branch URL to annotate as schema.org/codeRepository",
+    )
+    parser.add_argument(
+        "--used-software-url",
+        type=str,
+        default=None,
+        help="Software identifier URL to annotate as prov:used",
+    )
+    parser.add_argument(
         "--use-production-rohub",
-        action="store_true",
-        help="Use production RoHub instead of the development instance",
+        type=parse_bool,
+        default=False,
+        help="Use production RoHub instead of the development instance (true/false)",
     )
     return parser.parse_args()
 
@@ -99,9 +108,9 @@ def run(args):
         Exception: If deletion of an existing RO fails
 
     Configuration:
-        USE_DEVELOPMENT_VERSION (bool): When True, uses RoHub development server.
-                                       Set to False for production environment.
-        
+        USE_PRODUCTION_ROHUB (bool): When True, uses RoHub production server.
+                                     Set to False for development environment.
+
         Timeout Settings:
             - Upload timeout: 5 minutes (300 seconds)
             - Poll interval: 10 seconds between status checks
@@ -115,7 +124,9 @@ def run(args):
         username=args.username,
         password=args.password,
         rocrate_title=args.rocrate_title,
-        use_development_version=not args.use_production_rohub,
+        code_repository_url=args.code_repository_url,
+        used_software_url=args.used_software_url,
+        use_production_rohub=args.use_production_rohub,
     )
 
 
@@ -142,14 +153,8 @@ def main():
         The script will exit with a non-zero status code if authentication
         or upload fails, or if required arguments are not provided.
     """
-    logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
     args = parse_args()
-    try:
-        run(args)
-        sys.exit(0)
-    except Exception as error:
-        LOGGER.exception("RoHub upload failed: %s", error)
-        sys.exit(1)
+    run(args)
 
 
 if __name__ == "__main__":

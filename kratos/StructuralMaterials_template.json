@@ -9,7 +9,8 @@
                 },
                 "Variables": {
                     "YOUNG_MODULUS": "{{YOUNG_MODULUS}}",
-                    "POISSON_RATIO": "{{POISSON_RATIO}}"
+                    "POISSON_RATIO": "{{POISSON_RATIO}}",
+                    "INTEGRATION_ORDER": 3
                 },
                 "Tables": {}
             }
