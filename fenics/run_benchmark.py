@@ -5,19 +5,9 @@ import json
 import logging
 import shutil
 import subprocess
-import sys
 import zipfile
 from argparse import Namespace
 from pathlib import Path
-
-from rocrate_validator import models, services
-
-REPO_ROOT = Path(__file__).resolve().parent.parent
-PROVENANCE_DIR = REPO_ROOT / "provenance"
-if str(PROVENANCE_DIR) not in sys.path:
-    sys.path.insert(0, str(PROVENANCE_DIR))
-
-import create_rocrate
 import semantic_benchmark
 
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
@@ -256,29 +246,14 @@ def create_aggregate_rocrate(
     software_name: str,
 ) -> None:
     """Create one aggregate RO-Crate from all per-configuration result crates."""
-    create_rocrate.create_main_ro(
+    semantic_benchmark.create_main_ro(
         str(results_dir),
         benchmark,
         rocrate_path=str(rocrate_path),
         software_name=software_name,
+        validation_profile=PROVENANCE_PROFILE,
     )
     LOGGER.info("Aggregate RO-Crate created at %s.", rocrate_path)
-
-
-def validate_rocrate(rocrate_path: str, profile: str = PROVENANCE_PROFILE) -> None:
-    """Validate the RO-Crate folder against the specified profile."""
-    settings = services.ValidationSettings(
-        rocrate_uri=rocrate_path,
-        profile_identifier=profile,
-        requirement_severity=models.Severity.REQUIRED,
-    )
-    result = services.validate(settings)
-    assert not result.has_issues(), "RO-Crate is invalid!\n" + "\n".join(
-        f"Detected issue of severity {issue.severity.name} with check "
-        f'"{issue.check.identifier}": {issue.message}'
-        for issue in result.get_issues()
-    )
-    LOGGER.info("RO-Crate is valid.")
 
 
 def run_benchmark(args: Namespace) -> None:
@@ -299,14 +274,6 @@ def run_benchmark(args: Namespace) -> None:
         benchmark,
         rocrate_path=args.result_path / args.rocrate_name,
         software_name=args.software_name,
-    )
-
-    with zipfile.ZipFile(args.result_path / args.rocrate_name, "r") as zip_ref:
-        zip_ref.extractall(args.result_path / "unpacked_rocrate")
-
-    validate_rocrate(
-        rocrate_path=str(args.result_path / "unpacked_rocrate"),
-        profile=PROVENANCE_PROFILE,
     )
 
 

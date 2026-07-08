@@ -15,8 +15,10 @@ The module supports both production and development environments of RoHub.
 
 import argparse
 
-from rohub_provenance import upload_provenance_rocrate
-from utils import parse_bool
+from semantic_benchmark.rohub import upload_provenance_rocrate
+from utils import configure_semantic_benchmark_rohub, parse_bool
+
+configure_semantic_benchmark_rohub()
 
 
 def parse_args():
@@ -89,7 +91,7 @@ def run(args):
     Execute the complete RoHub upload workflow.
 
     This function delegates the RoHub-specific operations to
-    rohub_provenance.upload_provenance_rocrate:
+    semantic_benchmark.rohub.upload_provenance_rocrate:
     1. Configure and authenticate with RoHub
     2. Delete existing research objects with the same RO-Crate title
     3. Upload the new research object from the specified zip file

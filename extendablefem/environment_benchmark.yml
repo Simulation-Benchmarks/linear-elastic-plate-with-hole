@@ -7,6 +7,5 @@ dependencies:
   - rdflib
   - pip
   - pip:
-      - rocrate
-      - roc-validator
+      - "semantic-benchmark @ git+https://github.com/Simulation-Benchmarks/semantic-benchmark.git"
       - "git+https://github.com/izus-fokus/snakemake-report-plugin-metadata4ing@v2.0.2#egg=snakemake-report-plugin-metadata4ing"

@@ -5,8 +5,10 @@ from typing import Any, Callable, Sequence
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from rohub_provenance import load_benchmark_metric_data
-from utils import parse_bool
+from semantic_benchmark.rohub import load_benchmark_metric_data
+from utils import configure_semantic_benchmark_rohub, parse_bool
+
+configure_semantic_benchmark_rohub()
 
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 LOGGER = logging.getLogger(__name__)

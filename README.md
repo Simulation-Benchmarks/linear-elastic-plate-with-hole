@@ -25,6 +25,16 @@ Implementations are provided for three FE frameworks, each with its own subdirec
 
 Each implementation varies the element size and the isoparametric element degree and stores results as RO-Crates uploaded to RoHub for provenance tracking.
 
+## Shared Benchmark Package
+
+Reusable semantic benchmark, RO-Crate, and RoHub helpers are provided by the external Python package `semantic-benchmark`. The environment files and `requirements.txt` install it directly from:
+
+```text
+git+https://github.com/Simulation-Benchmarks/semantic-benchmark.git
+```
+
+The local `provenance/` scripts keep repository-specific configuration and command-line entrypoints for this plate-with-hole benchmark.
+
 ## Interactive Benchmark Evaluation
 
 Click the badge to open the pre-built notebook on the NFDI JupyterHub and explore the provenance plots interactively:
