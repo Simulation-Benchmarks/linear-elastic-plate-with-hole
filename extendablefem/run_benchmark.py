@@ -40,7 +40,7 @@ def build_default_rocrate_name() -> str:
 
 
 def parse_arguments() -> Namespace:
-    """Parse command-line arguments for the Fenics benchmark runner."""
+    """Parse command-line arguments for the ExtendableFEM benchmark runner."""
     parser = argparse.ArgumentParser(
         description=(
             f"Run the {TOOL_NAME} benchmark workflow for all benchmark "
@@ -59,7 +59,6 @@ def parse_arguments() -> Namespace:
         required=True,
         help="Path to the zipped benchmark archive to extract.",
     )
-    """ 
     parser.add_argument(
         "--result-path",
         type=Path,
@@ -77,7 +76,6 @@ def parse_arguments() -> Namespace:
         default=TOOL_NAME,
         help="Software name recorded in the generated aggregate RO-Crate.",
     )
-    """
     return parser.parse_args()
 
 
@@ -223,10 +221,10 @@ def run_snakemake_workflow(
 ) -> None:
     """Run the Snakemake workflow normally and then with provenance reporting."""
     base_cmd = build_snakemake_command(parameter_file, shared_env_dir_conda, shared_env_dir_apptainer)
-    #reporter_args = build_provenance_reporter_args(configuration)
+    reporter_args = build_provenance_reporter_args(configuration)
 
     subprocess.run(base_cmd, check=True, cwd=output_dir)
-    #subprocess.run(base_cmd + reporter_args, check=True, cwd=output_dir)
+    subprocess.run(base_cmd + reporter_args, check=True, cwd=output_dir)
 
 
 def run_configuration(
@@ -274,7 +272,7 @@ def create_aggregate_rocrate(
 
 
 def run_benchmark(args: Namespace) -> None:
-    """Run a complete Fenics benchmark workflow from parsed arguments."""
+    """Run a complete ExtendableFEM benchmark workflow from parsed arguments."""
     configure_logging()
 
     extract_benchmark_archive(args.benchmark_zip, BENCHMARK_DIR)
@@ -291,7 +289,6 @@ def run_benchmark(args: Namespace) -> None:
         if params.get("isoparametric_element_degree") == 1:
             run_configuration(parameter_file, BENCHMARK_DIR, shared_env_dir_conda, shared_env_dir_apptainer)
     
-    """ 
     create_aggregate_rocrate(
         args.result_path,
         benchmark,
@@ -299,16 +296,12 @@ def run_benchmark(args: Namespace) -> None:
         software_name=args.software_name,
     )
 
-    """
-
 
 def main() -> None:
-    """Parse arguments and run the Fenics benchmark."""
+    """Parse arguments and run the ExtendableFEM benchmark."""
     configure_logging()
     run_benchmark(parse_arguments())
 
 
 if __name__ == "__main__":
     main()
-
-#python run_benchmark.py --benchmark-file ../provenance/benchmark.json --benchmark-zip ../benchmark/linear-elastic-plate-with-hole.zip
