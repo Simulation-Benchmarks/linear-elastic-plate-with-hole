@@ -4,7 +4,7 @@ on:
   push:
     branches: [ 27-semantic-benchmark ]
   
-    
+
   workflow_dispatch:
     inputs:
       branch:
@@ -23,25 +23,25 @@ permissions:
 env:
   BENCHMARK_NAME: linear-elastic-plate-with-hole
   BENCHMARK_VERSION: 1.0.0
-  BRANCH_NAME: ${{ inputs.branch }}
-  CODE_REPOSITORY_URL: https://github.com/${{ github.repository }}/tree/${{ inputs.branch }}
-  USE_PRODUCTION_ROHUB: ${{ inputs.use_production_rohub }}
+  BRANCH_NAME: ${{ inputs.branch || github.ref_name }}
+  CODE_REPOSITORY_URL: https://github.com/${{ github.repository }}/tree/${{ inputs.branch || github.ref_name }}
+  USE_PRODUCTION_ROHUB: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.use_production_rohub) || 'true' }}
 
 jobs:
   run-fenics:
     uses: ./.github/workflows/run-benchmark-fenics.yml
     with:
-      checkout_ref: ${{ inputs.branch }}
+      checkout_ref: ${{ inputs.branch || github.ref_name }}
 
   run-kratos:
     uses: ./.github/workflows/run-benchmark-kratos.yml
     with:
-      checkout_ref: ${{ inputs.branch }}
+      checkout_ref: ${{ inputs.branch || github.ref_name }}
 
   run-extendablefem:
     uses: ./.github/workflows/run-benchmark-exfem.yml
     with:
-      checkout_ref: ${{ inputs.branch }}
+      checkout_ref: ${{ inputs.branch || github.ref_name }}
 
   upload-rocrates:
     runs-on: ubuntu-latest
@@ -67,7 +67,7 @@ jobs:
       - name: Checkout repo content
         uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ inputs.branch || github.ref_name }}
 
       - name: Capture branch commit SHA
         shell: bash
@@ -107,7 +107,7 @@ jobs:
           TOOL_DISPLAY_NAME: ${{ matrix.display_name }}
           USED_SOFTWARE_URL: ${{ matrix.used_software_url }}
         run: |
-          ROCRATE_TITLE="NFDI4Ing Provenance (${TOOL_DISPLAY_NAME}) ${BENCHMARK_VERSION}"
+          ROCRATE_TITLE="linear-elastic-plate-with-hole Provenance (${TOOL_DISPLAY_NAME}) ${BENCHMARK_VERSION}"
 
           if [ "${BRANCH_NAME}" != "main" ]; then
             ROCRATE_TITLE="${ROCRATE_TITLE}_${BRANCH_COMMIT_SHA:0:7}"
@@ -134,13 +134,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: wait-for-rohub-processing
     env:
-      USE_PRODUCTION_ROHUB: ${{ inputs.use_production_rohub }}
+      USE_PRODUCTION_ROHUB: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.use_production_rohub) || 'true' }}
 
     steps:
       - name: Checkout repo content
         uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ inputs.branch || github.ref_name }}
 
       - name: Setup Mambaforge with provenance env
         uses: conda-incubator/setup-miniconda@v4
