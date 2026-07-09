@@ -1,4 +1,4 @@
-name: ExtendableFEM CI
+name: Fenics CI
 on:
   push:
 
@@ -9,7 +9,7 @@ env:
   BENCHMARK_NAME: linear-elastic-plate-with-hole
   EXAMPLE_BENCHMARK_FILE: benchmark/1.0.0/benchmark-minimal-configurations.json
   EXAMPLE_BENCHMARK_DIR: benchmark/1.0.0
-  TOOL: extendablefem
+  TOOL: fenics
 
 jobs:
   run-examples:
@@ -39,11 +39,6 @@ jobs:
         run: |
           test -f "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}"
           test -f "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_DIR}/${BENCHMARK_NAME}.zip"
-
-      - name: Setup Apptainer
-        uses: eWaterCycle/setup-apptainer@v2
-        with:
-          apptainer-version: 1.4.5
 
       - name: Run ${{ env.BENCHMARK_NAME }} using ${{ env.TOOL }}
         shell: bash -l {0}

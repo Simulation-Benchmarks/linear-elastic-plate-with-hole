@@ -589,40 +589,16 @@
       ],
       "has parameter set": [
         {
-          "@id": "local:configuration_1"
+          "@id": "local:configuration_1_1"
         },
         {
-          "@id": "local:configuration_05"
+          "@id": "local:configuration_1_003125"
         },
         {
-          "@id": "local:configuration_025"
+          "@id": "local:configuration_2_1"
         },
         {
-          "@id": "local:configuration_0125"
-        },
-        {
-          "@id": "local:configuration_00625"
-        },
-        {
-          "@id": "local:configuration_003125"
-        },
-        {
-          "@id": "local:configuration_fun2"
-        },
-        {
-          "@id": "local:configuration_fun2fine"
-        },
-        {
-          "@id": "local:configuration_fun2_025"
-        },
-        {
-          "@id": "local:configuration_fun2_0125"
-        },
-        {
-          "@id": "local:configuration_fun2_00625"
-        },
-        {
-          "@id": "local:configuration_fun2_003125"
+          "@id": "local:configuration_2_003125"
         }
       ],
       "describedAsDocumentedBy": {
@@ -934,40 +910,40 @@
       ],
       "has configuration": [
         {
-          "@id": "local:configuration_1"
+          "@id": "local:configuration_1_1"
         },
         {
-          "@id": "local:configuration_05"
+          "@id": "local:configuration_1_05"
         },
         {
-          "@id": "local:configuration_025"
+          "@id": "local:configuration_1_025"
         },
         {
-          "@id": "local:configuration_0125"
+          "@id": "local:configuration_1_0125"
         },
         {
-          "@id": "local:configuration_00625"
+          "@id": "local:configuration_1_00625"
         },
         {
-          "@id": "local:configuration_003125"
+          "@id": "local:configuration_1_003125"
         },
         {
-          "@id": "local:configuration_fun2"
+          "@id": "local:configuration_2_1"
         },
         {
-          "@id": "local:configuration_fun2fine"
+          "@id": "local:configuration_2_05"
         },
         {
-          "@id": "local:configuration_fun2_025"
+          "@id": "local:configuration_2_025"
         },
         {
-          "@id": "local:configuration_fun2_0125"
+          "@id": "local:configuration_2_0125"
         },
         {
-          "@id": "local:configuration_fun2_00625"
+          "@id": "local:configuration_2_00625"
         },
         {
-          "@id": "local:configuration_fun2_003125"
+          "@id": "local:configuration_2_003125"
         }
       ],
       "has employed tool": [
@@ -1481,10 +1457,10 @@
       "jsonPath": "/poissons_ratio"
     },
     {
-      "@id": "local:configuration_1",
+      "@id": "local:configuration_1_1",
       "@type": "m4i:ParameterSet",
-      "label": "Configuration 1",
-      "identifier": "1",
+      "label": "Element Size 1, Isoparametric Element Degree 1",
+      "identifier": "1_1",
       "has part": [
         {
           "@id": "local:variable_radius"
@@ -1513,10 +1489,10 @@
       ]
     },
     {
-      "@id": "local:configuration_05",
+      "@id": "local:configuration_1_05",
       "@type": "m4i:ParameterSet",
-      "label": "Configuration 05",
-      "identifier": "05",
+      "label": "Element Size 05, Isoparametric Element Degree 1",
+      "identifier": "1_05",
       "has part": [
         {
           "@id": "local:variable_radius"
@@ -1545,10 +1521,10 @@
       ]
     },
     {
-      "@id": "local:configuration_025",
+      "@id": "local:configuration_1_025",
       "@type": "m4i:ParameterSet",
-      "label": "Configuration 025",
-      "identifier": "025",
+      "label": "Element Size 025, Isoparametric Element Degree 1",
+      "identifier": "1_025",
       "has part": [
         {
           "@id": "local:variable_radius"
@@ -1577,10 +1553,10 @@
       ]
     }, 
     {
-      "@id": "local:configuration_0125",
+      "@id": "local:configuration_1_0125",
       "@type": "m4i:ParameterSet",
-      "label": "Configuration 0125",
-      "identifier": "0125",
+      "label": "Element Size 0125, Isoparametric Element Degree 1",
+      "identifier": "1_0125",
       "has part": [
         {
           "@id": "local:variable_radius"
@@ -1609,10 +1585,10 @@
       ]
     },
     {
-      "@id": "local:configuration_00625",
+      "@id": "local:configuration_1_00625",
       "@type": "m4i:ParameterSet",
-      "label": "Configuration 00625",
-      "identifier": "00625",
+      "label": "Element Size 00625, Isoparametric Element Degree 1",
+      "identifier": "1_00625",
       "has part": [
         {
           "@id": "local:variable_radius"
@@ -1641,10 +1617,10 @@
       ]
     },
     {
-      "@id": "local:configuration_003125",
+      "@id": "local:configuration_1_003125",
       "@type": "m4i:ParameterSet",
-      "label": "Configuration 003125",
-      "identifier": "003125",
+      "label": "Element Size 003125, Isoparametric Element Degree 1",
+      "identifier": "1_003125",
       "has part": [
         {
           "@id": "local:variable_radius"
@@ -1673,42 +1649,10 @@
       ]
     },
     {
-      "@id": "local:configuration_fun2",
+      "@id": "local:configuration_2_1",
       "@type": "m4i:ParameterSet",
-      "label": "Configuration fun2",
-      "identifier": "fun2",
-      "has part": [
-        {
-          "@id": "local:variable_radius"
-        },
-        {
-          "@id": "local:variable_length"
-        },
-        {
-          "@id": "local:variable_load"
-        },
-        {
-          "@id": "local:variable_element_size_05"
-        },
-        {
-          "@id": "local:variable_isoparametric_element_degree_2"
-        },
-        {
-          "@id": "local:variable_cell_type"
-        },
-        {
-          "@id": "local:variable_youngs_modulus"
-        },
-        {
-          "@id": "local:variable_poissons_ratio"
-        }
-      ]
-    },  
-    {
-      "@id": "local:configuration_fun2fine",
-      "@type": "m4i:ParameterSet",
-      "label": "Configuration fun2fine",
-      "identifier": "fun2fine",
+      "label": "Element Size 1, Isoparametric Element Degree 2",
+      "identifier": "2_1",
       "has part": [
         {
           "@id": "local:variable_radius"
@@ -1737,10 +1681,42 @@
       ]
     },
     {
-      "@id": "local:configuration_fun2_025",
+      "@id": "local:configuration_2_05",
       "@type": "m4i:ParameterSet",
-      "label": "Configuration fun2_025",
-      "identifier": "fun2_025",
+      "label": "Element Size 05, Isoparametric Element Degree 2",
+      "identifier": "2_05",
+      "has part": [
+        {
+          "@id": "local:variable_radius"
+        },
+        {
+          "@id": "local:variable_length"
+        },
+        {
+          "@id": "local:variable_load"
+        },
+        {
+          "@id": "local:variable_element_size_05"
+        },
+        {
+          "@id": "local:variable_isoparametric_element_degree_2"
+        },
+        {
+          "@id": "local:variable_cell_type"
+        },
+        {
+          "@id": "local:variable_youngs_modulus"
+        },
+        {
+          "@id": "local:variable_poissons_ratio"
+        }
+      ]
+    },
+    {
+      "@id": "local:configuration_2_025",
+      "@type": "m4i:ParameterSet",
+      "label": "Element Size 025, Isoparametric Element Degree 2",
+      "identifier": "2_025",
       "has part": [
         {
           "@id": "local:variable_radius"
@@ -1767,12 +1743,12 @@
           "@id": "local:variable_poissons_ratio"
         }
       ]
-    },
+    }, 
     {
-      "@id": "local:configuration_fun2_0125",
+      "@id": "local:configuration_2_0125",
       "@type": "m4i:ParameterSet",
-      "label": "Configuration fun2_0125",
-      "identifier": "fun2_0125",
+      "label": "Element Size 0125, Isoparametric Element Degree 2",
+      "identifier": "2_0125",
       "has part": [
         {
           "@id": "local:variable_radius"
@@ -1801,10 +1777,10 @@
       ]
     },
     {
-      "@id": "local:configuration_fun2_00625",
+      "@id": "local:configuration_2_00625",
       "@type": "m4i:ParameterSet",
-      "label": "Configuration fun2_00625",
-      "identifier": "fun2_00625",
+      "label": "Element Size 00625, Isoparametric Element Degree 2",
+      "identifier": "2_00625",
       "has part": [
         {
           "@id": "local:variable_radius"
@@ -1833,10 +1809,10 @@
       ]
     },
     {
-      "@id": "local:configuration_fun2_003125",
+      "@id": "local:configuration_2_003125",
       "@type": "m4i:ParameterSet",
-      "label": "Configuration fun2_003125",
-      "identifier": "fun2_003125",
+      "label": "Element Size 003125, Isoparametric Element Degree 2",
+      "identifier": "2_003125",
       "has part": [
         {
           "@id": "local:variable_radius"
