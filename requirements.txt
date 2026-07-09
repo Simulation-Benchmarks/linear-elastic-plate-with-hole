@@ -1,4 +1,3 @@
-rohub
 pandas
 matplotlib
 semantic-benchmark @ git+https://github.com/Simulation-Benchmarks/semantic-benchmark.git
