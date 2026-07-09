@@ -21,7 +21,7 @@ env:
   BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
   BRANCH_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
   CODE_REPOSITORY_URL: https://github.com/${{ github.repository }}/tree/${{ github.head_ref || github.ref_name }}
-  USE_PRODUCTION_ROHUB: false 
+  USE_PRODUCTION_ROHUB: true 
 
 jobs:
   run-examples:
