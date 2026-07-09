@@ -1,6 +1,9 @@
 name: RoHub Upload CI
 
 on:
+  push:
+    branches: [ 27-semantic-benchmark ]
+    
   workflow_dispatch:
     inputs:
       branch:
