@@ -19,7 +19,7 @@ struct PlateConfig
 end
 
 struct Metrics
-    max_von_mises_stress_nodes::Float64
+    max_von_mises_stress::Float64
 end
 
 #function value_with_unit(json::JSON.Object{String,Any})

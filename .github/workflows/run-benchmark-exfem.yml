@@ -32,7 +32,7 @@ jobs:
         include:
           - tool: extendablefem
             display_name: ExtendableFEM
-            used_software_url: https://github.com/WIAS-PDELib/ExtendableFEM.jl
+            used_software_url: https://zbmath.org/software/53664
 
     steps:
       - name: checkout repo content
