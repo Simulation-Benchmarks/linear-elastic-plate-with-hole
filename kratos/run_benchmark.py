@@ -246,7 +246,7 @@ def create_aggregate_rocrate(
     software_name: str,
 ) -> None:
     """Create one aggregate RO-Crate from all per-configuration result crates."""
-    semantic_benchmark.create_main_ro(
+    semantic_benchmark.rocrate.create_main_ro(
         str(results_dir),
         benchmark,
         rocrate_path=str(rocrate_path),
