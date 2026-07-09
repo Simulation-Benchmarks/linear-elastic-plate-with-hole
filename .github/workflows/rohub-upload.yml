@@ -51,6 +51,7 @@ jobs:
       - run-extendablefem
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         include:
           - tool: fenics
