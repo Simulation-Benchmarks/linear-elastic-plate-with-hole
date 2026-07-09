@@ -8,7 +8,8 @@ import subprocess
 import zipfile
 from argparse import Namespace
 from pathlib import Path
-import semantic_benchmark
+from semantic_benchmark import SemanticBenchmark, BenchmarkLoader, TextParameter
+import semantic_benchmark.rocrate as rocrate
 
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 LOGGER = logging.getLogger(__name__)
@@ -101,18 +102,18 @@ def parameter_json_key(parameter) -> str:
 
 def parameter_json_value(parameter):
     """Extract the scalar value stored in a benchmark parameter object."""
-    if isinstance(parameter, semantic_benchmark.TextParameter):
+    if isinstance(parameter, TextParameter):
         return parameter.string_value
     return getattr(parameter, "numerical_value", None)
 
 
-def load_benchmark(benchmark_file: Path) -> semantic_benchmark.SemanticBenchmark:
+def load_benchmark(benchmark_file: Path) -> SemanticBenchmark:
     """Load the semantic benchmark description from a JSON-LD file."""
-    return semantic_benchmark.BenchmarkLoader(benchmark_file).load()
+    return BenchmarkLoader(benchmark_file).load()
 
 
 def create_parameter_files_from_benchmark(
-    benchmark: semantic_benchmark.SemanticBenchmark,
+    benchmark: SemanticBenchmark,
     output_dir: Path,
 ) -> None:
     """Create parameters_*.json files from the benchmark configuration objects."""
@@ -241,12 +242,12 @@ def run_configuration(
 
 def create_aggregate_rocrate(
     results_dir: Path,
-    benchmark: semantic_benchmark.SemanticBenchmark,
+    benchmark: SemanticBenchmark,
     rocrate_path: Path,
     software_name: str,
 ) -> None:
     """Create one aggregate RO-Crate from all per-configuration result crates."""
-    semantic_benchmark.rocrate.create_main_ro(
+    rocrate.create_main_ro(
         str(results_dir),
         benchmark,
         rocrate_path=str(rocrate_path),
