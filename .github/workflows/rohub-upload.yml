@@ -163,7 +163,7 @@ jobs:
             --use-production-rohub "${USE_PRODUCTION_ROHUB}"
 
       - name: Upload Fenics plot artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: fenics-plot
           path: fenics-element-size-vs-stress-plot.pdf
@@ -180,7 +180,7 @@ jobs:
             --use-production-rohub "${USE_PRODUCTION_ROHUB}"
 
       - name: Upload Kratos plot artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: kratos-plot
           path: kratos-element-size-vs-stress-plot.pdf
@@ -197,7 +197,7 @@ jobs:
             --use-production-rohub "${USE_PRODUCTION_ROHUB}"
 
       - name: Upload ExtendableFEM plot artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: extendablefem-plot
           path: extendablefem-element-size-vs-stress-plot.pdf
