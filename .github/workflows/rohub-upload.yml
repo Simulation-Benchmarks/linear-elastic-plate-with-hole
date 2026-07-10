@@ -107,18 +107,11 @@ jobs:
           TOOL_DISPLAY_NAME: ${{ matrix.display_name }}
           USED_SOFTWARE_URL: ${{ matrix.used_software_url }}
         run: |
-          ROCRATE_TITLE="linear-elastic-plate-with-hole Provenance (${TOOL_DISPLAY_NAME}) ${BENCHMARK_VERSION}"
-
-          if [ "${BRANCH_NAME}" != "main" ]; then
-            ROCRATE_TITLE="${ROCRATE_TITLE}_${BRANCH_COMMIT_SHA:0:7}"
-          fi
-
           python provenance/upload_provenance.py \
             --provenance_folderpath "${GITHUB_WORKSPACE}/artifacts/${TOOL}/${TOOL}_rocrate.zip" \
             --benchmark-name "${BENCHMARK_NAME}" \
             --username "${ROHUB_USERNAME}" \
             --password "${ROHUB_PASSWORD}" \
-            --rocrate-title "${ROCRATE_TITLE}" \
             --code-repository-url "${CODE_REPOSITORY_URL}" \
             --used-software-url "${USED_SOFTWARE_URL}" \
             --use-production-rohub "${USE_PRODUCTION_ROHUB}"
