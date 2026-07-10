@@ -9,7 +9,7 @@ import zipfile
 from argparse import Namespace
 from pathlib import Path
 
-from semantic_benchmark.semantic import BenchmarkLoader, SemanticBenchmark, TextParameter
+from semantic_benchmark.semantics import BenchmarkLoader, SemanticBenchmark, TextParameter
 import semantic_benchmark.rocrate as rocrate
 
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
