@@ -12,5 +12,3 @@ dependencies:
   - matplotlib
   - pandas
   - pip
-  - pip:
-      - semantic-benchmark

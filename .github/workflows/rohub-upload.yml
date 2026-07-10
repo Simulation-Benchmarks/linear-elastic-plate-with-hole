@@ -70,7 +70,7 @@ jobs:
           ref: ${{ inputs.branch || github.ref_name }}
 
       - name: Download ${{ matrix.display_name }} aggregate RO-Crate artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: ${{ matrix.tool }}-aggregate-rocrate
           path: artifacts/${{ matrix.tool }}
@@ -83,6 +83,10 @@ jobs:
           use-mamba: true
           environment-file: provenance/environment_provenance.yml
           conda-remove-defaults: "true"
+
+      - name: Install semantic-benchmark
+        shell: bash -l {0}
+        run: python -m pip install semantic-benchmark
 
       - name: Select RoHub credentials
         shell: bash
@@ -143,6 +147,10 @@ jobs:
           use-mamba: true
           environment-file: provenance/environment_provenance.yml
           conda-remove-defaults: "true"
+
+      - name: Install semantic-benchmark
+        shell: bash -l {0}
+        run: python -m pip install semantic-benchmark
 
       - name: Run Fenics plotting script
         shell: bash -l {0}
