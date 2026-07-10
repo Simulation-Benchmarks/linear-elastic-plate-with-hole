@@ -27,14 +27,8 @@ The result is committed back to `main` with `[skip ci]`.
 ## Regenerating locally
 
     python scripts/build_notebook.py \
-<<<<<<< HEAD
       --doc docs/benchmark-documentation.md \
-      --script scripts/postprocess_plate.py \
-      --notebook notebooks/benchmark-results.ipynb \
-=======
-      --doc docs/plate-with-hole.md \
       --source-notebook notebooks/RoCrate.ipynb \
-      --notebook notebooks/plate_with_hole.ipynb \
->>>>>>> main
+      --notebook notebooks/benchmark-results.ipynb \
       --repo Simulation-Benchmarks/linear-elastic-plate-with-hole \
       --branch main
