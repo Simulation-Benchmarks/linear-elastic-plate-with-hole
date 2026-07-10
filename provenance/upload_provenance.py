@@ -16,9 +16,7 @@ The module supports both production and development environments of RoHub.
 import argparse
 
 from semantic_benchmark.rohub import upload_provenance_rocrate
-from utils import configure_semantic_benchmark_rohub, parse_bool
-
-configure_semantic_benchmark_rohub()
+from utils import parse_bool
 
 
 def parse_args():

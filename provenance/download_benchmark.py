@@ -8,9 +8,7 @@ resource by its RoHub type, and downloads it to a filename provided by the user.
 import argparse
 import logging
 from semantic_benchmark.rohub import download_benchmark_resources, validate_uuid
-from utils import configure_semantic_benchmark_rohub, parse_bool
-
-configure_semantic_benchmark_rohub()
+from utils import parse_bool
 
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 

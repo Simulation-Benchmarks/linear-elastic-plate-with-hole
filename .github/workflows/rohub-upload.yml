@@ -159,6 +159,7 @@ jobs:
           python provenance/plot_plate_with_hole_metrics.py \
             --tool "fenics" \
             --output-file "fenics-element-size-vs-stress-plot.pdf" \
+            --code-repository-url "${CODE_REPOSITORY_URL}" \
             --use-production-rohub "${USE_PRODUCTION_ROHUB}"
 
       - name: Upload Fenics plot artifact
@@ -175,6 +176,7 @@ jobs:
           python provenance/plot_plate_with_hole_metrics.py \
             --tool "kratos" \
             --output-file "kratos-element-size-vs-stress-plot.pdf" \
+            --code-repository-url "${CODE_REPOSITORY_URL}" \
             --use-production-rohub "${USE_PRODUCTION_ROHUB}"
 
       - name: Upload Kratos plot artifact
@@ -191,6 +193,7 @@ jobs:
           python provenance/plot_plate_with_hole_metrics.py \
             --tool "extendablefem" \
             --output-file "extendablefem-element-size-vs-stress-plot.pdf" \
+            --code-repository-url "${CODE_REPOSITORY_URL}" \
             --use-production-rohub "${USE_PRODUCTION_ROHUB}"
 
       - name: Upload ExtendableFEM plot artifact

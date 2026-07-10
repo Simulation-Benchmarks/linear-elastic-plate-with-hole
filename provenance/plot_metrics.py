@@ -6,9 +6,7 @@ from typing import Any, Callable, Sequence
 import matplotlib.pyplot as plt
 import pandas as pd
 from semantic_benchmark.rohub import load_benchmark_metric_data
-from utils import configure_semantic_benchmark_rohub, parse_bool
-
-configure_semantic_benchmark_rohub()
+from utils import parse_bool
 
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 LOGGER = logging.getLogger(__name__)
@@ -143,6 +141,12 @@ def parse_args(argv=None):
         help="Optional tool name used to filter RoHub results",
     )
     parser.add_argument(
+        "--code-repository-url",
+        type=str,
+        default=None,
+        help="Optional Git branch URL used to filter RoHub results.",
+    )
+    parser.add_argument(
         "--use-production-rohub",
         type=parse_bool,
         default=True,
@@ -186,6 +190,7 @@ def load_and_query_rohub(args, parameters, metrics):
         parameters=parameters,
         metrics=metrics,
         tool=args.tool,
+        code_repository_url=args.code_repository_url,
         use_production_rohub=args.use_production_rohub,
     )
 
