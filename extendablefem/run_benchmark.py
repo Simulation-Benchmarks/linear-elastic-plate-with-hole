@@ -22,6 +22,9 @@ PROVENANCE_REPORT_NAME = "NFDI4Ing Provenance"
 PROVENANCE_REPORT_DESCRIPTION = "Benchmark for linear-elastic plate with a hole"
 PROVENANCE_REPORT_LICENSE = "https://opensource.org/licenses/MIT"
 PROVENANCE_PROFILE = "provenance-run-crate-0.5"
+DEFAULT_CRATE_LICENSE = "https://opensource.org/licenses/MIT"
+DEFAULT_CRATE_NAME = f"NFDI4Ing Provenance ({TOOL_NAME})"
+DEFAULT_CRATE_DESCRIPTION = "Benchmark for linear-elastic plate with a hole"
 
 UNIT_SYMBOLS = {
     "unit:M": "m",
@@ -72,9 +75,19 @@ def parse_arguments() -> Namespace:
         help="Filename or path for the generated aggregate RO-Crate zip file.",
     )
     parser.add_argument(
-        "--software-name",
-        default=TOOL_NAME,
-        help="Software name recorded in the generated aggregate RO-Crate.",
+        "--crate-license",
+        default=DEFAULT_CRATE_LICENSE,
+        help="License URL recorded in the generated aggregate RO-Crate.",
+    )
+    parser.add_argument(
+        "--crate-name",
+        default=DEFAULT_CRATE_NAME,
+        help="Name recorded in the generated aggregate RO-Crate.",
+    )
+    parser.add_argument(
+        "--crate-description",
+        default=DEFAULT_CRATE_DESCRIPTION,
+        help="Description recorded in the generated aggregate RO-Crate.",
     )
     return parser.parse_args()
 
@@ -258,14 +271,19 @@ def create_aggregate_rocrate(
     results_dir: Path,
     benchmark: SemanticBenchmark,
     rocrate_path: Path,
-    software_name: str,
+    crate_license: str,
+    crate_name: str,
+    crate_description: str,
 ) -> None:
     """Create one aggregate RO-Crate from all per-configuration result crates."""
     rocrate.create_main_ro(
         str(results_dir),
         benchmark,
         rocrate_path=str(rocrate_path),
-        software_name=software_name,
+        software_name=TOOL_NAME,
+        crate_license=crate_license,
+        crate_name=crate_name,
+        crate_description=crate_description,
         validation_profile=PROVENANCE_PROFILE,
     )
     LOGGER.info("Aggregate RO-Crate created at %s.", rocrate_path)
@@ -293,7 +311,9 @@ def run_benchmark(args: Namespace) -> None:
         args.result_path,
         benchmark,
         rocrate_path=args.result_path / args.rocrate_name,
-        software_name=args.software_name,
+        crate_license=args.crate_license,
+        crate_name=args.crate_name,
+        crate_description=args.crate_description,
     )
 
 

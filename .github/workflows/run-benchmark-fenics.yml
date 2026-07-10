@@ -17,6 +17,9 @@ env:
   EXAMPLE_BENCHMARK_FILE: benchmark/1.0.0/benchmark-minimal-configurations.json
   EXAMPLE_BENCHMARK_DIR: benchmark/1.0.0
   TOOL: fenics
+  ROCRATE_LICENSE: https://opensource.org/licenses/MIT
+  ROCRATE_NAME: linear-elastic-plate-with-hole Provenance (Fenics)
+  ROCRATE_DESCRIPTION: Provenance run of the benchmark for linear-elastic plate with a hole using Fenics
 
 jobs:
   run-examples:
@@ -57,7 +60,10 @@ jobs:
             --benchmark-file "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}" \
             --benchmark-zip "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_DIR}/${BENCHMARK_NAME}.zip" \
             --rocrate-name "${TOOL}_rocrate.zip" \
-            --result-path "${GITHUB_WORKSPACE}/${TOOL}/results"
+            --result-path "${GITHUB_WORKSPACE}/${TOOL}/results" \
+            --crate-license "${ROCRATE_LICENSE}" \
+            --crate-name "${ROCRATE_NAME}" \
+            --crate-description "${ROCRATE_DESCRIPTION}"
 
       - name: Archive results of the ${{ env.TOOL }} run of ${{ env.BENCHMARK_NAME }}
         uses: actions/upload-artifact@v6
