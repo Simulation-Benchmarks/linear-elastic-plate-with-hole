@@ -102,6 +102,11 @@ jobs:
           TOOL_DISPLAY_NAME: ${{ matrix.display_name }}
           USED_SOFTWARE_URL: ${{ matrix.used_software_url }}
         run: |
+          rohub_args=()
+          if [ "${USE_PRODUCTION_ROHUB}" = "true" ]; then
+            rohub_args=(--use-production-rohub)
+          fi
+
           python provenance/upload_provenance.py \
             --provenance_folderpath "${GITHUB_WORKSPACE}/artifacts/${TOOL}/${TOOL}_rocrate.zip" \
             --benchmark-name "${BENCHMARK_NAME}" \
@@ -109,7 +114,7 @@ jobs:
             --password "${ROHUB_PASSWORD}" \
             --code-repository-url "${CODE_REPOSITORY_URL}" \
             --used-software-url "${USED_SOFTWARE_URL}" \
-            --use-production-rohub "${USE_PRODUCTION_ROHUB}"
+            "${rohub_args[@]}"
 
   wait-for-rohub-processing:
     runs-on: ubuntu-latest
@@ -142,11 +147,16 @@ jobs:
       - name: Run Fenics plotting script
         shell: bash -l {0}
         run: |
+          rohub_args=()
+          if [ "${USE_PRODUCTION_ROHUB}" = "true" ]; then
+            rohub_args=(--use-production-rohub)
+          fi
+
           python provenance/plot_plate_with_hole_metrics.py \
             --tool "fenics" \
             --output-file "fenics-element-size-vs-stress-plot.pdf" \
             --code-repository-url "${CODE_REPOSITORY_URL}" \
-            --use-production-rohub "${USE_PRODUCTION_ROHUB}"
+            "${rohub_args[@]}"
 
       - name: Upload Fenics plot artifact
         uses: actions/upload-artifact@v7
@@ -158,11 +168,16 @@ jobs:
       - name: Run Kratos plotting script
         shell: bash -l {0}
         run: |
+          rohub_args=()
+          if [ "${USE_PRODUCTION_ROHUB}" = "true" ]; then
+            rohub_args=(--use-production-rohub)
+          fi
+
           python provenance/plot_plate_with_hole_metrics.py \
             --tool "kratos" \
             --output-file "kratos-element-size-vs-stress-plot.pdf" \
             --code-repository-url "${CODE_REPOSITORY_URL}" \
-            --use-production-rohub "${USE_PRODUCTION_ROHUB}"
+            "${rohub_args[@]}"
 
       - name: Upload Kratos plot artifact
         uses: actions/upload-artifact@v7
@@ -174,11 +189,16 @@ jobs:
       - name: Run ExtendableFEM plotting script
         shell: bash -l {0}
         run: |
+          rohub_args=()
+          if [ "${USE_PRODUCTION_ROHUB}" = "true" ]; then
+            rohub_args=(--use-production-rohub)
+          fi
+
           python provenance/plot_plate_with_hole_metrics.py \
             --tool "extendablefem" \
             --output-file "extendablefem-element-size-vs-stress-plot.pdf" \
             --code-repository-url "${CODE_REPOSITORY_URL}" \
-            --use-production-rohub "${USE_PRODUCTION_ROHUB}"
+            "${rohub_args[@]}"
 
       - name: Upload ExtendableFEM plot artifact
         uses: actions/upload-artifact@v7

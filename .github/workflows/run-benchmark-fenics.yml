@@ -15,7 +15,7 @@ on:
 env:
   BENCHMARK_NAME: linear-elastic-plate-with-hole
   BENCHMARK_VERSION: 1.0.0
-  EXAMPLE_BENCHMARK_FILE: benchmark/1.0.0/benchmark-minimal-configurations.json
+  EXAMPLE_BENCHMARK_FILE: benchmark/1.0.0/minimal-configurations.json
   EXAMPLE_BENCHMARK_DIR: benchmark/1.0.0
   BRANCH_NAME: ${{ inputs.checkout_ref || github.head_ref || github.ref_name }}
   TOOL: fenics

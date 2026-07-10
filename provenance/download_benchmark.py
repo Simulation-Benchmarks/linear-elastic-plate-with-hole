@@ -8,7 +8,6 @@ resource by its RoHub type, and downloads it to a filename provided by the user.
 import argparse
 import logging
 from semantic_benchmark.rohub import download_benchmark_resources, validate_uuid
-from utils import parse_bool
 
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 
@@ -49,9 +48,9 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--use-production-rohub",
-        type=parse_bool,
+        action="store_true",
         default=False,
-        help="Use production RoHub instead of the development instance (true/false).",
+        help="Use production RoHub instead of the development instance.",
     )
     return parser.parse_args(argv)
 

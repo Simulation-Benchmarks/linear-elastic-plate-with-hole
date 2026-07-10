@@ -96,9 +96,6 @@ def parse_args(argv=None):
             - parameters: Parameter names to query
             - metrics: Metric names to query
     """
-    if argv is not None:
-        argv = [str(value) if isinstance(value, bool) else value for value in argv]
-
     parser = argparse.ArgumentParser(
         description="Fetch benchmark provenance from RoHub and plot simulation metrics."
     )
@@ -148,9 +145,9 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--use-production-rohub",
-        type=parse_bool,
-        default=True,
-        help="Use production RoHub instead of the development instance",
+        action="store_true",
+        default=False,
+        help="Use production RoHub instead of the development instance.",
     )
     parser.add_argument(
         "--parameters",

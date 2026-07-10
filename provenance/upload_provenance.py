@@ -16,7 +16,6 @@ The module supports both production and development environments of RoHub.
 import argparse
 
 from semantic_benchmark.rohub import upload_provenance_rocrate
-from utils import parse_bool
 
 
 def parse_args():
@@ -71,9 +70,9 @@ def parse_args():
     )
     parser.add_argument(
         "--use-production-rohub",
-        type=parse_bool,
+        action="store_true",
         default=False,
-        help="Use production RoHub instead of the development instance (true/false)",
+        help="Use production RoHub instead of the development instance.",
     )
     return parser.parse_args()
 
