@@ -57,12 +57,7 @@ jobs:
       - name: Run ${{ env.BENCHMARK_NAME }} using ${{ env.TOOL }}
         shell: bash -l {0}
         run: |
-          ROCRATE_DESCRIPTION="${ROCRATE_DESCRIPTION_BASE} ${BENCHMARK_VERSION}"
-
-          if [ "${BRANCH_NAME}" != "main" ]; then
-            BRANCH_COMMIT_SHA="$(git rev-parse --short=7 HEAD)"
-            ROCRATE_DESCRIPTION="${ROCRATE_DESCRIPTION}_${BRANCH_COMMIT_SHA}"
-          fi
+          ROCRATE_DESCRIPTION="${ROCRATE_DESCRIPTION_BASE}, Version ${BENCHMARK_VERSION}, Branch ${BRANCH_NAME}"
 
           cd "$GITHUB_WORKSPACE/${TOOL}/"
           conda run -n "${TOOL}" python run_benchmark.py \
