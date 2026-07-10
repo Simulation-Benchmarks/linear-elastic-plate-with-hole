@@ -97,7 +97,6 @@ jobs:
 
       - name: Upload ${{ matrix.display_name }} RO-Crate Zip file onto RoHub
         shell: bash -l {0}
-        continue-on-error: true
         env:
           TOOL: ${{ matrix.tool }}
           TOOL_DISPLAY_NAME: ${{ matrix.display_name }}
@@ -142,7 +141,6 @@ jobs:
 
       - name: Run Fenics plotting script
         shell: bash -l {0}
-        continue-on-error: true
         run: |
           python provenance/plot_plate_with_hole_metrics.py \
             --tool "fenics" \
@@ -159,7 +157,6 @@ jobs:
 
       - name: Run Kratos plotting script
         shell: bash -l {0}
-        continue-on-error: true
         run: |
           python provenance/plot_plate_with_hole_metrics.py \
             --tool "kratos" \
@@ -176,7 +173,6 @@ jobs:
 
       - name: Run ExtendableFEM plotting script
         shell: bash -l {0}
-        continue-on-error: true
         run: |
           python provenance/plot_plate_with_hole_metrics.py \
             --tool "extendablefem" \
