@@ -58,12 +58,6 @@ def parse_args():
         help="Password for RoHub",
     )
     parser.add_argument(
-        "--rocrate-title",
-        type=str,
-        required=True,
-        help="Title of the RO-Crate to be uploaded",
-    )
-    parser.add_argument(
         "--code-repository-url",
         type=str,
         default=None,
@@ -123,7 +117,6 @@ def run(args):
         benchmark_name=args.benchmark_name,
         username=args.username,
         password=args.password,
-        rocrate_title=args.rocrate_title,
         code_repository_url=args.code_repository_url,
         used_software_url=args.used_software_url,
         use_production_rohub=args.use_production_rohub,
