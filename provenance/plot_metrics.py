@@ -6,7 +6,6 @@ from typing import Any, Callable, Sequence
 import matplotlib.pyplot as plt
 import pandas as pd
 from semantic_benchmark.rohub import load_benchmark_metric_data
-from utils import parse_bool
 
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 LOGGER = logging.getLogger(__name__)
@@ -163,7 +162,7 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--log-y",
-        type=parse_bool,
+        action="store_true",
         default=False,
         help="Use a logarithmic scale for the y-axis.",
     )
