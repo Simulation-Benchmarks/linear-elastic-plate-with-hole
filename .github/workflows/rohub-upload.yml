@@ -18,26 +18,87 @@ permissions:
 
 env:
   BENCHMARK_NAME: linear-elastic-plate-with-hole
+  BENCHMARK_ROHUB_IDENTIFIER: 68b027dd-666b-4b32-a416-952960022c2c
   BENCHMARK_VERSION: 1.0.0
+  BENCHMARK_ARTIFACT_NAME: downloaded-benchmark-resources
+  BENCHMARK_FILE: downloaded-benchmark/benchmark.json
+  BENCHMARK_ZIP: downloaded-benchmark/linear-elastic-plate-with-hole.zip
   BRANCH_NAME: ${{ inputs.branch || github.ref_name }}
   CODE_REPOSITORY_URL: https://github.com/${{ github.repository }}/tree/${{ inputs.branch || github.ref_name }}
   USE_PRODUCTION_ROHUB: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.use_production_rohub) || 'true' }}
 
 jobs:
+  prepare-benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo content
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.branch || github.ref_name }}
+
+      - name: Install semantic-benchmark
+        run: python -m pip install semantic-benchmark
+
+      - name: Select RoHub credentials
+        shell: bash
+        run: |
+          if [ "${USE_PRODUCTION_ROHUB}" = "true" ]; then
+            echo "ROHUB_USERNAME=${{ secrets.ROHUB_PROD_USERNAME }}" >> "${GITHUB_ENV}"
+            echo "ROHUB_PASSWORD=${{ secrets.ROHUB_PROD_PASSWORD }}" >> "${GITHUB_ENV}"
+          else
+            echo "ROHUB_USERNAME=${{ secrets.ROHUB_DEV_USERNAME }}" >> "${GITHUB_ENV}"
+            echo "ROHUB_PASSWORD=${{ secrets.ROHUB_DEV_PASSWORD }}" >> "${GITHUB_ENV}"
+          fi
+
+      - name: Download benchmark resources from RoHub
+        shell: bash
+        run: |
+          mkdir -p "${GITHUB_WORKSPACE}/downloaded-benchmark"
+          rohub_args=()
+          if [ "${USE_PRODUCTION_ROHUB}" = "true" ]; then
+            rohub_args=(--use-production-rohub)
+          fi
+
+          python provenance/download_benchmark.py \
+            --identifier "${BENCHMARK_ROHUB_IDENTIFIER}" \
+            --username "${ROHUB_USERNAME}" \
+            --password "${ROHUB_PASSWORD}" \
+            --zip-resource-filename "${GITHUB_WORKSPACE}/${BENCHMARK_ZIP}" \
+            --semantic-resource-filename "${GITHUB_WORKSPACE}/${BENCHMARK_FILE}" \
+            "${rohub_args[@]}"
+
+      - name: Archive downloaded benchmark resources
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.BENCHMARK_ARTIFACT_NAME }}
+          path: downloaded-benchmark/
+
   run-fenics:
+    needs: prepare-benchmark
     uses: ./.github/workflows/run-benchmark-fenics.yml
     with:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
+      benchmark_file: downloaded-benchmark/benchmark.json
+      benchmark_zip: downloaded-benchmark/linear-elastic-plate-with-hole.zip
+      benchmark_artifact_name: downloaded-benchmark-resources
 
   run-kratos:
+    needs: prepare-benchmark
     uses: ./.github/workflows/run-benchmark-kratos.yml
     with:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
+      benchmark_file: downloaded-benchmark/benchmark.json
+      benchmark_zip: downloaded-benchmark/linear-elastic-plate-with-hole.zip
+      benchmark_artifact_name: downloaded-benchmark-resources
 
   run-extendablefem:
+    needs: prepare-benchmark
     uses: ./.github/workflows/run-benchmark-exfem.yml
     with:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
+      benchmark_file: downloaded-benchmark/benchmark.json
+      benchmark_zip: downloaded-benchmark/linear-elastic-plate-with-hole.zip
+      benchmark_artifact_name: downloaded-benchmark-resources
 
   upload-rocrates:
     runs-on: ubuntu-latest
