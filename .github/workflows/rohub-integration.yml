@@ -1,8 +1,8 @@
 name: RoHub Upload CI
 
 on:
-  push:
-    branches: [ 27-semantic-benchmark ]
+  schedule:
+    - cron: '0 17 * * 5'
     
   workflow_dispatch:
     inputs:
