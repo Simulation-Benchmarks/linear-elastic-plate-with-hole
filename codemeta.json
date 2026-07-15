@@ -50,6 +50,7 @@
       "familyName": "Seibert",
       "affiliation": {
         "@type": "Organization",
+        "@id": "https://ror.org/04qb8nc58"
         "name": "TU Clausthal"
       }
     },
@@ -60,6 +61,7 @@
       "familyName": "Flemisch",
       "affiliation": {
         "@type": "Organization",
+        "@id": "https://ror.org/04vnq7t77",
         "name": "University of Stuttgart"
       }
     },
@@ -70,6 +72,7 @@
       "familyName": "Unger",
       "affiliation": {
         "@type": "Organization",
+        "@id": "https://ror.org/03x516a66",
         "name": "BAM"
       }
     },
@@ -80,19 +83,31 @@
       "familyName": "Thiele",
       "affiliation": {
         "@type": "Organization",
+        "@id": "https://ror.org/010nsgg66",
         "name": "TU Braunschweig"
       }
     },
     {
       "@type": "Person",
+      "@id": "https://orcid.org/0009-0008-6162-8404",
       "givenName": "Mahdi",
       "familyName": "Jafarkhani",
-      "email": "mahdi.jafarkhani@gmail.com"
+      "affiliation": {
+        "@type": "Organization",
+        "@id": "https://ror.org/04vnq7t77",
+        "name": "University of Stuttgart"
+      }
     },
     {
       "@type": "Person",
+      "@id": "https://orcid.org/0009-0005-2483-3589",
       "givenName": "Divyansh",
-      "familyName": "Tyagi"
+      "familyName": "Tyagi",
+      "affiliation":{
+        "@type": "Organization",
+        "@id": "https://ror.org/03x516a66",
+        "name": "BAM"
+        }
     },
     {
       "@type": "Person",
@@ -101,6 +116,7 @@
       "familyName": "Iglezakis",
       "affiliation": {
         "@type": "Organization",
+        "@id": "https://ror.org/04vnq7t77",
         "name": "University of Stuttgart"
       }
     }
@@ -113,8 +129,14 @@
     },
     {
       "@type": "Person",
+      "@id": "https://orcid.org/0000-0002-5990-0076",
       "givenName": "Sarbani",
-      "familyName": "Roy"
+      "familyName": "Roy",
+      "affiliation": {
+        "@type": "Organization",
+        "@id": "https://ror.org/04vnq7t77",
+        "name": "University of Stuttgart"
+      }
     }
   ],
   "maintainer": [

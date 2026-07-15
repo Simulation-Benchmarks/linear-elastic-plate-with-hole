@@ -27,9 +27,12 @@ authors:
     affiliation: "TU Braunschweig"
   - family-names: Jafarkhani
     given-names: Mahdi
-    email: "mahdi.jafarkhani@gmail.com"
+    orcid: "https://orcid.org/0009-0008-6162-8404"
+    affiliation: "University of Stuttgart"
   - family-names: Tyagi
     given-names: Divyansh
+    orcid: "https://orcid.org/0009-0005-2483-3589"
+    affiliation: "BAM"
   - family-names: Iglezakis
     given-names: Dorothea
     orcid: "https://orcid.org/0000-0002-8524-0569"
@@ -38,6 +41,8 @@ authors:
     given-names: Stephan
   - family-names: Roy
     given-names: Sarbani
+    orcid: "https://orcid.org/0000-0002-5990-0076"
+    affiliation: "University of Stuttgart"
 version: "0.1.0"
 date-released: "2026-07-15"
 license: MIT
