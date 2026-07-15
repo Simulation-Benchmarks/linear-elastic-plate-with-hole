@@ -15,13 +15,16 @@ authors:
     affiliation: "TU Clausthal"
   - family-names: Flemisch
     given-names: Bernd
+    orcid: "https://orcid.org/0000-0001-8188-620X"
     affiliation: "University of Stuttgart"
   - family-names: Unger
     given-names: "Jörg F."
+    orcid: "https://orcid.org/0000-0003-0035-0951"
     affiliation: "BAM"
   - family-names: Thiele
     given-names: "Jan Philipp"
-    affiliation: "TU Clausthal"
+    orcid: "https://orcid.org/0000-0002-8901-6660"
+    affiliation: "TU Braunschweig"
   - family-names: Jafarkhani
     given-names: Mahdi
     email: "mahdi.jafarkhani@gmail.com"
@@ -29,6 +32,7 @@ authors:
     given-names: Divyansh
   - family-names: Iglezakis
     given-names: Dorothea
+    orcid: "https://orcid.org/0000-0002-8524-0569"
     affiliation: "University of Stuttgart"
   - family-names: Rosenbaum
     given-names: Stephan

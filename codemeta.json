@@ -55,6 +55,7 @@
     },
     {
       "@type": "Person",
+      "@id": "https://orcid.org/0000-0001-8188-620X",
       "givenName": "Bernd",
       "familyName": "Flemisch",
       "affiliation": {
@@ -64,6 +65,7 @@
     },
     {
       "@type": "Person",
+      "@id": "https://orcid.org/0000-0003-0035-0951",
       "givenName": "Jörg F.",
       "familyName": "Unger",
       "affiliation": {
@@ -73,11 +75,12 @@
     },
     {
       "@type": "Person",
+      "@id": "https://orcid.org/0000-0002-8901-6660",
       "givenName": "Jan Philipp",
       "familyName": "Thiele",
       "affiliation": {
         "@type": "Organization",
-        "name": "TU Clausthal"
+        "name": "TU Braunschweig"
       }
     },
     {
@@ -93,6 +96,7 @@
     },
     {
       "@type": "Person",
+      "@id": "https://orcid.org/0000-0002-8524-0569",
       "givenName": "Dorothea",
       "familyName": "Iglezakis",
       "affiliation": {
