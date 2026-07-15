@@ -1,0 +1,86 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata from this file."
+title: "linear-elastic-plate-with-hole: a multi-solver benchmark for the infinite plate with a hole problem"
+abstract: >-
+  A benchmark repository for the linear elastic infinite plate with a circular
+  hole problem. It provides reference implementations and simulation
+  workflows for several finite-element solvers (FEniCS, Kratos Multiphysics,
+  ExtendableFEM) together with problem documentation, postprocessing scripts,
+  and RO-Crate-compatible benchmark packaging.
+type: software
+authors:
+  - family-names: Seibert
+    given-names: Vasiliy
+    orcid: "https://orcid.org/0000-0002-7121-6816"
+    affiliation: "TU Clausthal"
+  - family-names: Flemisch
+    given-names: Bernd
+    affiliation: "University of Stuttgart"
+  - family-names: Unger
+    given-names: "Jörg F."
+    affiliation: "BAM"
+  - family-names: Thiele
+    given-names: "Jan Philipp"
+    affiliation: "TU Clausthal"
+  - family-names: Jafarkhani
+    given-names: Mahdi
+    email: "mahdi.jafarkhani@gmail.com"
+  - family-names: Tyagi
+    given-names: Divyansh
+  - family-names: Iglezakis
+    given-names: Dorothea
+    affiliation: "University of Stuttgart"
+  - family-names: Rosenbaum
+    given-names: Stephan
+  - family-names: Roy
+    given-names: Sarbani
+version: "0.1.0"
+date-released: "2026-07-15"
+license: MIT
+repository-code: "https://github.com/Simulation-Benchmarks/linear-elastic-plate-with-hole"
+url: "https://github.com/Simulation-Benchmarks/linear-elastic-plate-with-hole"
+keywords:
+  - benchmark
+  - finite element method
+  - linear elasticity
+  - plate with hole
+  - NFDI4ING
+  - model validation
+  - FAIR4RS
+  - REUSE
+identifiers:
+  - type: url
+    value: "https://github.com/Simulation-Benchmarks/linear-elastic-plate-with-hole"
+    description: "The GitHub repository URL."
+  - type: doi
+    value: "10.5281/zenodo.TODO"
+    description: "Concept DOI for all versions of linear-elastic-plate-with-hole (Zenodo)."
+  - type: doi
+    value: "10.5281/zenodo.TODO"
+    description: "Version DOI for v0.1.0 (Zenodo)."
+references:
+  - type: software
+    title: "FEniCS Project"
+    url: "https://fenicsproject.org/"
+    notes: "Used for the FEniCS/DOLFINx implementation."
+  - type: software
+    title: "Kratos Multiphysics"
+    url: "https://github.com/KratosMultiphysics/Kratos"
+    notes: "Used for the Kratos implementation."
+  - type: software
+    title: "ExtendableFEM"
+    url: "https://github.com/chmerdon/ExtendableFEM.jl"
+    notes: "Used for the Julia/ExtendableFEM implementation."
+  - type: software
+    title: "Snakemake"
+    url: "https://snakemake.github.io/"
+    notes: "Workflow orchestration."
+  - type: article
+    title: "Die Theorie der Elastizität und die Bedürfnisse der Festigkeitslehre"
+    authors:
+      - family-names: Kirsch
+        given-names: G.
+    year: 1898
+    journal: "Zeitschrift des Vereines deutscher Ingenieure"
+    volume: 42
+    notes: "Original analytical solution for the stress field around a circular hole in an infinite plate."

@@ -1,0 +1,129 @@
+{
+  "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+  "@type": "SoftwareSourceCode",
+  "identifier": [
+    "linear-elastic-plate-with-hole",
+    "https://doi.org/10.5281/zenodo.TODO"
+  ],
+  "name": "linear-elastic-plate-with-hole",
+  "description": "A multi-solver benchmark for the linear elastic infinite plate with a circular hole problem, with reference implementations for FEniCS, Kratos Multiphysics, and ExtendableFEM, plus FAIR4RS-compliant metadata and REUSE licensing.",
+  "version": "0.1.0",
+  "dateCreated": "2026-07-15",
+  "datePublished": "2026-07-15",
+  "license": "https://spdx.org/licenses/MIT",
+  "codeRepository": "https://github.com/Simulation-Benchmarks/linear-elastic-plate-with-hole",
+  "url": "https://github.com/Simulation-Benchmarks/linear-elastic-plate-with-hole",
+  "downloadUrl": "https://zenodo.org/records/TODO",
+  "releaseNotes": "https://github.com/Simulation-Benchmarks/linear-elastic-plate-with-hole/blob/main/CHANGELOG.md#010---2026-07-15",
+  "issueTracker": "https://github.com/Simulation-Benchmarks/linear-elastic-plate-with-hole/issues",
+  "programmingLanguage": [
+    {
+      "@type": "ComputerLanguage",
+      "name": "Python",
+      "version": ">=3.10"
+    },
+    {
+      "@type": "ComputerLanguage",
+      "name": "Julia",
+      "version": ">=1.12"
+    }
+  ],
+  "runtimePlatform": "Python 3 / Julia 1.12",
+  "operatingSystem": ["Linux", "macOS", "Windows"],
+  "developmentStatus": "active",
+  "applicationCategory": "Scientific/Engineering",
+  "keywords": [
+    "benchmark",
+    "finite element method",
+    "linear elasticity",
+    "plate with hole",
+    "NFDI4ING",
+    "model validation",
+    "FAIR4RS",
+    "REUSE"
+  ],
+  "author": [
+    {
+      "@type": "Person",
+      "@id": "https://orcid.org/0000-0002-7121-6816",
+      "givenName": "Vasiliy",
+      "familyName": "Seibert",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "TU Clausthal"
+      }
+    },
+    {
+      "@type": "Person",
+      "givenName": "Bernd",
+      "familyName": "Flemisch",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "University of Stuttgart"
+      }
+    },
+    {
+      "@type": "Person",
+      "givenName": "Jörg F.",
+      "familyName": "Unger",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "BAM"
+      }
+    },
+    {
+      "@type": "Person",
+      "givenName": "Jan Philipp",
+      "familyName": "Thiele",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "TU Clausthal"
+      }
+    },
+    {
+      "@type": "Person",
+      "givenName": "Mahdi",
+      "familyName": "Jafarkhani",
+      "email": "mahdi.jafarkhani@gmail.com"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Divyansh",
+      "familyName": "Tyagi"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Dorothea",
+      "familyName": "Iglezakis",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "University of Stuttgart"
+      }
+    }
+  ],
+  "contributor": [
+    {
+      "@type": "Person",
+      "givenName": "Stephan",
+      "familyName": "Rosenbaum"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Sarbani",
+      "familyName": "Roy"
+    }
+  ],
+  "maintainer": [
+    {
+      "@type": "Person",
+      "@id": "https://orcid.org/0000-0002-7121-6816",
+      "givenName": "Vasiliy",
+      "familyName": "Seibert"
+    }
+  ],
+  "readme": "https://github.com/Simulation-Benchmarks/linear-elastic-plate-with-hole/blob/main/README.md",
+  "funder": {
+    "@type": "Organization",
+    "name": "NFDI4ING"
+  }
+}

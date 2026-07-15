@@ -1,5 +1,8 @@
 # Infinite Plate with Hole Benchmark
 
+[![REUSE status](https://api.reuse.software/badge/github.com/Simulation-Benchmarks/linear-elastic-plate-with-hole)](https://api.reuse.software/info/github.com/Simulation-Benchmarks/linear-elastic-plate-with-hole)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.TODO.svg)](https://doi.org/10.5281/zenodo.TODO)
+
 A benchmark for the linear-elastic infinite plate with a circular hole, solved with several finite-element simulation tools and evaluated against the analytical Kirsch solution.
 
 ## Problem Description
@@ -32,3 +35,17 @@ Click the badge to open the pre-built notebook on the NFDI JupyterHub and explor
 [![NFDI](https://nfdi-jupyter.de/images/nfdi_badge.svg)](https://hub.nfdi-jupyter.de/v2/gh/Simulation-Benchmarks/linear-elastic-plate-with-hole/HEAD?system=JSC-Cloud&flavor=xl1nfdi&labpath=notebooks%2Fplate_with_hole.ipynb)
 
 The notebook fetches run data from RoHub and plots the three metrics against element size, grouped by tool and element degree. See [docs/notebook-pipeline.md](docs/notebook-pipeline.md) for details on how the notebook is built.
+
+## License
+
+This repository follows the [REUSE](https://reuse.software/) specification.
+License information is provided per file via [REUSE.toml](./REUSE.toml).
+In short:
+
+- Source code files (`.py`, `.jl`, `Snakefile*`, `.github/workflows/*.yml`) are licensed under the [MIT License](./LICENSES/MIT.txt).
+- Documentation and figures (`.md`, `.svg`) are licensed under [CC-BY-4.0](./LICENSES/CC-BY-4.0.txt).
+- Data, configuration, and generated artifacts (`.json`, `.yml`, `.toml`, `.ipynb`, `.zip`) are licensed under [CC0-1.0](./LICENSES/CC0-1.0.txt).
+
+## Citation
+
+Please see [`CITATION.cff`](./CITATION.cff) for citation metadata, including the concept DOI and versioned DOIs archived on Zenodo.
