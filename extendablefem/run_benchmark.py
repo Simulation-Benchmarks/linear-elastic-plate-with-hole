@@ -222,7 +222,7 @@ def build_provenance_reporter_args(configuration: str) -> list[str]:
         f"--report-{PROVENANCE_REPORTER_NAME}-run-license",
         PROVENANCE_REPORT_LICENSE,
         f"--report-{PROVENANCE_REPORTER_NAME}-main-tool",
-        "gmsh",
+        "python-gmsh",
         f"--report-{PROVENANCE_REPORTER_NAME}-organization-ror",
         "https://ror.org/04vnq7t77",
         f"--report-{PROVENANCE_REPORTER_NAME}-organization-name",
