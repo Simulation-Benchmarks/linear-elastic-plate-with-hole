@@ -18,7 +18,7 @@ LOGGER = logging.getLogger(__name__)
 TOOL_NAME = "Fenics"
 BENCHMARK_DIR = Path(__file__).resolve().parent
 
-PROVENANCE_REPORTER_NAME = "metadata4ing"
+PROVENANCE_REPORTER_NAME = "rocrate"
 PROVENANCE_REPORT_NAME = "NFDI4Ing Provenance"
 PROVENANCE_REPORT_DESCRIPTION = "Benchmark for linear-elastic plate with a hole"
 PROVENANCE_REPORT_LICENSE = "https://opensource.org/licenses/MIT"
@@ -202,16 +202,22 @@ def build_provenance_reporter_args(configuration: str) -> list[str]:
     return [
         "--reporter",
         PROVENANCE_REPORTER_NAME,
-        "--report-metadata4ing-filename",
+        f"--report-{PROVENANCE_REPORTER_NAME}-filename",
         f"{TOOL_NAME}-{configuration}",
-        "--report-metadata4ing-name",
+        f"--report-{PROVENANCE_REPORTER_NAME}-run-name",
         PROVENANCE_REPORT_NAME,
-        "--report-metadata4ing-description",
+        f"--report-{PROVENANCE_REPORTER_NAME}-run-description",
         PROVENANCE_REPORT_DESCRIPTION,
-        "--report-metadata4ing-license",
+        f"--report-{PROVENANCE_REPORTER_NAME}-run-license",
         PROVENANCE_REPORT_LICENSE,
-        "--report-metadata4ing-profile",
-        PROVENANCE_PROFILE,
+        f"--report-{PROVENANCE_REPORTER_NAME}-main-tool",
+        "fenics-dolfinx",
+        f"--report-{PROVENANCE_REPORTER_NAME}-organization-ror",
+        "https://ror.org/04vnq7t77",
+        f"--report-{PROVENANCE_REPORTER_NAME}-organization-name",
+        "University of Stuttgart",
+        f"--report-{PROVENANCE_REPORTER_NAME}-organization-url",
+        "https://www.uni-stuttgart.de/en/",
     ]
 
 
