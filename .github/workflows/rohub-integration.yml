@@ -1,4 +1,4 @@
-name: RoHub Upload CI
+name: RoHub Integration CI
 
 on:
 
@@ -26,11 +26,9 @@ permissions:
 env:
   BENCHMARK_NAME: linear-elastic-plate-with-hole
   BENCHMARK_ROHUB_IDENTIFIER: 68b027dd-666b-4b32-a416-952960022c2c
-  BENCHMARK_VERSION: 1.0.0
   BENCHMARK_ARTIFACT_NAME: downloaded-benchmark-resources
   BENCHMARK_FILE: downloaded-benchmark/benchmark.json
   BENCHMARK_ZIP: downloaded-benchmark/linear-elastic-plate-with-hole.zip
-  BRANCH_NAME: ${{ inputs.branch || github.ref_name }}
   CODE_REPOSITORY_URL: https://github.com/${{ github.repository }}/tree/${{ inputs.branch || github.ref_name }}
   USE_PRODUCTION_ROHUB: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.use_production_rohub) || 'true' }}
 
