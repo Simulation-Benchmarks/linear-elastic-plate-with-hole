@@ -1,8 +1,9 @@
 # Notebook pipeline
 
 The `notebooks/plate_with_hole.ipynb` notebook in this repository is
-**auto-generated** on every push to `main` (and on manual
-`workflow_dispatch`).
+**auto-generated** by [repo2docker](https://github.com/jupyterhub/repo2docker)'s
+`postBuild` hook, which runs whenever the repository image is built (e.g. on
+launch via Binder or the NFDI JupyterHub).
 
 ## Inputs
 
@@ -13,22 +14,27 @@ The `notebooks/plate_with_hole.ipynb` notebook in this repository is
 
 ## How it works
 
-The workflow at `.github/workflows/merge-docs-to-notebooks.yml` runs
-`scripts/build_notebook.py`, which:
+The `postBuild` script at the repo root runs `scripts/build_notebook.py`,
+which:
 
 1. Reads the documentation markdown.
-2. Prepends the documentation as a markdown cell (with a Binder badge).
+2. Prepends the documentation as a markdown cell, rewriting any relative
+   image paths so they still resolve from the notebook's directory.
 3. Appends all cells from `notebooks/RoCrate.ipynb` verbatim (cell type
    preserved, outputs cleared).
 4. Writes the result as a Jupyter notebook to the output path.
 
-The result is committed back to `main` with `[skip ci]`.
+Because this runs as part of the repo2docker build, the notebook is always
+freshly generated for anyone launching the repository interactively — there
+is no CI step and nothing to commit back to `main`.
+
+The copy of `notebooks/plate_with_hole.ipynb` committed to the repo is a
+convenience snapshot for browsing on GitHub; it may lag behind the docs or
+source notebook between manual regenerations (see below).
 
 ## Regenerating locally
 
     python scripts/build_notebook.py \
       --doc docs/plate-with-hole.md \
       --source-notebook notebooks/RoCrate.ipynb \
-      --notebook notebooks/plate_with_hole.ipynb \
-      --repo Simulation-Benchmarks/linear-elastic-plate-with-hole \
-      --branch main
+      --notebook notebooks/plate_with_hole.ipynb
