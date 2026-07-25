@@ -50,7 +50,7 @@
       "familyName": "Seibert",
       "affiliation": {
         "@type": "Organization",
-        "@id": "https://ror.org/04qb8nc58"
+        "@id": "https://ror.org/04qb8nc58",
         "name": "TU Clausthal"
       }
     },
@@ -103,11 +103,11 @@
       "@id": "https://orcid.org/0009-0005-2483-3589",
       "givenName": "Divyansh",
       "familyName": "Tyagi",
-      "affiliation":{
+      "affiliation": {
         "@type": "Organization",
         "@id": "https://ror.org/03x516a66",
         "name": "BAM"
-        }
+      }
     },
     {
       "@type": "Person",
