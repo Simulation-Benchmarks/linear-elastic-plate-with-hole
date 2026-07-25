@@ -101,3 +101,9 @@ path = "benchmark/**"
 precedence = "closest"
 SPDX-FileCopyrightText = "2026 The linear-elastic-plate-with-hole authors"
 SPDX-License-Identifier = "CC0-1.0"
+
+[[annotations]]
+path = "postBuild"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 The linear-elastic-plate-with-hole authors"
+SPDX-License-Identifier = "MIT"
