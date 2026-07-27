@@ -107,3 +107,9 @@ path = "postBuild"
 precedence = "closest"
 SPDX-FileCopyrightText = "2026 The linear-elastic-plate-with-hole authors"
 SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ".pre-commit-config.yaml"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 The linear-elastic-plate-with-hole authors"
+SPDX-License-Identifier = "CC0-1.0"
