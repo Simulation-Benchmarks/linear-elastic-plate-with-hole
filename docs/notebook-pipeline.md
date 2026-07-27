@@ -28,9 +28,9 @@ Because this runs as part of the repo2docker build, the notebook is always
 freshly generated for anyone launching the repository interactively — there
 is no CI step and nothing to commit back to `main`.
 
-The copy of `notebooks/plate_with_hole.ipynb` committed to the repo is a
-convenience snapshot for browsing on GitHub; it may lag behind the docs or
-source notebook between manual regenerations (see below).
+`notebooks/plate_with_hole.ipynb` is git-ignored: it is a build artifact,
+not a source file, and only exists once `postBuild` (or a local run of the
+script below) has generated it.
 
 ## Regenerating locally
 
