@@ -127,11 +127,6 @@ def parameter_json_value(parameter):
     return getattr(parameter, "numerical_value", None)
 
 
-def load_benchmark(benchmark_file: Path) -> SemanticBenchmark:
-    """Load the semantic benchmark description from a JSON-LD file."""
-    return BenchmarkLoader(benchmark_file).load()
-
-
 def create_parameter_files_from_benchmark(
     benchmark: SemanticBenchmark,
     output_dir: Path,
@@ -298,7 +293,7 @@ def run_benchmark(args: Namespace) -> None:
     shared_env_dir_conda = create_shared_conda_env_dir(BENCHMARK_DIR)
     shared_env_dir_apptainer = create_shared_apptainer_env_dir(BENCHMARK_DIR)
 
-    benchmark = load_benchmark(args.benchmark_file)
+    benchmark = BenchmarkLoader(args.benchmark_file).load()
     create_parameter_files_from_benchmark(benchmark, BENCHMARK_DIR)
 
     for parameter_file in sorted(BENCHMARK_DIR.glob("parameters_*.json")):
