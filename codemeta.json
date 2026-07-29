@@ -124,8 +124,9 @@
   "contributor": [
     {
       "@type": "Person",
-      "givenName": "Stephan",
-      "familyName": "Rosenbaum"
+      "@id": "https://orcid.org/0009-0006-4444-2494",
+      "givenName": "Sjard",
+      "familyName": "Rosenbusch"
     },
     {
       "@type": "Person",
