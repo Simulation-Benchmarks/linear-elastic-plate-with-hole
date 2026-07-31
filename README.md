@@ -1,7 +1,7 @@
 # Infinite Plate with Hole Benchmark
 
 [![REUSE status](https://api.reuse.software/badge/github.com/Simulation-Benchmarks/linear-elastic-plate-with-hole)](https://api.reuse.software/info/github.com/Simulation-Benchmarks/linear-elastic-plate-with-hole)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.TODO.svg)](https://doi.org/10.5281/zenodo.TODO)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21718397.svg)](https://doi.org/10.5281/zenodo.21718397)
 
 A benchmark for the linear-elastic infinite plate with a circular hole, solved with several finite-element simulation tools and evaluated against the analytical Kirsch solution.
 

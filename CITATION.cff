@@ -63,10 +63,10 @@ identifiers:
     value: "https://github.com/Simulation-Benchmarks/linear-elastic-plate-with-hole"
     description: "The GitHub repository URL."
   - type: doi
-    value: "10.5281/zenodo.TODO"
+    value: "10.5281/zenodo.21718397"
     description: "Concept DOI for all versions of linear-elastic-plate-with-hole (Zenodo)."
   - type: doi
-    value: "10.5281/zenodo.TODO"
+    value: "10.5281/zenodo.21718397"
     description: "Version DOI for v0.1.0 (Zenodo)."
 references:
   - type: software
