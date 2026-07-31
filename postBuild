@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Run by repo2docker after the environment is built (e.g. for Binder /
+# NFDI JupyterHub launches). Regenerates the combined notebook from the
+# current docs and source notebook so it is always up to date.
+set -euo pipefail
+
+python scripts/build_notebook.py \
+  --doc docs/plate-with-hole.md \
+  --source-notebook notebooks/RoCrate.ipynb \
+  --notebook notebooks/plate_with_hole.ipynb
