@@ -3,7 +3,7 @@
   "@type": "SoftwareSourceCode",
   "identifier": [
     "linear-elastic-plate-with-hole",
-    "https://doi.org/10.5281/zenodo.TODO"
+    "https://doi.org/10.5281/zenodo.21718397"
   ],
   "name": "linear-elastic-plate-with-hole",
   "description": "A multi-solver benchmark for the linear elastic infinite plate with a circular hole problem, with reference implementations for FEniCS, Kratos Multiphysics, and ExtendableFEM, plus FAIR4RS-compliant metadata and REUSE licensing.",
@@ -13,7 +13,7 @@
   "license": "https://spdx.org/licenses/MIT",
   "codeRepository": "https://github.com/Simulation-Benchmarks/linear-elastic-plate-with-hole",
   "url": "https://github.com/Simulation-Benchmarks/linear-elastic-plate-with-hole",
-  "downloadUrl": "https://zenodo.org/records/TODO",
+  "downloadUrl": "https://zenodo.org/records/21718397",
   "releaseNotes": "https://github.com/Simulation-Benchmarks/linear-elastic-plate-with-hole/blob/main/CHANGELOG.md#010---2026-07-15",
   "issueTracker": "https://github.com/Simulation-Benchmarks/linear-elastic-plate-with-hole/issues",
   "programmingLanguage": [
