@@ -40,7 +40,7 @@ env:
 
 jobs:
   run-examples:
-    name: Fenics 
+    name: Fenics
     runs-on: ubuntu-latest
 
     steps:

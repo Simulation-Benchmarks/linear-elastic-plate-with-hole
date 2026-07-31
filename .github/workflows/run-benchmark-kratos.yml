@@ -40,7 +40,7 @@ env:
 
 jobs:
   run-examples:
-    name: Kratos 
+    name: Kratos
     runs-on: ubuntu-latest
 
     steps:

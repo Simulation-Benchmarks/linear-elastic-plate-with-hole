@@ -40,7 +40,7 @@ env:
 
 jobs:
   run-examples:
-    name: ExtendableFEM 
+    name: ExtendableFEM
     runs-on: ubuntu-latest
 
     steps:
