@@ -96,7 +96,7 @@ jobs:
 
   run-extendablefem:
     needs: prepare-benchmark
-    uses: ./.github/workflows/run-benchmark-exfem.yml
+    uses: ./.github/workflows/run-benchmark-extendablefem.yml
     with:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       benchmark_file: downloaded-benchmark/benchmark.json
