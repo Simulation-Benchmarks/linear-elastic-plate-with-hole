@@ -5,8 +5,7 @@ from typing import Any, Callable, Sequence
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from rohub_provenance import load_benchmark_metric_data
-from utils import parse_bool
+from semantic_benchmark.rohub import load_benchmark_metric_data
 
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 LOGGER = logging.getLogger(__name__)
@@ -96,9 +95,6 @@ def parse_args(argv=None):
             - parameters: Parameter names to query
             - metrics: Metric names to query
     """
-    if argv is not None:
-        argv = [str(value) if isinstance(value, bool) else value for value in argv]
-
     parser = argparse.ArgumentParser(
         description="Fetch benchmark provenance from RoHub and plot simulation metrics."
     )
@@ -141,10 +137,16 @@ def parse_args(argv=None):
         help="Optional tool name used to filter RoHub results",
     )
     parser.add_argument(
+        "--code-repository-url",
+        type=str,
+        default=None,
+        help="Optional Git branch URL used to filter RoHub results.",
+    )
+    parser.add_argument(
         "--use-production-rohub",
-        type=parse_bool,
-        default=True,
-        help="Use production RoHub instead of the development instance",
+        action="store_true",
+        default=False,
+        help="Use production RoHub instead of the development instance.",
     )
     parser.add_argument(
         "--parameters",
@@ -160,7 +162,7 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--log-y",
-        type=parse_bool,
+        action="store_true",
         default=False,
         help="Use a logarithmic scale for the y-axis.",
     )
@@ -184,6 +186,7 @@ def load_and_query_rohub(args, parameters, metrics):
         parameters=parameters,
         metrics=metrics,
         tool=args.tool,
+        code_repository_url=args.code_repository_url,
         use_production_rohub=args.use_production_rohub,
     )
 
