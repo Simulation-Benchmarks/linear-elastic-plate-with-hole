@@ -2,9 +2,6 @@ name: ExtendableFEM CI
 on:
   push:
 
-  pull_request:
-    branches: [ main ]
-
   workflow_call:
     inputs:
       checkout_ref:
