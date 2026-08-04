@@ -3,6 +3,7 @@
 import argparse
 import json
 import logging
+import re
 import shutil
 import subprocess
 import zipfile
@@ -28,8 +29,11 @@ DEFAULT_CRATE_NAME = f"NFDI4Ing Provenance ({TOOL_NAME})"
 DEFAULT_CRATE_DESCRIPTION = "Benchmark for linear-elastic plate with a hole"
 
 UNIT_SYMBOLS = {
-    "unit:M": "m",
-    "unit:PA": "Pa",
+    "M": "m",
+    "METRE": "m",
+    "METER": "m",
+    "PA": "Pa",
+    "PASCAL": "Pa",
 }
 
 
@@ -112,12 +116,29 @@ def create_shared_apptainer_env_dir(benchmark_dir: Path) -> Path:
     return shared_env_dir
 
 
+def resolve_unit_symbol(unit: str) -> str:
+    """Resolve a benchmark unit URI/CURIE to its symbol.
+
+    Matches on the final path/CURIE segment (case-insensitively) so this
+    survives the unit being expressed as a bare CURIE (``unit:M``), a full
+    URI (``https://.../M``), or a differently-cased spelling, regardless of
+    which namespace the benchmark source happens to use.
+    """
+    fragment = re.split(r"[:/#]", unit)[-1].upper()
+    try:
+        return UNIT_SYMBOLS[fragment]
+    except KeyError:
+        raise ValueError(
+            f"Unrecognized unit {unit!r} (fragment {fragment!r}); "
+            "add it to UNIT_SYMBOLS."
+        ) from None
+
+
 def parameter_json_key(parameter) -> str:
     """Build the parameters.json key, including the unit suffix when present."""
-    unit_symbol = UNIT_SYMBOLS.get(parameter.unit)
-    if unit_symbol:
-        return f"{parameter.label}[{unit_symbol}]"
-    return parameter.label
+    if not parameter.unit:
+        return parameter.label
+    return f"{parameter.label}[{resolve_unit_symbol(parameter.unit)}]"
 
 
 def parameter_json_value(parameter):
