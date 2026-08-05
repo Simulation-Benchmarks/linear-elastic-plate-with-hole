@@ -1,0 +1,360 @@
+import json
+import sys
+from argparse import ArgumentParser
+
+from pathlib import Path
+import dolfinx as df
+import basix.ufl
+import numpy as np
+import ufl
+from dolfinx.fem.petsc import LinearProblem
+from mpi4py import MPI
+from pint import UnitRegistry
+from ufl.algorithms import estimate_total_polynomial_degree
+
+# Add parent directory to sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from analytical_solution import AnalyticalSolution
+
+
+def run_fenics_simulation(
+    parameter_file: str, mesh_file: str, solution_file_zip: str, metrics_file: str
+) -> None:
+    ureg = UnitRegistry()
+    with open(parameter_file) as f:
+        parameters = json.load(f)
+
+    mesh, cell_tags, facet_tags = df.io.gmshio.read_from_msh(
+        mesh_file,
+        comm=MPI.COMM_SELF,
+        gdim=2,
+    )
+
+    V = df.fem.functionspace(mesh, ("CG", parameters["isoparametric_element_degree"], (2,)))
+
+    tags_left = facet_tags.find(1)
+    tags_bottom = facet_tags.find(2)
+    tags_right = facet_tags.find(3)
+    tags_top = facet_tags.find(4)
+
+    # Boundary conditions
+    dofs_left = df.fem.locate_dofs_topological(V.sub(0), 1, tags_left)
+    dofs_bottom = df.fem.locate_dofs_topological(V.sub(1), 1, tags_bottom)
+
+    bc_left = df.fem.dirichletbc(0.0, dofs_left, V.sub(0))
+    bc_bottom = df.fem.dirichletbc(0.0, dofs_bottom, V.sub(1))
+
+    E = (
+        ureg.Quantity(
+            parameters["youngs_modulus[Pa]"], "Pa"
+        )
+        .to_base_units()
+        .magnitude
+    )
+    nu = (
+        ureg.Quantity(
+            parameters["poissons_ratio"], ""
+        )
+        .to_base_units()
+        .magnitude
+    )
+    radius = (
+        ureg.Quantity(parameters["radius[m]"], "m")
+        .to_base_units()
+        .magnitude
+    )
+    L = (
+        ureg.Quantity(parameters["length[m]"], "m")
+        .to_base_units()
+        .magnitude
+    )
+    load = (
+        ureg.Quantity(parameters["load[Pa]"], "Pa")
+        .to_base_units()
+        .magnitude
+    )
+
+    analytical_solution = AnalyticalSolution(
+        E=E,
+        nu=nu,
+        radius=radius,
+        L=L,
+        load=load,
+    )
+
+    def eps(v):
+        return ufl.sym(ufl.grad(v))
+
+    def sigma(v):
+        # plane stress
+        epsilon = eps(v)
+        return (
+            E
+            / (1.0 - nu**2)
+            * ((1.0 - nu) * epsilon + nu * ufl.tr(epsilon) * ufl.Identity(2))
+        )
+
+    def as_tensor(v):
+        return ufl.as_matrix([[v[0], v[2]], [v[2], v[1]]])
+
+    dx = ufl.Measure(
+        "dx",
+    )
+    ds = ufl.Measure(
+        "ds",
+        domain=mesh,
+        subdomain_data=facet_tags,
+    )
+
+    u = df.fem.Function(V, name="u")
+
+    u_ = ufl.TestFunction(V)
+    v_ = ufl.TrialFunction(V)
+    a = df.fem.form(ufl.inner(sigma(u_), eps(v_)) * dx)
+
+    # Apply Neumann tractions on right and top boundaries from analytical stress.
+    traction_right = df.fem.Function(V, name="traction_right")
+    traction_top = df.fem.Function(V, name="traction_top")
+
+    def traction_right_expr(x: np.ndarray) -> np.ndarray:
+        sxx, sxy, _ = analytical_solution.stress(x)
+        return np.vstack((np.asarray(sxx), np.asarray(sxy)))
+
+    def traction_top_expr(x: np.ndarray) -> np.ndarray:
+        _, sxy, syy = analytical_solution.stress(x)
+        return np.vstack((np.asarray(sxy), np.asarray(syy)))
+
+    traction_right.interpolate(traction_right_expr)
+    traction_top.interpolate(traction_top_expr)
+    traction_right.x.scatter_forward()
+    traction_top.x.scatter_forward()
+
+    f = df.fem.form(
+        ufl.inner(traction_right, u_) * ds(3) + ufl.inner(traction_top, u_) * ds(4)
+    )
+
+    solver = LinearProblem(
+        a,
+        f,
+        bcs=[bc_left, bc_bottom],
+        u=u,
+        petsc_options={
+            "ksp_type": "preonly",
+            "pc_type": "lu",
+            "pc_factor_mat_solver_type": "mumps",
+        },
+    )
+    solver.solve()
+
+    # Support reaction on the left boundary
+    n = ufl.FacetNormal(mesh)
+    traction = ufl.dot(sigma(u), n)
+    reaction_left_x = df.fem.assemble_scalar(df.fem.form(traction[0] * ds(1)))
+    reaction_left_y = df.fem.assemble_scalar(df.fem.form(traction[1] * ds(1)))
+    num_dofs = V.dofmap.index_map.size_global * V.dofmap.index_map_bs
+
+
+    # Compute L2 error norm between FE displacement and analytical displacement.
+    u_analytical = df.fem.Function(V, name="u_analytical")
+
+    def analytical_displacement_expr(x: np.ndarray) -> np.ndarray:
+        ux, uy = analytical_solution.displacement(x)
+        return np.vstack((np.asarray(ux), np.asarray(uy)))
+
+    u_analytical.interpolate(analytical_displacement_expr)
+    u_analytical.x.scatter_forward()
+
+    l2_error_form = df.fem.form(ufl.inner(u - u_analytical, u - u_analytical) * dx)
+    l2_error_sq_global = df.fem.assemble_scalar(l2_error_form)
+    l2_error_displacement = np.sqrt(l2_error_sq_global)
+
+    # Compute max nodal displacement error magnitude (global across MPI)
+    block_size = V.dofmap.index_map_bs
+    nodal_error = (u.x.array - u_analytical.x.array).reshape(-1, block_size)
+    max_displacement_error_nodes = np.max(np.linalg.norm(nodal_error, axis=1))
+
+    # Evaluate displacement at the specified evaluation point
+    displacement_eval_point = np.array(
+        [[1.0, 1.0, 0.0]],
+        dtype=np.float64,
+    )
+    tree = df.geometry.bb_tree(mesh, mesh.topology.dim)
+    cell_candidates = df.geometry.compute_collisions_points(
+        tree, displacement_eval_point
+    )
+    colliding_cells = df.geometry.compute_colliding_cells(
+        mesh, cell_candidates, displacement_eval_point
+    )
+    
+    displacement_at_evaluation_point = None
+    if len(colliding_cells.links(0)) > 0:
+        cell = colliding_cells.links(0)[0]
+        # u.eval returns a 2D array: shape (num_points, value_size)
+        displacement_at_evaluation_point = u.eval(
+            displacement_eval_point, np.array([cell], dtype=np.int32)
+        ).tolist()  # [ux, uy]
+        
+    if displacement_at_evaluation_point is None:
+        raise ValueError(
+            "Could not evaluate displacement at the configured evaluation point."
+        )
+
+
+    def project(
+        v: df.fem.Function | ufl.core.expr.Expr,
+        V: df.fem.FunctionSpace,
+        dx: ufl.Measure = ufl.dx,
+    ) -> df.fem.Function:
+        """
+        Calculates an approximation of `v` on the space `V`
+
+        Args:
+            v: The expression that we want to evaluate.
+            V: The function space on which we want to evaluate.
+            dx: The measure that is used for the integration. This is important, if
+            either `V` is a quadrature space or `v` is a ufl expression containing a quadrature space.
+
+        Returns:
+            A function if `u` is None, otherwise `None`.
+
+        """
+        dv = ufl.TrialFunction(V)
+        v_ = ufl.TestFunction(V)
+        a_proj = ufl.inner(dv, v_) * dx
+        b_proj = ufl.inner(v, v_) * dx
+
+        solver = LinearProblem(a_proj, b_proj)
+        uh = solver.solve()
+        return uh
+
+    plot_space_stress = df.fem.functionspace(
+       mesh, ("DG", parameters["isoparametric_element_degree"] - 1, (2, 2))
+    )
+    plot_space_mises = df.fem.functionspace(
+        mesh, ("DG", parameters["isoparametric_element_degree"] - 1, (1,))
+    )
+    stress_nodes_red = project(sigma(u), plot_space_stress, dx)
+    stress_nodes_red.name = "stress"
+
+    def mises_stress(u):
+        stress = sigma(u)
+        p = ufl.tr(stress) / 3.0
+        s = stress - p * ufl.Identity(2)
+        return ufl.as_vector([(3.0 / 2.0) ** 0.5 * (ufl.inner(s, s) + p * p) ** 0.5])
+
+    mises_stress_nodes = project(mises_stress(u), plot_space_mises, dx)
+    mises_stress_nodes.name = "von_mises_stress"
+
+    # Write each function to its own VTK file on all ranks
+    output_dir = Path(solution_file_zip).parent
+    with df.io.VTKFile(
+        MPI.COMM_SELF,
+        str(
+            output_dir
+            / f"solution_field_data_displacements_{parameters['configuration']}.vtk"
+        ),
+        "w",
+    ) as vtk:
+        vtk.write_function(u, 0.0)
+    with df.io.VTKFile(
+        MPI.COMM_SELF,
+        str(
+            output_dir / f"solution_field_data_stress_{parameters['configuration']}.vtk"
+        ),
+        "w",
+    ) as vtk:
+        vtk.write_function(stress_nodes_red, 0.0)
+    with df.io.VTKFile(
+        MPI.COMM_SELF,
+        str(
+            output_dir
+            / f"solution_field_data_mises_stress_{parameters['configuration']}.vtk"
+        ),
+        "w",
+    ) as vtk:
+        vtk.write_function(mises_stress_nodes, 0.0)
+
+
+    # Compute von Mises stress at quadrature (Gauss) points and extract maximum (global across MPI)
+    quad_element = basix.ufl.quadrature_element(
+        mesh.topology.cell_name(),
+        value_shape=(1,),
+        scheme="default",
+        degree=estimate_total_polynomial_degree(u_),
+    )
+
+    Q_mises = df.fem.functionspace(mesh, quad_element)
+    mises_qp = df.fem.Function(Q_mises, name="von_mises_stress_qp")
+    expr_qp = df.fem.Expression(mises_stress(u), Q_mises.element.interpolation_points())
+    mises_qp.interpolate(expr_qp)
+    max_mises_stress_gauss_points = np.max(mises_qp.x.array)
+
+    # Save metrics
+    metrics = {
+        "number_of_dofs[-]": num_dofs,
+        "max_von_mises_stress[Pa]": max_mises_stress_gauss_points,
+        "l2_error_displacement[m]": l2_error_displacement,
+        "max_displacement_error[m]": max_displacement_error_nodes,
+        "reaction_force_left_boundary_x[N]": reaction_left_x,
+        "reaction_force_left_boundary_y[N]": reaction_left_y,
+        "displacement_top_right_corner[m]": displacement_at_evaluation_point,  # [ux, uy]
+    }
+
+    with open(metrics_file, "w") as f:
+        json.dump(metrics, f, indent=4)
+    # store all .vtu, .pvtu and .vtk files for this configuration in the zip file
+    import zipfile
+
+    config = parameters["configuration"]
+    file_patterns = [
+        str(output_dir / f"solution_field_data_displacements_{config}*"),
+        str(output_dir / f"solution_field_data_stress_{config}*"),
+        str(output_dir / f"solution_field_data_mises_stress_{config}*"),
+    ]
+
+    files_to_store = []
+    for pattern in file_patterns:
+        files_to_store.extend(
+            filter(
+                # filter for all file endings because this is not possible with glob
+                lambda path: path.suffix in [".vtk", ".vtu", ".pvtu"],
+                Path().glob(pattern),
+            )
+        )
+        # files_to_store.extend(Path().glob(pattern))
+    with zipfile.ZipFile(solution_file_zip, "w") as zipf:
+        for filepath in files_to_store:
+            zipf.write(filepath, arcname=filepath.name)
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser(
+        description="Run FEniCS simulation for a plate with a hole.\n"
+        "Inputs: --input_parameter_file, --input_mesh_file\n"
+        "Outputs: --output_solution_file_hdf5, --output_metrics_file"
+    )
+    parser.add_argument(
+        "--input_parameter_file",
+        required=True,
+        help="JSON file containing simulation parameters (input)",
+    )
+    parser.add_argument(
+        "--input_mesh_file", required=True, help="Path to the mesh file (input)"
+    )
+    parser.add_argument(
+        "--output_solution_file_zip",
+        required=True,
+        help="Path to the zipped solution files (output)",
+    )
+    parser.add_argument(
+        "--output_metrics_file",
+        required=True,
+        help="Path to the output metrics JSON file (output)",
+    )
+    args, _ = parser.parse_known_args()
+    run_fenics_simulation(
+        args.input_parameter_file,
+        args.input_mesh_file,
+        args.output_solution_file_zip,
+        args.output_metrics_file,
+    )

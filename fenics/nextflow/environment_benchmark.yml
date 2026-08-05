@@ -1,0 +1,12 @@
+name: fenics-nextflow-model-validation
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - nextflow
+
+  - pip
+  - pip:
+      - semantic-benchmark
+      - rocrate
+      
