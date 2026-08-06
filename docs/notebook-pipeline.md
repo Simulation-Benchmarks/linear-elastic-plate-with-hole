@@ -1,16 +1,16 @@
 # Notebook pipeline
 
-The `notebooks/plate_with_hole.ipynb` notebook in this repository is
+The `notebooks/benchmark-results.ipynb` notebook in this repository is
 **auto-generated** by [repo2docker](https://github.com/jupyterhub/repo2docker)'s
 `postBuild` hook, which runs whenever the repository image is built (e.g. on
 launch via Binder or the NFDI JupyterHub).
 
 ## Inputs
 
-- Documentation: `docs/plate-with-hole.md`
+- Documentation: `docs/benchmark-documentation.md`
 - Source notebook: `notebooks/RoCrate.ipynb` (source of truth for the
   code cells)
-- Output: `notebooks/plate_with_hole.ipynb`
+- Output: `notebooks/benchmark-results.ipynb`
 
 ## How it works
 
@@ -28,13 +28,13 @@ Because this runs as part of the repo2docker build, the notebook is always
 freshly generated for anyone launching the repository interactively — there
 is no CI step and nothing to commit back to `main`.
 
-`notebooks/plate_with_hole.ipynb` is git-ignored: it is a build artifact,
+`notebooks/benchmark-results.ipynb` is git-ignored: it is a build artifact,
 not a source file, and only exists once `postBuild` (or a local run of the
 script below) has generated it.
 
 ## Regenerating locally
 
     python scripts/build_notebook.py \
-      --doc docs/plate-with-hole.md \
+      --doc docs/benchmark-documentation.md \
       --source-notebook notebooks/RoCrate.ipynb \
-      --notebook notebooks/plate_with_hole.ipynb
+      --notebook notebooks/benchmark-results.ipynb \
