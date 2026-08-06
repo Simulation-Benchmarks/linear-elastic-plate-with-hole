@@ -1,7 +1,7 @@
 """Postprocessing for the linear-elastic plate with a hole benchmark.
 
 This script is the source of truth for the postprocessing logic. The
-notebooks/notebook-results.ipynb notebook is auto-generated from this
+notebooks/benchmark-results.ipynb notebook is auto-generated from this
 file plus docs/benchmark-documentation.md by repo2docker's postBuild hook (see
 docs/notebook-pipeline.md).
 """
