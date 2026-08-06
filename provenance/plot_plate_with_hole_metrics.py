@@ -4,7 +4,6 @@ import logging
 import pandas as pd
 
 from plot_metrics import parse_args, run
-from utils import parse_bool
 
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 
@@ -35,37 +34,47 @@ def parse_workflow_args(argv=None):
     )
     parser.add_argument(
         "--use-production-rohub",
-        type=parse_bool,
+        action="store_true",
         default=False,
-        help="Use production RoHub instead of the development instance (true/false).",
+        help="Use production RoHub instead of the development instance.",
+    )
+    parser.add_argument(
+        "--code-repository-url",
+        type=str,
+        default=None,
+        help="Optional Git branch URL used to filter RoHub results.",
     )
     return parser.parse_args(argv)
 
 
 def build_plot_args(args):
     """Build the full argument namespace expected by plot_metrics.run."""
-    return parse_args(
-        [
-            "--benchmark-name",
-            BENCHMARK_NAME,
-            "--parameters",
-            *PARAMETERS,
-            "--metrics",
-            *METRICS,
-            "--tool",
-            args.tool,
-            "--x-axis-label",
-            X_AXIS_LABEL,
-            "--y-axis-label",
-            Y_AXIS_LABEL,
-            "--plot-title",
-            f"{PLOT_TITLE} ({args.tool})",
-            "--output-file",
-            args.output_file or OUTPUT_FILE_TEMPLATE.format(tool=args.tool),
-            "--use-production-rohub",
-            str(args.use_production_rohub).lower(),
-        ]
-    )
+    argv = [
+        "--benchmark-name",
+        BENCHMARK_NAME,
+        "--parameters",
+        *PARAMETERS,
+        "--metrics",
+        *METRICS,
+        "--tool",
+        args.tool,
+        "--x-axis-label",
+        X_AXIS_LABEL,
+        "--y-axis-label",
+        Y_AXIS_LABEL,
+        "--plot-title",
+        f"{PLOT_TITLE} ({args.tool})",
+        "--output-file",
+        args.output_file or OUTPUT_FILE_TEMPLATE.format(tool=args.tool),
+    ]
+
+    if args.use_production_rohub:
+        argv.append("--use-production-rohub")
+
+    if args.code_repository_url:
+        argv.extend(["--code-repository-url", args.code_repository_url])
+
+    return parse_args(argv)
 
 
 def keep_first_order_linear_elements(data: pd.DataFrame) -> pd.DataFrame:

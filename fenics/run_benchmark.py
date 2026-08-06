@@ -3,22 +3,15 @@
 import argparse
 import json
 import logging
+import re
 import shutil
 import subprocess
-import sys
 import zipfile
 from argparse import Namespace
 from pathlib import Path
 
-from rocrate_validator import models, services
-
-REPO_ROOT = Path(__file__).resolve().parent.parent
-PROVENANCE_DIR = REPO_ROOT / "provenance"
-if str(PROVENANCE_DIR) not in sys.path:
-    sys.path.insert(0, str(PROVENANCE_DIR))
-
-import create_rocrate
-import semantic_benchmark
+from semantic_benchmark.semantics import BenchmarkLoader, SemanticBenchmark, TextParameter
+import semantic_benchmark.rocrate as rocrate
 
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 LOGGER = logging.getLogger(__name__)
@@ -31,10 +24,16 @@ PROVENANCE_REPORT_NAME = "NFDI4Ing Provenance"
 PROVENANCE_REPORT_DESCRIPTION = "Benchmark for linear-elastic plate with a hole"
 PROVENANCE_REPORT_LICENSE = "https://opensource.org/licenses/MIT"
 PROVENANCE_PROFILE = "provenance-run-crate-0.5"
+DEFAULT_CRATE_LICENSE = "https://opensource.org/licenses/MIT"
+DEFAULT_CRATE_NAME = f"NFDI4Ing Provenance ({TOOL_NAME})"
+DEFAULT_CRATE_DESCRIPTION = "Benchmark for linear-elastic plate with a hole"
 
 UNIT_SYMBOLS = {
-    "unit:M": "m",
-    "unit:PA": "Pa",
+    "M": "m",
+    "METRE": "m",
+    "METER": "m",
+    "PA": "Pa",
+    "PASCAL": "Pa",
 }
 
 
@@ -81,9 +80,19 @@ def parse_arguments() -> Namespace:
         help="Filename or path for the generated aggregate RO-Crate zip file.",
     )
     parser.add_argument(
-        "--software-name",
-        default=TOOL_NAME,
-        help="Software name recorded in the generated aggregate RO-Crate.",
+        "--crate-license",
+        default=DEFAULT_CRATE_LICENSE,
+        help="License URL recorded in the generated aggregate RO-Crate.",
+    )
+    parser.add_argument(
+        "--crate-name",
+        default=DEFAULT_CRATE_NAME,
+        help="Name recorded in the generated aggregate RO-Crate.",
+    )
+    parser.add_argument(
+        "--crate-description",
+        default=DEFAULT_CRATE_DESCRIPTION,
+        help="Description recorded in the generated aggregate RO-Crate.",
     )
     return parser.parse_args()
 
@@ -101,28 +110,40 @@ def create_shared_conda_env_dir(benchmark_dir: Path) -> Path:
     return shared_env_dir
 
 
+def resolve_unit_symbol(unit: str) -> str:
+    """Resolve a benchmark unit URI/CURIE to its symbol.
+
+    Matches on the final path/CURIE segment (case-insensitively) so this
+    survives the unit being expressed as a bare CURIE (``unit:M``), a full
+    URI (``https://.../M``), or a differently-cased spelling, regardless of
+    which namespace the benchmark source happens to use.
+    """
+    fragment = re.split(r"[:/#]", unit)[-1].upper()
+    try:
+        return UNIT_SYMBOLS[fragment]
+    except KeyError:
+        raise ValueError(
+            f"Unrecognized unit {unit!r} (fragment {fragment!r}); "
+            "add it to UNIT_SYMBOLS."
+        ) from None
+
+
 def parameter_json_key(parameter) -> str:
     """Build the parameters.json key, including the unit suffix when present."""
-    unit_symbol = UNIT_SYMBOLS.get(parameter.unit)
-    if unit_symbol:
-        return f"{parameter.label}[{unit_symbol}]"
-    return parameter.label
+    if not parameter.unit:
+        return parameter.label
+    return f"{parameter.label}[{resolve_unit_symbol(parameter.unit)}]"
 
 
 def parameter_json_value(parameter):
     """Extract the scalar value stored in a benchmark parameter object."""
-    if isinstance(parameter, semantic_benchmark.TextParameter):
+    if isinstance(parameter, TextParameter):
         return parameter.string_value
     return getattr(parameter, "numerical_value", None)
 
 
-def load_benchmark(benchmark_file: Path) -> semantic_benchmark.SemanticBenchmark:
-    """Load the semantic benchmark description from a JSON-LD file."""
-    return semantic_benchmark.BenchmarkLoader(benchmark_file).load()
-
-
 def create_parameter_files_from_benchmark(
-    benchmark: semantic_benchmark.SemanticBenchmark,
+    benchmark: SemanticBenchmark,
     output_dir: Path,
 ) -> None:
     """Create parameters_*.json files from the benchmark configuration objects."""
@@ -251,34 +272,24 @@ def run_configuration(
 
 def create_aggregate_rocrate(
     results_dir: Path,
-    benchmark: semantic_benchmark.SemanticBenchmark,
+    benchmark: SemanticBenchmark,
     rocrate_path: Path,
-    software_name: str,
+    crate_license: str,
+    crate_name: str,
+    crate_description: str,
 ) -> None:
     """Create one aggregate RO-Crate from all per-configuration result crates."""
-    create_rocrate.create_main_ro(
+    rocrate.create_main_ro(
         str(results_dir),
         benchmark,
         rocrate_path=str(rocrate_path),
-        software_name=software_name,
+        software_name=TOOL_NAME,
+        crate_license=crate_license,
+        crate_name=crate_name,
+        crate_description=crate_description,
+        validation_profile=PROVENANCE_PROFILE,
     )
     LOGGER.info("Aggregate RO-Crate created at %s.", rocrate_path)
-
-
-def validate_rocrate(rocrate_path: str, profile: str = PROVENANCE_PROFILE) -> None:
-    """Validate the RO-Crate folder against the specified profile."""
-    settings = services.ValidationSettings(
-        rocrate_uri=rocrate_path,
-        profile_identifier=profile,
-        requirement_severity=models.Severity.REQUIRED,
-    )
-    result = services.validate(settings)
-    assert not result.has_issues(), "RO-Crate is invalid!\n" + "\n".join(
-        f"Detected issue of severity {issue.severity.name} with check "
-        f'"{issue.check.identifier}": {issue.message}'
-        for issue in result.get_issues()
-    )
-    LOGGER.info("RO-Crate is valid.")
 
 
 def run_benchmark(args: Namespace) -> None:
@@ -288,7 +299,7 @@ def run_benchmark(args: Namespace) -> None:
     extract_benchmark_archive(args.benchmark_zip, BENCHMARK_DIR)
     shared_env_dir = create_shared_conda_env_dir(BENCHMARK_DIR)
 
-    benchmark = load_benchmark(args.benchmark_file)
+    benchmark = BenchmarkLoader(args.benchmark_file).load()
     create_parameter_files_from_benchmark(benchmark, BENCHMARK_DIR)
 
     for parameter_file in sorted(BENCHMARK_DIR.glob("parameters_*.json")):
@@ -298,15 +309,9 @@ def run_benchmark(args: Namespace) -> None:
         args.result_path,
         benchmark,
         rocrate_path=args.result_path / args.rocrate_name,
-        software_name=args.software_name,
-    )
-
-    with zipfile.ZipFile(args.result_path / args.rocrate_name, "r") as zip_ref:
-        zip_ref.extractall(args.result_path / "unpacked_rocrate")
-
-    validate_rocrate(
-        rocrate_path=str(args.result_path / "unpacked_rocrate"),
-        profile=PROVENANCE_PROFILE,
+        crate_license=args.crate_license,
+        crate_name=args.crate_name,
+        crate_description=args.crate_description,
     )
 
 

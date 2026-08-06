@@ -1,15 +1,95 @@
 import argparse
+import colorsys
+import hashlib
 import logging
 from collections import defaultdict
 from typing import Any, Callable, Sequence
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from rohub_provenance import load_benchmark_metric_data
-from utils import parse_bool
+from semantic_benchmark.rohub import load_benchmark_metric_data
 
 LOG_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 LOGGER = logging.getLogger(__name__)
+
+# Fixed, CVD-checked 8-hue categorical palette (validated for adjacent-pair
+# separation on a light surface). Colors are assigned to series by a stable
+# hash of the series' identity (see `_assign_colors`), not by the order series
+# happen to appear in the fetched data -- so a given tool/series always gets
+# the same color across notebook re-runs, regardless of how many other RO-Crates
+# are present or in what order RoHub returns them.
+_CATEGORICAL_PALETTE = [
+    "#2a78d6",  # blue
+    "#eb6834",  # orange
+    "#1baf7a",  # aqua
+    "#eda100",  # yellow
+    "#e87ba4",  # magenta
+    "#008300",  # green
+    "#4a3aa7",  # violet
+    "#e34948",  # red
+]
+_LINESTYLES = ["-", "--", "-.", ":"]
+_MARKERS = ["o", "s", "^", "D", "v", "P"]
+
+
+def _stable_hash(label: str) -> int:
+    """Deterministic, cross-run-stable hash of a label.
+
+    Python's built-in hash() is randomized per-process for strings (unless
+    PYTHONHASHSEED is fixed), which is what made earlier color assignment
+    effectively random across notebook runs. This uses a content hash instead.
+    """
+    digest = hashlib.md5(label.encode("utf-8")).digest()
+    return int.from_bytes(digest[:4], "big")
+
+
+def _split_group_label(group: str) -> tuple[str, str]:
+    """Split a "Primary, extra=value, ..." label into (primary, remainder).
+
+    `select_plot_columns` folds any parameters beyond the first into the group
+    label as ", name=value" suffixes; the primary identity (e.g. the tool name)
+    always comes first.
+    """
+    primary, _, remainder = group.partition(", ")
+    return primary, remainder
+
+
+def _assign_colors(labels: Sequence[str]) -> dict[str, str]:
+    """Assign a stable, collision-avoiding color to each distinct label.
+
+    Each label's *preferred* slot is a content hash, so the same label maps to
+    the same slot regardless of what other labels are present. When two labels
+    prefer the same slot and both fit within the palette, the runner-up is
+    bumped to its next preferred slot (probed deterministically) so that, up
+    to 8 concurrent series, colors stay distinct. Beyond 8 distinct labels,
+    slots repeat and a hashed color-wheel hue is used to still differentiate
+    them somewhat, matching the palette's documented series cap.
+    """
+    n_slots = len(_CATEGORICAL_PALETTE)
+    assigned: dict[str, str] = {}
+    slot_taken: dict[int, str] = {}
+
+    for label in sorted(labels):  # stable tie-break order, independent of fetch order
+        base = _stable_hash(label)
+        if len(assigned) < n_slots:
+            for probe in range(n_slots):
+                slot = (base + probe) % n_slots
+                if slot not in slot_taken:
+                    slot_taken[slot] = label
+                    assigned[label] = _CATEGORICAL_PALETTE[slot]
+                    break
+        else:
+            # Overflow beyond the validated 8-series cap: fall back to a
+            # hashed hue so extra series are still distinguishable, even
+            # though they're no longer CVD-guaranteed.
+            hue = (base % 360) / 360.0
+            r, g, b = colorsys.hls_to_rgb(hue, 0.5, 0.65)
+            assigned[label] = "#{:02x}{:02x}{:02x}".format(
+                int(r * 255), int(g * 255), int(b * 255)
+            )
+
+    return assigned
+
 
 def finish_plot(
     x_axis_label: str,
@@ -63,10 +143,24 @@ def plot_provenance_graph(
 
     plt.figure(figsize=figsize)
 
-    for group, values in grouped_values.items():
+    primary_labels = {_split_group_label(group)[0] for group in grouped_values}
+    colors = _assign_colors(sorted(primary_labels))
+
+    for group in sorted(grouped_values):
+        values = grouped_values[group]
         values.sort()
         x_values, y_values = zip(*values)
-        plt.plot(x_values, y_values, marker="o", linestyle="-", label=group)
+        primary, remainder = _split_group_label(group)
+        linestyle = _LINESTYLES[_stable_hash(remainder) % len(_LINESTYLES)] if remainder else "-"
+        marker = _MARKERS[_stable_hash(remainder) % len(_MARKERS)] if remainder else "o"
+        plt.plot(
+            x_values,
+            y_values,
+            marker=marker,
+            linestyle=linestyle,
+            color=colors[primary],
+            label=group,
+        )
 
     if grouped_values:
         plt.legend()
@@ -96,9 +190,6 @@ def parse_args(argv=None):
             - parameters: Parameter names to query
             - metrics: Metric names to query
     """
-    if argv is not None:
-        argv = [str(value) if isinstance(value, bool) else value for value in argv]
-
     parser = argparse.ArgumentParser(
         description="Fetch benchmark provenance from RoHub and plot simulation metrics."
     )
@@ -141,10 +232,16 @@ def parse_args(argv=None):
         help="Optional tool name used to filter RoHub results",
     )
     parser.add_argument(
+        "--code-repository-url",
+        type=str,
+        default=None,
+        help="Optional Git branch URL used to filter RoHub results.",
+    )
+    parser.add_argument(
         "--use-production-rohub",
-        type=parse_bool,
-        default=True,
-        help="Use production RoHub instead of the development instance",
+        action="store_true",
+        default=False,
+        help="Use production RoHub instead of the development instance.",
     )
     parser.add_argument(
         "--parameters",
@@ -160,7 +257,7 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--log-y",
-        type=parse_bool,
+        action="store_true",
         default=False,
         help="Use a logarithmic scale for the y-axis.",
     )
@@ -184,6 +281,7 @@ def load_and_query_rohub(args, parameters, metrics):
         parameters=parameters,
         metrics=metrics,
         tool=args.tool,
+        code_repository_url=args.code_repository_url,
         use_production_rohub=args.use_production_rohub,
     )
 

@@ -2,8 +2,8 @@
 
 This script is the source of truth for the postprocessing logic. The
 notebooks/notebook-results.ipynb notebook is auto-generated from this
-file plus docs/benchmark-documentation.md by the merge-docs-to-notebooks GitHub
-Actions workflow (see docs/notebook-pipeline.md).
+file plus docs/benchmark-documentation.md by repo2docker's postBuild hook (see
+docs/notebook-pipeline.md).
 """
 import json
 from pathlib import Path

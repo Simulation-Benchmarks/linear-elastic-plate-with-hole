@@ -1,0 +1,103 @@
+name: Fenics CI
+on:
+  push:
+
+  workflow_call:
+    inputs:
+      checkout_ref:
+        description: Git ref to checkout for the benchmark run
+        required: false
+        type: string
+      benchmark_file:
+        description: Path to the semantic benchmark JSON-LD file
+        required: false
+        type: string
+        default: benchmark/1.0.0/minimal-configurations.json
+      benchmark_zip:
+        description: Path to the benchmark zip archive
+        required: false
+        type: string
+        default: benchmark/1.0.0/linear-elastic-plate-with-hole.zip
+      benchmark_artifact_name:
+        description: Optional artifact containing the benchmark files
+        required: false
+        type: string
+        default: ''
+
+env:
+  BENCHMARK_NAME: linear-elastic-plate-with-hole
+  BENCHMARK_VERSION: 1.0.0
+  EXAMPLE_BENCHMARK_FILE: ${{ inputs.benchmark_file || 'benchmark/1.0.0/minimal-configurations.json' }}
+  EXAMPLE_BENCHMARK_ZIP: ${{ inputs.benchmark_zip || 'benchmark/1.0.0/linear-elastic-plate-with-hole.zip' }}
+  BRANCH_NAME: ${{ inputs.checkout_ref || github.head_ref || github.ref_name }}
+  TOOL: fenics
+  ROCRATE_LICENSE: https://opensource.org/licenses/MIT
+  ROCRATE_NAME: linear-elastic-plate-with-hole provenance (Fenics)
+  ROCRATE_DESCRIPTION_BASE: Provenance run of the benchmark for linear-elastic plate with a hole using Fenics
+
+jobs:
+  run-examples:
+    name: Fenics
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout repo content
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.checkout_ref || github.ref }}
+
+      - name: Setup Mambaforge
+        uses: conda-incubator/setup-miniconda@v4
+        with:
+            miniforge-version: latest
+            use-mamba: true
+            conda-remove-defaults: "true"
+        
+      - name: Create ${{ env.TOOL }} environment
+        run: mamba env create -n "${TOOL}" -f "${TOOL}/environment_benchmark.yml"
+
+      - name: Install provenance Python packages
+        shell: bash -l {0}
+        run: |
+          python -m pip install -r requirements.txt
+
+      - name: Download benchmark resources artifact
+        if: inputs.benchmark_artifact_name != ''
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ inputs.benchmark_artifact_name }}
+          path: downloaded-benchmark
+
+      - name: Verify local benchmark resources
+        shell: bash -l {0}
+        run: |
+          test -f "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}"
+          test -f "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_ZIP}"
+
+      - name: Run ${{ env.BENCHMARK_NAME }} using ${{ env.TOOL }}
+        shell: bash -l {0}
+        run: |
+          ROCRATE_DESCRIPTION="${ROCRATE_DESCRIPTION_BASE}, Version ${BENCHMARK_VERSION}, Branch ${BRANCH_NAME}"
+
+          cd "$GITHUB_WORKSPACE/${TOOL}/"
+          conda run -n "${TOOL}" python run_benchmark.py \
+            --benchmark-file "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}" \
+            --benchmark-zip "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_ZIP}" \
+            --rocrate-name "${TOOL}_rocrate.zip" \
+            --result-path "${GITHUB_WORKSPACE}/${TOOL}/results" \
+            --crate-license "${ROCRATE_LICENSE}" \
+            --crate-name "${ROCRATE_NAME}" \
+            --crate-description "${ROCRATE_DESCRIPTION}"
+
+      - name: Archive results of the ${{ env.TOOL }} run of ${{ env.BENCHMARK_NAME }}
+        uses: actions/upload-artifact@v7
+        with:
+            name: ${{ env.TOOL }}_results_${{ env.BENCHMARK_NAME }}
+            path: |
+              ${{ env.TOOL }}/results/
+
+      - name: Archive ${{ env.TOOL }} aggregate RO-Crate artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.TOOL }}-aggregate-rocrate
+          path: ${{ github.workspace }}/${{ env.TOOL }}/results/${{ env.TOOL }}_rocrate.zip

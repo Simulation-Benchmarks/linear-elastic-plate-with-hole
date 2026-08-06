@@ -1,0 +1,30 @@
+name: repo2docker
+
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install repo2docker
+        run: pip install jupyter-repo2docker
+
+      - name: Build the repository image (runs postBuild)
+        run: |
+          repo2docker --no-run \
+            --image-name linear-elastic-plate-with-hole:ci \
+            .
+
+      - name: Verify postBuild produced the combined notebook
+        run: |
+          docker run --rm linear-elastic-plate-with-hole:ci \
+            test -f notebooks/plate_with_hole.ipynb

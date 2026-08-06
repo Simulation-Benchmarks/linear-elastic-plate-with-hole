@@ -15,8 +15,7 @@ The module supports both production and development environments of RoHub.
 
 import argparse
 
-from rohub_provenance import upload_provenance_rocrate
-from utils import parse_bool
+from semantic_benchmark.rohub import upload_provenance_rocrate
 
 
 def parse_args():
@@ -58,12 +57,6 @@ def parse_args():
         help="Password for RoHub",
     )
     parser.add_argument(
-        "--rocrate-title",
-        type=str,
-        required=True,
-        help="Title of the RO-Crate to be uploaded",
-    )
-    parser.add_argument(
         "--code-repository-url",
         type=str,
         default=None,
@@ -77,9 +70,9 @@ def parse_args():
     )
     parser.add_argument(
         "--use-production-rohub",
-        type=parse_bool,
+        action="store_true",
         default=False,
-        help="Use production RoHub instead of the development instance (true/false)",
+        help="Use production RoHub instead of the development instance.",
     )
     return parser.parse_args()
 
@@ -89,7 +82,7 @@ def run(args):
     Execute the complete RoHub upload workflow.
 
     This function delegates the RoHub-specific operations to
-    rohub_provenance.upload_provenance_rocrate:
+    semantic_benchmark.rohub.upload_provenance_rocrate:
     1. Configure and authenticate with RoHub
     2. Delete existing research objects with the same RO-Crate title
     3. Upload the new research object from the specified zip file
@@ -123,7 +116,6 @@ def run(args):
         benchmark_name=args.benchmark_name,
         username=args.username,
         password=args.password,
-        rocrate_title=args.rocrate_title,
         code_repository_url=args.code_repository_url,
         used_software_url=args.used_software_url,
         use_production_rohub=args.use_production_rohub,
