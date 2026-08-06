@@ -42,7 +42,7 @@ The local `provenance/` scripts keep repository-specific configuration and comma
 
 Click the badge to open the pre-built notebook on the NFDI JupyterHub and explore the provenance plots interactively:
 
-[![NFDI](https://nfdi-jupyter.de/images/nfdi_badge.svg)](https://hub.nfdi-jupyter.de/v2/gh/Simulation-Benchmarks/linear-elastic-plate-with-hole/HEAD?system=JSC-Cloud&flavor=xl1nfdi&labpath=notebooks%2Fplate_with_hole.ipynb)
+[![NFDI](https://nfdi-jupyter.de/images/nfdi_badge.svg)](https://hub.nfdi-jupyter.de/v2/gh/Simulation-Benchmarks/linear-elastic-plate-with-hole/HEAD?system=JSC-Cloud&flavor=xl1nfdi&labpath=notebooks%2Fbenchmark-results.ipynb)
 
 The notebook fetches run data from RoHub and plots the three metrics against element size, grouped by tool and element degree. See [docs/notebook-pipeline.md](docs/notebook-pipeline.md) for details on how the notebook is built.
 

@@ -7,4 +7,4 @@ set -euo pipefail
 python scripts/build_notebook.py \
   --doc docs/plate-with-hole.md \
   --source-notebook notebooks/RoCrate.ipynb \
-  --notebook notebooks/plate_with_hole.ipynb
+  --notebook notebooks/notebook-results.ipynb

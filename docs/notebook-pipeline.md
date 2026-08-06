@@ -28,7 +28,7 @@ Because this runs as part of the repo2docker build, the notebook is always
 freshly generated for anyone launching the repository interactively — there
 is no CI step and nothing to commit back to `main`.
 
-`notebooks/plate_with_hole.ipynb` is git-ignored: it is a build artifact,
+`notebooks/benchmark-results.ipynb` is git-ignored: it is a build artifact,
 not a source file, and only exists once `postBuild` (or a local run of the
 script below) has generated it.
 
