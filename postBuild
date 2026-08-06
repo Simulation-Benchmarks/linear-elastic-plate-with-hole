@@ -5,6 +5,6 @@
 set -euo pipefail
 
 python scripts/build_notebook.py \
-  --doc docs/plate-with-hole.md \
+  --doc docs/benchmark-documentation.md \
   --source-notebook notebooks/RoCrate.ipynb \
   --notebook notebooks/notebook-results.ipynb
