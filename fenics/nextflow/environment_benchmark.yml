@@ -9,4 +9,5 @@ dependencies:
   - pip:
       - semantic-benchmark
       - rocrate
+      - roc-validator
       
