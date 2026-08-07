@@ -27,4 +27,4 @@ jobs:
       - name: Verify postBuild produced the combined notebook
         run: |
           docker run --rm linear-elastic-plate-with-hole:ci \
-            test -f notebooks/plate_with_hole.ipynb
+            test -f notebooks/benchmark-results.ipynb
