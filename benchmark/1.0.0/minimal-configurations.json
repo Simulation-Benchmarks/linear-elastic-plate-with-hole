@@ -1,6 +1,7 @@
 {
   "@context": {
     "local": "https://github.com/Simulation-Benchmarks/linear-elastic-plate-with-hole/",
+    "@vocab": "http://w3id.org/nfdi4ing/metadata4ing#",
     "bm": "https://w3id.org/nfdi4ing/benchmarks/",
     "m4i": "http://w3id.org/nfdi4ing/metadata4ing#",
     "mathmod": "https://mardi4nfdi.github.io/MathModDB/",
