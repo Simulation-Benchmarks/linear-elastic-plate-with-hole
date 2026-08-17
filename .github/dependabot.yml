@@ -1,0 +1,10 @@
+version: 2
+
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    allow:
+      - dependency-name: semantic-benchmark
+    versioning-strategy: widen
