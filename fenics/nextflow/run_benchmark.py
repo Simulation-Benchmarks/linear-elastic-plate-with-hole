@@ -72,6 +72,12 @@ def parse_arguments() -> Namespace:
         help="Path for benchmark results",
     )
     parser.add_argument(
+        "--workflow-path",
+        type=str,
+        required=True,
+        help="Path to the workflow file within the benchmark archive.",
+    )
+    parser.add_argument(
         "--rocrate-name",
         type=str,
         default=build_default_rocrate_name(),
@@ -91,6 +97,12 @@ def parse_arguments() -> Namespace:
         "--crate-description",
         default=DEFAULT_CRATE_DESCRIPTION,
         help="Description recorded in the generated aggregate RO-Crate.",
+    )
+    parser.add_argument(
+        "--lang",
+        type=str,
+        default="nextflow",
+        help="Workflow language recorded in the generated aggregate RO-Crate.",
     )
     return parser.parse_args()
 
@@ -252,6 +264,8 @@ def create_aggregate_rocrate(
     crate_license: str,
     crate_name: str,
     crate_description: str,
+    workflow_path: str,
+    lang: str
 ) -> None:
     """Create one aggregate RO-Crate from all per-configuration result crates."""
     rocrate.create_main_ro(
@@ -262,6 +276,8 @@ def create_aggregate_rocrate(
         crate_license=crate_license,
         crate_name=crate_name,
         crate_description=crate_description,
+        workflow_path=workflow_path,
+        lang=lang,
         validation_profile=PROVENANCE_PROFILE,
     )
     LOGGER.info("Aggregate RO-Crate created at %s.", rocrate_path)
@@ -287,6 +303,8 @@ def run_benchmark(args: Namespace) -> None:
         crate_license=args.crate_license,
         crate_name=args.crate_name,
         crate_description=args.crate_description,
+        workflow_path=args.workflow_path,
+        lang=args.lang,
     )
 
 

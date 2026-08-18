@@ -7,7 +7,7 @@ dependencies:
 
   - pip
   - pip:
-      - semantic-benchmark
+      - git+https://github.com/Simulation-Benchmarks/semantic-benchmark.git@1-aggregate-ro-crate-creation
       - rocrate
       - roc-validator
       

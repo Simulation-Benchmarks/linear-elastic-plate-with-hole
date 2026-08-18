@@ -86,6 +86,8 @@ jobs:
             --benchmark-zip "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_ZIP}" \
             --rocrate-name "${TOOL_NAME}_rocrate.zip" \
             --result-path "${GITHUB_WORKSPACE}/${TOOL_DIR}/results" \
+            --workflow-path "${GITHUB_WORKSPACE}/${TOOL_DIR}/main.nf" \
+            --lang "nextflow" \
             --crate-license "${ROCRATE_LICENSE}" \
             --crate-name "${ROCRATE_NAME}" \
             --crate-description "${ROCRATE_DESCRIPTION}"
