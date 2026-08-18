@@ -31,6 +31,18 @@ SPDX-FileCopyrightText = "2026 The linear-elastic-plate-with-hole authors"
 SPDX-License-Identifier = "MIT"
 
 [[annotations]]
+path = "**/*.nf"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 The linear-elastic-plate-with-hole authors"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = "**/nextflow.config"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 The linear-elastic-plate-with-hole authors"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
 path = ".github/workflows/*"
 precedence = "closest"
 SPDX-FileCopyrightText = "2026 The linear-elastic-plate-with-hole authors"

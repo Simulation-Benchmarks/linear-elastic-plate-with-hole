@@ -1,4 +1,4 @@
-name: Fenics CI
+name: Fenics-Snakemake CI
 on:
   push:
 
@@ -30,14 +30,15 @@ env:
   EXAMPLE_BENCHMARK_FILE: ${{ inputs.benchmark_file || 'benchmark/1.0.0/minimal-configurations.json' }}
   EXAMPLE_BENCHMARK_ZIP: ${{ inputs.benchmark_zip || 'benchmark/1.0.0/linear-elastic-plate-with-hole.zip' }}
   BRANCH_NAME: ${{ inputs.checkout_ref || github.head_ref || github.ref_name }}
-  TOOL: fenics
+  TOOL_DIR: fenics/snakemake
+  TOOL_NAME: fenics-snakemake
   ROCRATE_LICENSE: https://opensource.org/licenses/MIT
-  ROCRATE_NAME: linear-elastic-plate-with-hole provenance (Fenics)
-  ROCRATE_DESCRIPTION_BASE: Provenance run of the benchmark for linear-elastic plate with a hole using Fenics
+  ROCRATE_NAME: linear-elastic-plate-with-hole provenance (Fenics-Snakemake)
+  ROCRATE_DESCRIPTION_BASE: Provenance run of the benchmark for linear-elastic plate with a hole using Fenics-Snakemake
 
 jobs:
   run-examples:
-    name: Fenics
+    name: Fenics-Snakemake
     runs-on: ubuntu-latest
 
     steps:
@@ -52,9 +53,9 @@ jobs:
             miniforge-version: latest
             use-mamba: true
             conda-remove-defaults: "true"
-        
-      - name: Create ${{ env.TOOL }} environment
-        run: mamba env create -n "${TOOL}" -f "${TOOL}/environment_benchmark.yml"
+
+      - name: Create ${{ env.TOOL_NAME }} environment
+        run: mamba env create -n "${TOOL_NAME}" -f "${TOOL_DIR}/environment_benchmark.yml"
 
       - name: Install provenance Python packages
         shell: bash -l {0}
@@ -74,30 +75,30 @@ jobs:
           test -f "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}"
           test -f "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_ZIP}"
 
-      - name: Run ${{ env.BENCHMARK_NAME }} using ${{ env.TOOL }}
+      - name: Run ${{ env.BENCHMARK_NAME }} using ${{ env.TOOL_NAME }}
         shell: bash -l {0}
         run: |
           ROCRATE_DESCRIPTION="${ROCRATE_DESCRIPTION_BASE}, Version ${BENCHMARK_VERSION}, Branch ${BRANCH_NAME}"
 
-          cd "$GITHUB_WORKSPACE/${TOOL}/"
-          conda run -n "${TOOL}" python run_benchmark.py \
+          cd "$GITHUB_WORKSPACE/${TOOL_DIR}/"
+          conda run -n "${TOOL_NAME}" python run_benchmark.py \
             --benchmark-file "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}" \
             --benchmark-zip "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_ZIP}" \
-            --rocrate-name "${TOOL}_rocrate.zip" \
-            --result-path "${GITHUB_WORKSPACE}/${TOOL}/results" \
+            --rocrate-name "${TOOL_NAME}_rocrate.zip" \
+            --result-path "${GITHUB_WORKSPACE}/${TOOL_DIR}/results" \
             --crate-license "${ROCRATE_LICENSE}" \
             --crate-name "${ROCRATE_NAME}" \
             --crate-description "${ROCRATE_DESCRIPTION}"
 
-      - name: Archive results of the ${{ env.TOOL }} run of ${{ env.BENCHMARK_NAME }}
+      - name: Archive results of the ${{ env.TOOL_NAME }} run of ${{ env.BENCHMARK_NAME }}
         uses: actions/upload-artifact@v7
         with:
-            name: ${{ env.TOOL }}_results_${{ env.BENCHMARK_NAME }}
+            name: ${{ env.TOOL_NAME }}_results_${{ env.BENCHMARK_NAME }}
             path: |
-              ${{ env.TOOL }}/results/
+              ${{ env.TOOL_DIR }}/results/
 
-      - name: Archive ${{ env.TOOL }} aggregate RO-Crate artifact
+      - name: Archive ${{ env.TOOL_NAME }} aggregate RO-Crate artifact
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ env.TOOL }}-aggregate-rocrate
-          path: ${{ github.workspace }}/${{ env.TOOL }}/results/${{ env.TOOL }}_rocrate.zip
+          name: ${{ env.TOOL_NAME }}-aggregate-rocrate
+          path: ${{ github.workspace }}/${{ env.TOOL_DIR }}/results/${{ env.TOOL_NAME }}_rocrate.zip

@@ -1,0 +1,13 @@
+name: fenics-nextflow-model-validation
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - nextflow
+
+  - pip
+  - pip:
+      - git+https://github.com/Simulation-Benchmarks/semantic-benchmark.git@1-aggregate-ro-crate-creation
+      - rocrate
+      - roc-validator
+      

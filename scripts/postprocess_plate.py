@@ -13,9 +13,9 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TOOL_DIRS = [
-    REPO_ROOT / "fenics",
-    REPO_ROOT / "kratos",
-    REPO_ROOT / "extendablefem",
+    ("fenics", REPO_ROOT / "fenics" / "snakemake"),
+    ("kratos", REPO_ROOT / "kratos"),
+    ("extendablefem", REPO_ROOT / "extendablefem"),
 ]
 
 
@@ -25,7 +25,7 @@ def locate_metric_files(tool_dirs=TOOL_DIRS):
     found.
     """
     metric_files = []
-    for tool_dir in tool_dirs:
+    for label, tool_dir in tool_dirs:
         if not tool_dir.exists():
             continue
         results_dir = tool_dir / "results"
@@ -33,7 +33,7 @@ def locate_metric_files(tool_dirs=TOOL_DIRS):
             continue
         for config_dir in sorted(p for p in results_dir.iterdir() if p.is_dir()):
             for metrics_path in config_dir.rglob("solution_metrics.json"):
-                metric_files.append((tool_dir.name, config_dir.name, metrics_path))
+                metric_files.append((label, config_dir.name, metrics_path))
     return metric_files
 
 
