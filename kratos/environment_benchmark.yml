@@ -4,7 +4,6 @@ channels:
   - bioconda
 dependencies:
   - snakemake
-  - pip
   - pip:
-      - semantic-benchmark
+      - semantic-benchmark<=0.1.6
       - "git+https://github.com/izus-fokus/snakemake-report-plugin-metadata4ing@v2.0.2#egg=snakemake-report-plugin-metadata4ing"
