@@ -4,7 +4,6 @@ channels:
   - bioconda
 dependencies:
   - snakemake
-  - pip
   - pip:
-      - semantic-benchmark
+      - "git+https://github.com/Simulation-Benchmarks/semantic-benchmark.git@9-providing-shacl-shapes-for-semantic-json-ld-file"
       - "git+https://github.com/izus-fokus/snakemake-report-plugin-metadata4ing@v2.0.4#egg=snakemake-report-plugin-metadata4ing"

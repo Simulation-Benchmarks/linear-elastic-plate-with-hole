@@ -1,0 +1,10 @@
+version: 2
+
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    allow:
+      - dependency-name: git+https://github.com/Simulation-Benchmarks/semantic-benchmark.git@9-providing-shacl-shapes-for-semantic-json-ld-file
+    versioning-strategy: widen
