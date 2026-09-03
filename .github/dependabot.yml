@@ -6,5 +6,5 @@ updates:
     schedule:
       interval: weekly
     allow:
-      - dependency-name: git+https://github.com/Simulation-Benchmarks/semantic-benchmark.git@9-providing-shacl-shapes-for-semantic-json-ld-file
+      - dependency-name: semantic-benchmark
     versioning-strategy: widen
