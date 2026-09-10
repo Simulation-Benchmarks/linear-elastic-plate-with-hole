@@ -1,5 +1,6 @@
-name: mesh-generation
-# Environment file for create_mesh.py script. Called by the main workflow.
+name: edelweissfe_preprocessing
+# Environment file for the mesh conversion and input generation scripts.
+# Called by the EdelweissFE tool workflow.
 
 channels:
   - conda-forge
@@ -8,5 +9,7 @@ channel_priority: strict
 
 dependencies:
   - python=3.12
+  - meshio
   - numpy
+  - pint
   - sympy

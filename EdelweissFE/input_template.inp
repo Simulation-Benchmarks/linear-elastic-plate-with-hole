@@ -1,9 +1,12 @@
-*job, name=test, domain=2d
+** Template for the EdelweissFE input file of the linear-elastic plate with hole
+** benchmark. The placeholders are substituted by create_edelweiss_input.py.
+
+*job, name=plate_with_hole, domain=2d
 
 *solver, solver=NISTParallel, name=theSolver
 
 *material, name=LINEARELASTIC, id=mat
-_E_, _NU_
+_YOUNGS_MODULUS_, _POISSONS_RATIO_
 
 *include, input="mesh.inp"
 
@@ -12,27 +15,21 @@ all
 
 *fieldOutput
 create=perNode, name=displacement, elSet=all, field=displacement, result=U
-create=perElement, name=stress, elSet=all, result=stress, quadraturePoint=0:4, f(x)='np.max(x,axis=1)'
-
-** create=perNode, name=RF,            nSet=x_min,  field=displacement, result=P, f(x)='sum(x[:,1])', saveHistory=True, export=RF
-
-***output, type=meshplot, name=RFPlot
-**figure=1, axSpec=111, c=k, ls=solid, create=xyData, x=time, y=RF
+create=perNode, name=reaction_force, elSet=all, field=displacement, result=P
+create=perElement, name=stress, elSet=all, result=stress, quadraturePoint=0:_N_QUADRATURE_POINTS_, f(x)='np.mean(x,axis=1)'
+** von Mises stress at the quadrature points, reduced to the element maximum
+create=perElement, name=von_mises_stress, elSet=all, result=stress, quadraturePoint=0:_N_QUADRATURE_POINTS_, f(x)='np.max(np.sqrt(0.5*((x[:,:,0]-x[:,:,1])**2+(x[:,:,1]-x[:,:,2])**2+(x[:,:,2]-x[:,:,0])**2)+3.0*(x[:,:,3]**2+x[:,:,4]**2+x[:,:,5]**2)),axis=1)'
 
 *output, type=ensight, name=esExport
-create=perNode,     fieldOutput=displacement
-create=perElement,  fieldOutput=stress
+create=perNode, fieldOutput=displacement
+create=perNode, fieldOutput=reaction_force
+create=perElement, fieldOutput=stress
+create=perElement, fieldOutput=von_mises_stress
 configuration, overwrite=yes
 
-*include, input="boundaryFields.inp"
-
+** Symmetry conditions on the left (x = 0) and bottom (y = 0) boundary, and the
+** analytical traction on the right (x = l) and top (y = l) boundary.
 *step, maxInc=1e-0, minInc=1e-3, maxNumInc=1000, maxIter=25, stepLength=1, solver=theSolver
-dirichlet, name=xmin, nSet=X_MIN, field=displacement, 1=0.
-dirichlet, name=ymin, nSet=Y_MIN, field=displacement, 2=0.
-
-*step, maxInc=1e-0, minInc=1e-3, maxNumInc=1000, maxIter=25, stepLength=1, solver=theSolver
-dirichlet, name=xmax_1, nSet=X_MAX, field=displacement, 1=1, analyticalField=ux
-dirichlet, name=xmax_2, nSet=X_MAX, field=displacement, 2=1, analyticalField=uy
-dirichlet, name=ymax_1, nSet=Y_MAX, field=displacement, 1=1, analyticalField=ux
-dirichlet, name=ymax_2, nSet=Y_MAX, field=displacement, 2=1, analyticalField=uy
-
+dirichlet, name=x_min, nSet=X_MIN, field=displacement, 1=0.
+dirichlet, name=y_min, nSet=Y_MIN, field=displacement, 2=0.
+*include, input="neumannLoads.inp"

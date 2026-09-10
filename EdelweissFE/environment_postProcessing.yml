@@ -1,5 +1,5 @@
-name: mesh-generation
-# Environment file for create_mesh.py script. Called by the main workflow.
+name: edelweissfe_postprocessing
+# Environment file for create_metrics.py. Called by the EdelweissFE tool workflow.
 
 channels:
   - conda-forge
@@ -8,4 +8,7 @@ channel_priority: strict
 
 dependencies:
   - python=3.12
+  - numpy
+  - pint
   - pyvista
+  - sympy
