@@ -43,12 +43,6 @@ def parse_arguments() -> Namespace:
         help="Path to the semantic benchmark JSON-LD file.",
     )
     parser.add_argument(
-        "--benchmark-zip",
-        type=Path,
-        required=True,
-        help="Path to the zipped benchmark archive to extract.",
-    )
-    parser.add_argument(
         "--result-path",
         type=Path,
         required=True,
@@ -141,7 +135,7 @@ def run_benchmark(args: Namespace) -> None:
         args.benchmark_file,
         BENCHMARK_DIR,
         UNIT_SYMBOLS,
-        archive=args.benchmark_zip,
+        resource_dir=args.benchmark_file.parent,
         shared_directories=("conda_envs",),
         strict_units=True,
     )
