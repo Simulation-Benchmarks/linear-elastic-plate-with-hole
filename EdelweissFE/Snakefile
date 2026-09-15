@@ -1,0 +1,100 @@
+import os
+
+# Container image providing EdelweissFE and its Marmot element and material
+# libraries. Snakemake pulls it into the shared apptainer prefix.
+EDELWEISSFE_CONTAINER = "https://github.com/Edelweiss-Numerics/EdelweissFE-Apptainer/releases/download/v26.03/edelweissfe-debian-13.sif"
+
+# Snakemake stores the configuration file as an absolute path. The provenance
+# reporter can only put files below the working directory into the RO-Crate, so
+# refer to the configuration relatively to keep it part of the provenance.
+PARAMETERS = os.path.relpath(workflow.configfiles[0])
+
+rule all:
+    input:
+        "solution_metrics.json",
+        "solution_field_data.zip"
+
+rule create_mesh:
+    input:
+        script = "create_quad_mesh.py",
+        parameters = PARAMETERS,
+    output:
+        mesh = "mesh.msh",
+    conda: "environment_mesh.yml"
+    shell:
+        """
+        python3 {input.script} \
+            --input_parameter_file {input.parameters} \
+            --output_mesh_file {output.mesh}
+        """
+
+rule convert_mesh:
+    input:
+        script = "convert_mesh.py",
+        parameters = PARAMETERS,
+        mesh = "mesh.msh",
+    output:
+        mesh = "mesh.inp",
+        neumann_faces = "neumann_faces.json",
+    conda: "environment_preProcessing.yml"
+    shell:
+        """
+        python3 {input.script} \
+            --input_parameter_file {input.parameters} \
+            --input_mesh_file {input.mesh} \
+            --output_mesh_file {output.mesh} \
+            --output_neumann_faces_file {output.neumann_faces}
+        """
+
+rule create_simulation_input:
+    input:
+        script = "create_edelweiss_input.py",
+        parameters = PARAMETERS,
+        template = "input_template.inp",
+        neumann_faces = "neumann_faces.json",
+        analytical_solution = "analytical_solution.py",
+    output:
+        input_file = "input.inp",
+        neumann_loads = "neumannLoads.inp",
+    conda: "environment_preProcessing.yml"
+    shell:
+        """
+        python3 {input.script} \
+            --input_parameter_file {input.parameters} \
+            --input_template_file {input.template} \
+            --input_neumann_faces_file {input.neumann_faces} \
+            --output_input_file {output.input_file} \
+            --output_neumann_loads_file {output.neumann_loads}
+        """
+
+rule run_simulation:
+    input:
+        input_file = "input.inp",
+        mesh = "mesh.inp",
+        neumann_loads = "neumannLoads.inp",
+    output:
+        case = "esExport.case",
+    container: EDELWEISSFE_CONTAINER
+    shell:
+        """
+        edelweissfe {input.input_file}
+        """
+
+rule create_metrics:
+    input:
+        script = "create_metrics.py",
+        parameters = PARAMETERS,
+        case = "esExport.case",
+        analytical_solution = "analytical_solution.py",
+    output:
+        metrics = "solution_metrics.json",
+        zip = "solution_field_data.zip",
+    conda: "environment_postProcessing.yml"
+    shell:
+        """
+        python3 {input.script} \
+            --input_parameter_file {input.parameters} \
+            --input_case_file {input.case} \
+            --output_metrics_file {output.metrics} \
+            --output_solution_file_zip {output.zip}
+        """
