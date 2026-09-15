@@ -1,2 +1,3 @@
 pandas
 matplotlib
+git+https://github.com/Simulation-Benchmarks/semantic-benchmark@14-changing-the-benchmark-zip-archive-structure

@@ -2,7 +2,7 @@
 Download benchmark resources from a RoHub research object.
 
 The module authenticates with RoHub, loads a research object by UUID, selects
-the semantic benchmark resource by name from the RO's resource listing, and
+the semantic benchmark resource by RoHub type from the RO's resource listing, and
 downloads it to a filename provided by the user.
 """
 

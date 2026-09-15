@@ -30,11 +30,7 @@ Each implementation varies the element size and the isoparametric element degree
 
 ## Shared Benchmark Package
 
-Reusable semantic benchmark, RO-Crate, and RoHub helpers are provided by the external Python package `semantic-benchmark`. The environment files and `requirements.txt` install it directly from:
-
-```text
-git+https://github.com/Simulation-Benchmarks/semantic-benchmark.git
-```
+Reusable semantic benchmark, RO-Crate, and RoHub helpers are provided by the external Python package `semantic-benchmark`.
 
 The local `provenance/` scripts keep repository-specific configuration and command-line entrypoints for this plate-with-hole benchmark.
 
