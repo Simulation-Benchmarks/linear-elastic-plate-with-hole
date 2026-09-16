@@ -5,5 +5,5 @@ channels:
 dependencies:
   - snakemake
   - pip:
-      - "git+https://github.com/Simulation-Benchmarks/semantic-benchmark@14-changing-the-benchmark-zip-archive-structure"
+      - semantic-benchmark<=0.2.1
       - "git+https://github.com/izus-fokus/snakemake-report-plugin-metadata4ing@v2.0.4#egg=snakemake-report-plugin-metadata4ing"
