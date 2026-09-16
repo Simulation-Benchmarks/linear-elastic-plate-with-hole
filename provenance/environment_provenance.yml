@@ -1,5 +1,5 @@
 name: provenance
-# Environment file for provenance scripts. Called by provenance step.
+# Environment for uploading provenance RO-Crates to RoHub.
 
 channels:
   - conda-forge
@@ -8,7 +8,6 @@ channel_priority: strict
 
 dependencies:
   - python=3.10
-  - rdflib
-  - matplotlib
-  - pandas
   - pip
+  - pip:
+      - git+https://github.com/Simulation-Benchmarks/semantic-benchmark@14-changing-the-benchmark-zip-archive-structure
