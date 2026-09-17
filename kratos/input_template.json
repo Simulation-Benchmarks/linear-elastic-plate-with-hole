@@ -71,43 +71,33 @@
                 }
             }
         ],
-        "loads_process_list": [
+        "loads_process_list": [],
+        "list_other_processes": [
             {
-                "python_module": "assign_vector_variable_to_conditions_process",
-                "kratos_module": "KratosMultiphysics",
+                "python_module": "consistent_traction_process",
                 "Parameters": {
                     "model_part_name": "Structure.boundary_right",
-                    "variable_name": "LINE_LOAD",
-                    "value": [
-                        "{{BOUNDARY_RIGHT_TRACTION_X}}",
-                        "{{BOUNDARY_RIGHT_TRACTION_Y}}",
-                        0.0
-                    ],
-                    "interval": [
-                        0.0,
-                        "End"
-                    ]
+                    "normal": [1.0, 0.0],
+                    "youngs_modulus[Pa]": {{YOUNG_MODULUS}},
+                    "poissons_ratio": {{POISSON_RATIO}},
+                    "radius[m]": {{RADIUS}},
+                    "length[m]": {{LENGTH}},
+                    "load[Pa]": {{LOAD}}
                 }
             },
             {
-                "python_module": "assign_vector_variable_to_conditions_process",
-                "kratos_module": "KratosMultiphysics",
+                "python_module": "consistent_traction_process",
                 "Parameters": {
                     "model_part_name": "Structure.boundary_top",
-                    "variable_name": "LINE_LOAD",
-                    "value": [
-                        "{{BOUNDARY_TOP_TRACTION_X}}",
-                        "{{BOUNDARY_TOP_TRACTION_Y}}",
-                        0.0
-                    ],
-                    "interval": [
-                        0.0,
-                        "End"
-                    ]
+                    "normal": [0.0, 1.0],
+                    "youngs_modulus[Pa]": {{YOUNG_MODULUS}},
+                    "poissons_ratio": {{POISSON_RATIO}},
+                    "radius[m]": {{RADIUS}},
+                    "length[m]": {{LENGTH}},
+                    "load[Pa]": {{LOAD}}
                 }
             }
-        ],
-        "list_other_processes": []
+        ]
     },
     "output_processes": {
         "vtk_output": [
