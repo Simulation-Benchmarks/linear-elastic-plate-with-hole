@@ -7,4 +7,3 @@ updates:
       interval: weekly
     allow:
       - dependency-name: semantic-benchmark
-    versioning-strategy: widen
