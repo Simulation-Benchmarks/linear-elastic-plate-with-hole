@@ -3,3 +3,9 @@ fenics/__pycache__/
 provenance/__pycache__/
 benchmark_runner/__pycache__/
 notebooks/benchmark-results.ipynb
+EdelweissFE/__pycache__/
+EdelweissFE/apptainer_envs/
+EdelweissFE/conda_envs/
+EdelweissFE/results/
+*.sif
+*.simg
