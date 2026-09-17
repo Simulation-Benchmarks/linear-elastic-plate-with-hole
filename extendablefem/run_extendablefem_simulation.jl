@@ -1,4 +1,4 @@
-using JSON
+using JSON, StructUtils
 using Fire
 using Gmsh
 using ExtendableGrids
@@ -18,8 +18,14 @@ struct PlateConfig
     element_order::Int64
 end
 
-struct Metrics
-    max_von_mises_stress::Float64
+@tags struct Metrics
+    ndofs::Int64 & (json = (name = "numer_of_dofs[-]",),)
+    max_von_mises_stress::Float64 & (json = (name = "max_von_mises_stress[Pa]",),)
+    L2_error::Float64 & (json = (name = "l2_error_displacement[m]",),)
+    max_displacement_error::Float64 & (json = (name = "max_displacement_error[m]",),)
+    reaction_force_left_boundary_x::Float64 & (json = (name = "reaction_force_left_boundary_x[N]",),)
+    reaction_force_left_boundary_y::Float64 & (json = (name = "reaction_force_left_boundary_y[N]",),)
+    displacement_top_right_corner::Tuple{Float64, Float64} & (json = (name = "displacement_top_right_corner[m]",),)
 end
 
 #function value_with_unit(json::JSON.Object{String,Any})
@@ -105,6 +111,14 @@ function vonMises!(result, ∇u, qpinfo)
     return nothing
 end
 
+function reaction_force_kernel!(result,∇u,qpinfo)
+    sig = zeros(4)
+    sigma!(sig,∇u,qpinfo)
+    σ = tensor_view(sig,1,TDMatrix(2))
+    traction = σ*qpinfo.normal
+    result .= traction
+    return nothing
+end
 
 function u_ex_kernel!(result, qpinfo)
     x = qpinfo.x[1]
@@ -140,6 +154,12 @@ end
 function exact_error!(result, u, qpinfo)
     u_ex_kernel!(result, qpinfo)
     result .-= u
+    return nothing
+end
+
+function exact_squared_error!(result, u, qpinfo)
+    u_ex_kernel!(result, qpinfo)
+    result .-= u
     result .= result .^ 2
     return nothing
 end
@@ -173,17 +193,40 @@ function solve_plate_with_hole(config::PlateConfig, grid::ExtendableGrid, output
     uex_mag = sqrt.(u_exx .* u_exx .+ u_exy .* u_exy)
 
 
-    ErrorIntegrationExact = ItemIntegrator(exact_error!, [id(u)]; quadorder = 8, params = [config.radius, config.F, config.E, config.ν])
-
-    error = evaluate(ErrorIntegrationExact, sol)
-
-    L2error = sqrt(sum(error))
+    SquaredErrorIntegrationExact = ItemIntegrator(exact_squared_error!, [id(u)]; quadorder = 8, params = [config.radius, config.F, config.E, config.ν])
+    squared_error = evaluate(SquaredErrorIntegrationExact, sol)
+    L2error = sqrt(sum(squared_error))
 
     vonMisesIntegration = ItemIntegrator(vonMises!, [grad(u)]; quadorder = 3, params = [config.E, config.ν])
     vonMises_stresses = evaluate(vonMisesIntegration, sol)
 
+    max_displacement_error = maximum(
+        [maximum(abs.(u_x - u_exx)), maximum(abs.(u_y - u_exy))]
+    )
 
-    metrics = Metrics(maximum(vonMises_stresses))
+    reaction_force_left_boundary = [0.,0.]
+    
+    LeftBoundaryTractionIntegrator = ItemIntegratorDG(reaction_force_kernel!, [grad(u)];resultdim=2,entities = ON_BFACES, regions= [1],params = [config.E, config.ν])
+    rflb = evaluate(LeftBoundaryTractionIntegrator,sol)
+
+    reaction_force_left_boundary[1] = sum(rflb[1,:])
+    reaction_force_left_boundary[2] = sum(rflb[2,:])
+    
+    displacement_top_right_corner = [0.0, 0.0]
+
+    evaluate!(displacement_top_right_corner,PointEvaluator([id(u)],sol),[config.length,config.length])
+        
+    metrics = Metrics(
+        FES.ndofs,
+        maximum(vonMises_stresses),
+        L2error,
+        max_displacement_error,
+        reaction_force_left_boundary[1],
+        reaction_force_left_boundary[2],
+        (displacement_top_right_corner[1],displacement_top_right_corner[2])
+    )
+    
+    JSON.json(outputmetrics, metrics; pretty = true)
 
     outputvtk = "results_" * config.id * ".vtu" #splitdir(outputzip)[1]*"/results_"*config.id*".vtu";
     writeVTK(outputvtk, grid; compress = false, u_x = u_x, u_y = u_y, u_mag = u_mag, uexx = u_exx, uexy = u_exy, uex = uex_mag)
@@ -193,7 +236,6 @@ function solve_plate_with_hole(config::PlateConfig, grid::ExtendableGrid, output
         zip_newfile(w, "result_" * config.id * ".vtu"; compress = true)
         write(w, vtkcontent)
     end
-    JSON.json(outputmetrics, metrics; pretty = true)
     return nothing
 end
 
