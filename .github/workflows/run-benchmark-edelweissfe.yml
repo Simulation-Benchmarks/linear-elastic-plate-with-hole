@@ -38,7 +38,7 @@ env:
 
 jobs:
   run-examples:
-    name: EdelweissFE
+    name: edelweissFE
     runs-on: ubuntu-latest
 
     steps:
