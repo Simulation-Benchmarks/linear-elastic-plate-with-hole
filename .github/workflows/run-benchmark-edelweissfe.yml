@@ -32,7 +32,7 @@ env:
 
 jobs:
   run-examples:
-    name: edelweissFE
+    name: EdelweissFE
     runs-on: ubuntu-latest
 
     steps:
@@ -81,7 +81,6 @@ jobs:
           cd "$GITHUB_WORKSPACE/${TOOL}/"
           conda run -n "${CONDA_ENV}" python run_benchmark.py \
             --benchmark-file "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}" \
-            --benchmark-zip "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_ZIP}" \
             --rocrate-name "${TOOL}_rocrate.zip" \
             --result-path "${GITHUB_WORKSPACE}/${TOOL}/results" \
             --crate-license "${ROCRATE_LICENSE}" \
