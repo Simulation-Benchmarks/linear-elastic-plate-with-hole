@@ -145,7 +145,6 @@ def run_benchmark(args: Namespace) -> None:
         args.benchmark_file,
         BENCHMARK_DIR,
         UNIT_SYMBOLS,
-        archive=args.benchmark_zip,
         shared_directories=("conda_envs", "apptainer_envs"),
         strict_units=True,
     )
