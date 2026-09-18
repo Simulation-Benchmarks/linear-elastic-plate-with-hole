@@ -1,6 +1,7 @@
 """Run the Kratos benchmark for each semantic benchmark configuration."""
 
 import argparse
+import json
 import logging
 import subprocess
 from argparse import Namespace
@@ -142,7 +143,17 @@ def run_benchmark(args: Namespace) -> None:
     shared_env_dir = BENCHMARK_DIR / "conda_envs"
 
     for parameter_file in sorted(BENCHMARK_DIR.glob("parameters_*.json")):
-        run_configuration(parameter_file, BENCHMARK_DIR, shared_env_dir)
+        with open(parameter_file) as f:
+            parameters = json.load(f)
+            cell_type = parameters.get("cell_type")
+            if cell_type == "triangle":
+                run_configuration(parameter_file, BENCHMARK_DIR, shared_env_dir)
+            else:
+                LOGGER.info(
+                    "Skipping configuration %s with cell_type '%s'.",
+                    parameter_file.name,
+                    cell_type,
+                )
 
     rocrate_path = args.result_path / args.rocrate_name
     runner.create_aggregate_rocrate(

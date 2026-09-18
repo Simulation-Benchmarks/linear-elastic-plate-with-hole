@@ -127,16 +127,7 @@
       ],
       "has parameter set": [
         {
-          "@id": "local:configuration_1_1"
-        },
-        {
-          "@id": "local:configuration_1_003125"
-        },
-        {
-          "@id": "local:configuration_2_1"
-        },
-        {
-          "@id": "local:configuration_2_003125"
+          "@id": "local:configuration_all"
         }
       ],
       "describedAsDocumentedBy": {
@@ -418,16 +409,7 @@
       ],
       "has configuration": [
         {
-          "@id": "local:configuration_1_1"
-        },
-        {
-          "@id": "local:configuration_1_003125"
-        },
-        {
-          "@id": "local:configuration_2_1"
-        },
-        {
-          "@id": "local:configuration_2_003125"
+          "@id": "local:configuration_all"
         }
       ]
     },
@@ -537,28 +519,28 @@
       }
     },
     {
-      "@id": "local:variable_element_size_1",
+      "@id": "local:variable_element_size",
       "label": "element_size",
-      "has numerical value": 0.1,
+      "has numerical value": [0.1, 0.003125],
       "has unit": {
         "@id": "unit:M"
       }
     },
     {
-      "@id": "local:field_element_size_1",
+      "@id": "local:field_element_size",
       "@type": "Field",
       "dataType": {
         "@id": "schema:Float"
       },
       "represents": {
-        "@id": "local:variable_element_size_1"
+        "@id": "local:variable_element_size"
       },
       "source": {
-        "@id": "local:source_element_size_1"
+        "@id": "local:source_element_size"
       }
     },
     {
-      "@id": "local:source_element_size_1",
+      "@id": "local:source_element_size",
       "@type": "cr:DataSource",
       "extract": {
         "jsonPath": "/element_size[m]"
@@ -568,84 +550,25 @@
       }
     },
     {
-      "@id": "local:variable_element_size_003125",
-      "label": "element_size",
-      "has numerical value": 0.003125,
-      "has unit": {
-        "@id": "unit:M"
-      }
-    },
-    {
-      "@id": "local:field_element_size_003125",
-      "@type": "Field",
-      "dataType": {
-        "@id": "schema:Float"
-      },
-      "represents": {
-        "@id": "local:variable_element_size_003125"
-      },
-      "source": {
-        "@id": "local:source_element_size_003125"
-      }
-    },
-    {
-      "@id": "local:source_element_size_003125",
-      "@type": "cr:DataSource",
-      "extract": {
-        "jsonPath": "/element_size[m]"
-      },
-      "file object": {
-        "@id": "local:parameter_file_object"
-      }
-    },
-    {
-      "@id": "local:variable_isoparametric_element_degree_1",
+      "@id": "local:variable_isoparametric_element_degree",
       "label": "isoparametric_element_degree",
-      "has numerical value": 1
+      "has numerical value": [1, 2]
     },
     {
-      "@id": "local:field_isoparametric_element_degree_1",
+      "@id": "local:field_isoparametric_element_degree",
       "@type": "Field",
       "dataType": {
         "@id": "schema:Integer"
       },
       "represents": {
-        "@id": "local:variable_isoparametric_element_degree_1"
+        "@id": "local:variable_isoparametric_element_degree"
       },
       "source": {
-        "@id": "local:source_isoparametric_element_degree_1"
+        "@id": "local:source_isoparametric_element_degree"
       }
     },
     {
-      "@id": "local:source_isoparametric_element_degree_1",
-      "@type": "cr:DataSource",
-      "extract": {
-        "jsonPath": "/isoparametric_element_degree"
-      },
-      "file object": {
-        "@id": "local:parameter_file_object"
-      }
-    },
-    {
-      "@id": "local:variable_isoparametric_element_degree_2",
-      "label": "isoparametric_element_degree",
-      "has numerical value": 2
-    },
-    {
-      "@id": "local:field_isoparametric_element_degree_2",
-      "@type": "Field",
-      "dataType": {
-        "@id": "schema:Integer"
-      },
-      "represents": {
-        "@id": "local:variable_isoparametric_element_degree_2"
-      },
-      "source": {
-        "@id": "local:source_isoparametric_element_degree_2"
-      }
-    },
-    {
-      "@id": "local:source_isoparametric_element_degree_2",
+      "@id": "local:source_isoparametric_element_degree",
       "@type": "cr:DataSource",
       "extract": {
         "jsonPath": "/isoparametric_element_degree"
@@ -657,7 +580,7 @@
     {
       "@id": "local:variable_cell_type",
       "label": "cell_type",
-      "has string value": "triangle"
+      "has string value": ["triangle", "quadrilateral"]
     },
     {
       "@id": "local:field_cell_type",
@@ -742,9 +665,9 @@
       }
     },
     {
-      "@id": "local:configuration_1_1",
+      "@id": "local:configuration_all",
       "@type": "m4i:ParameterSet",
-      "label": "Element Size 1, Isoparametric Element Degree 1",
+      "label": "Element Size 0.003125 and 1, Isoparametric Element Degree 1 and 2",
       "identifier": "1_1",
       "has part": [
         {
@@ -757,106 +680,10 @@
           "@id": "local:variable_load"
         },
         {
-          "@id": "local:variable_element_size_1"
+          "@id": "local:variable_element_size"
         },
         {
-          "@id": "local:variable_isoparametric_element_degree_1"
-        },
-        {
-          "@id": "local:variable_cell_type"
-        },
-        {
-          "@id": "local:variable_youngs_modulus"
-        },
-        {
-          "@id": "local:variable_poissons_ratio"
-        }
-      ]
-    },
-    {
-      "@id": "local:configuration_1_003125",
-      "@type": "m4i:ParameterSet",
-      "label": "Element Size 003125, Isoparametric Element Degree 1",
-      "identifier": "1_003125",
-      "has part": [
-        {
-          "@id": "local:variable_radius"
-        },
-        {
-          "@id": "local:variable_length"
-        },
-        {
-          "@id": "local:variable_load"
-        },
-        {
-          "@id": "local:variable_element_size_003125"
-        },
-        {
-          "@id": "local:variable_isoparametric_element_degree_1"
-        },
-        {
-          "@id": "local:variable_cell_type"
-        },
-        {
-          "@id": "local:variable_youngs_modulus"
-        },
-        {
-          "@id": "local:variable_poissons_ratio"
-        }
-      ]
-    },
-    {
-      "@id": "local:configuration_2_1",
-      "@type": "m4i:ParameterSet",
-      "label": "Element Size 1, Isoparametric Element Degree 2",
-      "identifier": "2_1",
-      "has part": [
-        {
-          "@id": "local:variable_radius"
-        },
-        {
-          "@id": "local:variable_length"
-        },
-        {
-          "@id": "local:variable_load"
-        },
-        {
-          "@id": "local:variable_element_size_1"
-        },
-        {
-          "@id": "local:variable_isoparametric_element_degree_2"
-        },
-        {
-          "@id": "local:variable_cell_type"
-        },
-        {
-          "@id": "local:variable_youngs_modulus"
-        },
-        {
-          "@id": "local:variable_poissons_ratio"
-        }
-      ]
-    },
-    {
-      "@id": "local:configuration_2_003125",
-      "@type": "m4i:ParameterSet",
-      "label": "Element Size 003125, Isoparametric Element Degree 2",
-      "identifier": "2_003125",
-      "has part": [
-        {
-          "@id": "local:variable_radius"
-        },
-        {
-          "@id": "local:variable_length"
-        },
-        {
-          "@id": "local:variable_load"
-        },
-        {
-          "@id": "local:variable_element_size_003125"
-        },
-        {
-          "@id": "local:variable_isoparametric_element_degree_2"
+          "@id": "local:variable_isoparametric_element_degree"
         },
         {
           "@id": "local:variable_cell_type"
