@@ -44,12 +44,6 @@ def parse_arguments() -> Namespace:
         help="Path to the semantic benchmark JSON-LD file.",
     )
     parser.add_argument(
-        "--benchmark-zip",
-        type=Path,
-        required=True,
-        help="Path to the zipped benchmark archive to extract.",
-    )
-    parser.add_argument(
         "--result-path",
         type=Path,
         required=True,
