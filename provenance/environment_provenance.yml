@@ -10,4 +10,4 @@ dependencies:
   - python=3.10
   - pip
   - pip:
-      - semantic-benchmark<=0.2.1
+      - semantic-benchmark<=0.3.0
