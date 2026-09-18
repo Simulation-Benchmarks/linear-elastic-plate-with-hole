@@ -101,7 +101,7 @@ jobs:
 
   run-edelweissFE:
     needs: prepare-benchmark
-    uses: ./.github/workflows/run-benchmark-edelweissFE.yml
+    uses: ./.github/workflows/run-benchmark-edelweissfe.yml
     with:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       benchmark_file: downloaded-benchmark/benchmark.json
