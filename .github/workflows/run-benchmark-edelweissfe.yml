@@ -30,7 +30,7 @@ env:
   EXAMPLE_BENCHMARK_FILE: ${{ inputs.benchmark_file || 'benchmark/1.0.0/minimal-configurations.json' }}
   EXAMPLE_BENCHMARK_ZIP: ${{ inputs.benchmark_zip || 'benchmark/1.0.0/linear-elastic-plate-with-hole.zip' }}
   BRANCH_NAME: ${{ inputs.checkout_ref || github.head_ref || github.ref_name }}
-  TOOL: EdelweissFE
+  TOOL: edelweissFE
   CONDA_ENV: edelweissfe-model-validation
   ROCRATE_LICENSE: https://opensource.org/licenses/MIT
   ROCRATE_NAME: linear-elastic-plate-with-hole provenance (EdelweissFE)
