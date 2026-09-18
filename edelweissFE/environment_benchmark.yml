@@ -1,4 +1,4 @@
-name: extendablefem-model-validation
+name: edelweissfe-model-validation
 channels:
   - conda-forge
   - bioconda
