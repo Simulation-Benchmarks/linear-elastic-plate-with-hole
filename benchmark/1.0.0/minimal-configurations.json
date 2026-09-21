@@ -677,7 +677,7 @@
     {
       "@id": "local:configuration_all",
       "@type": "m4i:ParameterSet",
-      "label": "Element Sizes: [0.1, 0.003125], Isoparametric Element Degree: [1, 2]",
+      "label": "Element Sizes: [0.1, 0.003125],  Isoparametric Element Degree: [1, 2]",
       "identifier": "all",
       "has part": [
         {
