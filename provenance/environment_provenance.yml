@@ -10,4 +10,4 @@ dependencies:
   - python=3.10
   - pip
   - pip:
-      - "git+https://github.com/Simulation-Benchmarks/semantic-benchmark@20-handling-unitless-symbols"
+      - semantic-benchmark<=0.3.2
