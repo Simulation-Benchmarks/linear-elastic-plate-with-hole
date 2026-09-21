@@ -160,21 +160,20 @@ def run_benchmark(args: Namespace) -> None:
         # recombines the mesh into quadrilaterals regardless of the requested
         # cell type. See the README for the consequences.
         cell_type = parameters.get("cell_type")
-        if cell_type != "quadrilateral":
-            LOGGER.warning(
-                "Configuration %s requests cell_type '%s'; EdelweissFE provides "
-                "quadrilateral plane elements only and the mesh is recombined "
-                "accordingly.",
-                parameters["configuration"],
-                cell_type,
+        if cell_type == "quadrilateral":
+            run_configuration(
+                parameter_file,
+                BENCHMARK_DIR,
+                shared_env_dir_conda,
+                shared_env_dir_apptainer,
             )
-
-        run_configuration(
-            parameter_file,
-            BENCHMARK_DIR,
-            shared_env_dir_conda,
-            shared_env_dir_apptainer,
-        )
+            
+        else:
+            LOGGER.info(
+                "Skipping configuration %s with cell_type '%s'.",
+                parameter_file.name,
+                cell_type,
+            )  
 
     rocrate_path = args.result_path / args.rocrate_name
     runner.create_aggregate_rocrate(
