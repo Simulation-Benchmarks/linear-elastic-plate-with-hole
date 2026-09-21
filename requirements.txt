@@ -1,3 +1,3 @@
 pandas
 matplotlib
-semantic-benchmark<=0.3.0
+semantic-benchmark<=0.3.2
