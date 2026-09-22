@@ -18,10 +18,12 @@ rule create_mesh:
     input:
         script = "create_mesh.py",
         parameters = PARAMETERS,
-    params:
-        element_category = "serendipity",
     output:
         mesh = "mesh.msh",
+    params:
+        # Marmot registers no nine-node Lagrange quadrilateral, so the shared
+        # mesh script has to emit the eight-node serendipity element CPS8R.
+        element_category = "serendipity",
     conda: "environment_mesh.yml"
     shell:
         """

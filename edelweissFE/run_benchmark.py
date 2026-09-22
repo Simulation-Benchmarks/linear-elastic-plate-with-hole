@@ -156,21 +156,23 @@ def run_benchmark(args: Namespace) -> None:
         with open(parameter_file) as f:
             parameters = json.load(f)
 
+        # EdelweissFE has no triangular plane element, so only the
+        # quadrilateral configurations of the benchmark can be run.
         cell_type = parameters.get("cell_type")
-        if cell_type == "quadrilateral":
-            run_configuration(
-                parameter_file,
-                BENCHMARK_DIR,
-                shared_env_dir_conda,
-                shared_env_dir_apptainer,
-            )
-            
-        else:
+        if cell_type != "quadrilateral":
             LOGGER.info(
                 "Skipping configuration %s with cell_type '%s'.",
-                parameter_file.name,
+                parameters["configuration"],
                 cell_type,
-            )  
+            )
+            continue
+
+        run_configuration(
+            parameter_file,
+            BENCHMARK_DIR,
+            shared_env_dir_conda,
+            shared_env_dir_apptainer,
+        )
 
     rocrate_path = args.result_path / args.rocrate_name
     runner.create_aggregate_rocrate(
