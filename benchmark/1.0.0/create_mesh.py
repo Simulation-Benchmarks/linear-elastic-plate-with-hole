@@ -1,6 +1,5 @@
 import json
 from argparse import ArgumentParser
-import os
 
 import gmsh
 from pint import UnitRegistry
@@ -8,7 +7,7 @@ from pint import UnitRegistry
 ureg = UnitRegistry()
 
 
-def create_mesh(parameter_file, mesh_file):
+def create_mesh(parameter_file, element_category, mesh_file):
     # Load parameters
     with open(parameter_file) as f:
         parameters = json.load(f)
@@ -57,6 +56,11 @@ def create_mesh(parameter_file, mesh_file):
             f"Unsupported cell_type '{cell_type}'. Use one of: triangle, quadrilateral."
         )
 
+    if element_category not in ("lagrange", "serendipity"):
+        raise ValueError(
+            f"Unsupported element_category '{element_category}'. Use one of: lagrange, serendipity."
+        )
+
     z = 0.0
     lc = 1.0
 
@@ -86,6 +90,17 @@ def create_mesh(parameter_file, mesh_file):
     if cell_type == "quadrilateral":
         # Recombine triangular facets into quadrilateral elements on this surface.
         gmsh.model.geo.mesh.setRecombine(2, plane)
+        # Frontal-Delaunay for quads plus full-quad recombination, so that no
+        # triangle survives anywhere in the domain.
+        gmsh.option.setNumber("Mesh.Algorithm", 8)
+        gmsh.option.setNumber("Mesh.RecombineAll", 1)
+        gmsh.option.setNumber("Mesh.RecombinationAlgorithm", 2)
+        
+        # Drop the interior node of the complete nine-node second-order quad,
+        # yielding the eight-node serendipity element
+        if parameters["isoparametric_element_degree"] == 2 and element_category == "serendipity":
+            gmsh.option.setNumber("Mesh.SecondOrderIncomplete", 1)
+    
 
     gmsh.model.geo.synchronize()
     gmsh.model.geo.removeAllDuplicates()
@@ -103,6 +118,7 @@ def create_mesh(parameter_file, mesh_file):
 if __name__ == "__main__":
     PARSER = ArgumentParser(description="Create input files and mesh for FEniCS simulation")
     PARSER.add_argument("--input_parameter_file", required=True, help="JSON file containing simulation parameters")
+    PARSER.add_argument("--element_category", default="lagrange", type=str, help="Either a lagrange or a serendipity element (default: lagrange)")
     PARSER.add_argument("--output_mesh_file", required=True, help="Output path for the generated mesh (.msh)")
     ARGS = vars(PARSER.parse_args())
-    create_mesh(ARGS["input_parameter_file"], ARGS["output_mesh_file"])
+    create_mesh(ARGS["input_parameter_file"], ARGS["element_category"], ARGS["output_mesh_file"])

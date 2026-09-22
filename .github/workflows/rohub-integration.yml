@@ -99,12 +99,21 @@ jobs:
       benchmark_file: downloaded-benchmark/benchmark.json
       benchmark_artifact_name: downloaded-benchmark-resources
 
+  run-edelweissFE:
+    needs: prepare-benchmark
+    uses: ./.github/workflows/run-benchmark-edelweissfe.yml
+    with:
+      checkout_ref: ${{ inputs.branch || github.ref_name }}
+      benchmark_file: downloaded-benchmark/benchmark.json
+      benchmark_artifact_name: downloaded-benchmark-resources    
+
   upload-rocrates:
     runs-on: ubuntu-latest
     needs:
       - run-fenics
       - run-kratos
       - run-extendablefem
+      - run-edelweissFE
     strategy:
       fail-fast: false
       max-parallel: 1
@@ -119,6 +128,9 @@ jobs:
           - tool: extendablefem
             display_name: ExtendableFEM
             used_software_url: https://zbmath.org/software/53664
+          - tool: edelweissFE
+            display_name: EdelweissFE
+            used_software_url: https://zenodo.org/records/20496210
 
     steps:
       - name: Checkout repo content
