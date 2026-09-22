@@ -155,13 +155,20 @@ def run_benchmark(args: Namespace) -> None:
         with open(parameter_file, "r") as f:
             params = json.load(f)
 
-        if params.get("isoparametric_element_degree") == 1:
+        if params.get("isoparametric_element_degree") == 1 and params.get("cell_type") == "triangle":
             run_configuration(
                 parameter_file,
                 BENCHMARK_DIR,
                 shared_env_dir_conda,
                 shared_env_dir_apptainer,
             )
+        else:
+            LOGGER.info(
+                "Skipping configuration %s with isoparametric_element_degree '%s' and cell_type '%s'.",
+                parameter_file.name,
+                params.get("isoparametric_element_degree"),
+                params.get("cell_type"),
+            )    
 
     rocrate_path = args.result_path / args.rocrate_name
     runner.create_aggregate_rocrate(
