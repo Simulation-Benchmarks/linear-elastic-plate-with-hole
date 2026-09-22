@@ -18,6 +18,7 @@ rule create_mesh:
     input:
         script = "create_mesh.py",
         parameters = PARAMETERS,
+    params:
         element_category = "serendipity",
     output:
         mesh = "mesh.msh",
@@ -26,7 +27,7 @@ rule create_mesh:
         """
         python3 {input.script} \
             --input_parameter_file {input.parameters} \
-            --element_category {input.element_category} \
+            --element_category {params.element_category} \
             --output_mesh_file {output.mesh}
         """
 

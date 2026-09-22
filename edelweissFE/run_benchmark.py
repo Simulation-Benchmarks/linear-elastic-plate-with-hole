@@ -156,9 +156,6 @@ def run_benchmark(args: Namespace) -> None:
         with open(parameter_file) as f:
             parameters = json.load(f)
 
-        # EdelweissFE has no triangular plane element, so create_quad_mesh.py
-        # recombines the mesh into quadrilaterals regardless of the requested
-        # cell type. See the README for the consequences.
         cell_type = parameters.get("cell_type")
         if cell_type == "quadrilateral":
             run_configuration(

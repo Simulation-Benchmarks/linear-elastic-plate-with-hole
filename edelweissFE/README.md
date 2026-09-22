@@ -30,7 +30,7 @@ for the simulation rule, which Snakemake pulls into `apptainer_envs/`.
 
 | Rule | Script | Purpose |
 | ---- | ------ | ------- |
-| `create_mesh` | `create_quad_mesh.py` | quadrilateral gmsh mesh of the domain |
+| `create_mesh` | `create_mesh.py` | quadrilateral gmsh mesh of the domain |
 | `convert_mesh` | `convert_mesh.py` | Abaqus-like mesh include and the Neumann boundary faces |
 | `create_simulation_input` | `create_edelweiss_input.py` | input file and the traction loads |
 | `run_simulation` | -- | `edelweissfe input.inp` inside the container |
