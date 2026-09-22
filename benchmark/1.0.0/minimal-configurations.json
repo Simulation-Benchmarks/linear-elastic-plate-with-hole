@@ -585,7 +585,7 @@
       "has unit": {
         "@id": "unit:UNITLESS"
       },
-      "has string value": "triangle"
+       "has string value": ["triangle", "quadrilateral"]
     },
     {
       "@id": "local:field_cell_type",
