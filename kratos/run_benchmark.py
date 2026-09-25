@@ -3,6 +3,7 @@
 import argparse
 import json
 import logging
+import re
 import subprocess
 from argparse import Namespace
 from pathlib import Path
@@ -12,6 +13,7 @@ from semantic_benchmark import runner
 LOGGER = logging.getLogger(__name__)
 
 TOOL_NAME = "Kratos"
+SOFTWARE_URL = "https://zbmath.org/software/7804"
 BENCHMARK_DIR = Path(__file__).resolve().parent
 
 PROVENANCE_REPORT_NAME = "NFDI4Ing Provenance"
@@ -70,6 +72,11 @@ def parse_arguments() -> Namespace:
         default=DEFAULT_CRATE_DESCRIPTION,
         help="Description recorded in the generated aggregate RO-Crate.",
     )
+    parser.add_argument(
+        "--software-version",
+        required=True,
+        help="Exact simulation software version recorded in the aggregate RO-Crate.",
+    )
     return parser.parse_args()
 
 
@@ -115,10 +122,19 @@ def run_configuration(
     parameter_file: Path,
     benchmark_dir: Path,
     shared_env_dir: Path,
+    software_version: str,
 ) -> None:
     """Prepare and execute one benchmark configuration."""
     configuration, output_dir = runner.prepare_configuration(
         parameter_file, benchmark_dir
+    )
+    environment_file = output_dir / "environment_simulation.yml"
+    environment = environment_file.read_text()
+    unpinned = "    - KratosMultiphysics-all\n"
+    if environment.count(unpinned) != 1:
+        raise ValueError(f"Expected one unpinned KratosMultiphysics-all entry in {environment_file}")
+    environment_file.write_text(
+        environment.replace(unpinned, f"    - KratosMultiphysics-all=={software_version}\n")
     )
     run_snakemake_workflow(
         parameter_file,
@@ -132,6 +148,8 @@ def run_configuration(
 
 def run_benchmark(args: Namespace) -> None:
     """Run a complete Kratos benchmark workflow from parsed arguments."""
+    if not re.fullmatch(r"\d+(?:\.\d+)+", args.software_version):
+        raise ValueError("--software-version must be a dotted numeric version")
     benchmark = runner.prepare_benchmark(
         args.benchmark_file,
         BENCHMARK_DIR,
@@ -147,7 +165,9 @@ def run_benchmark(args: Namespace) -> None:
             parameters = json.load(f)
             cell_type = parameters.get("cell_type")
             if cell_type == "triangle":
-                run_configuration(parameter_file, BENCHMARK_DIR, shared_env_dir)
+                run_configuration(
+                    parameter_file, BENCHMARK_DIR, shared_env_dir, args.software_version
+                )
             else:
                 LOGGER.info(
                     "Skipping configuration %s with cell_type '%s'.",
@@ -161,6 +181,8 @@ def run_benchmark(args: Namespace) -> None:
         benchmark,
         rocrate_path,
         software_name=TOOL_NAME,
+        software_url=SOFTWARE_URL,
+        software_version=args.software_version,
         crate_license=args.crate_license,
         crate_name=args.crate_name,
         crate_description=args.crate_description,

@@ -3,6 +3,7 @@
 import argparse
 import json
 import logging
+import re
 import subprocess
 from argparse import Namespace
 from pathlib import Path
@@ -12,6 +13,7 @@ from semantic_benchmark import runner
 LOGGER = logging.getLogger(__name__)
 
 TOOL_NAME = "ExtendableFEM"
+SOFTWARE_URL = "https://zbmath.org/software/53664"
 BENCHMARK_DIR = Path(__file__).resolve().parent
 
 PROVENANCE_REPORT_NAME = "NFDI4Ing Provenance"
@@ -70,6 +72,11 @@ def parse_arguments() -> Namespace:
         default=DEFAULT_CRATE_DESCRIPTION,
         help="Description recorded in the generated aggregate RO-Crate.",
     )
+    parser.add_argument(
+        "--software-version",
+        required=True,
+        help="Exact simulation software version recorded in the aggregate RO-Crate.",
+    )
     return parser.parse_args()
 
 
@@ -77,6 +84,7 @@ def build_snakemake_command(
     parameter_file: Path,
     shared_env_dir_conda: Path,
     shared_env_dir_apptainer: Path,
+    software_version: str,
 ) -> list[str]:
     """Build the base Snakemake command for one configuration."""
     return [
@@ -91,6 +99,8 @@ def build_snakemake_command(
         str(shared_env_dir_apptainer),
         "--configfile",
         str(parameter_file),
+        "--config",
+        f"tool_version={software_version}",
     ]
 
 
@@ -100,10 +110,14 @@ def run_snakemake_workflow(
     output_dir: Path,
     shared_env_dir_conda: Path,
     shared_env_dir_apptainer: Path,
+    software_version: str,
 ) -> None:
     """Run the Snakemake workflow normally and then with provenance reporting."""
     base_cmd = build_snakemake_command(
-        parameter_file, shared_env_dir_conda, shared_env_dir_apptainer
+        parameter_file,
+        shared_env_dir_conda,
+        shared_env_dir_apptainer,
+        software_version,
     )
     reporter_args = runner.build_provenance_reporter_args(
         configuration,
@@ -122,6 +136,7 @@ def run_configuration(
     benchmark_dir: Path,
     shared_env_dir_conda: Path,
     shared_env_dir_apptainer: Path,
+    software_version: str,
 ) -> None:
     """Prepare and execute one benchmark configuration."""
     configuration, output_dir = runner.prepare_configuration(
@@ -133,6 +148,7 @@ def run_configuration(
         output_dir,
         shared_env_dir_conda,
         shared_env_dir_apptainer,
+        software_version,
     )
 
     LOGGER.info("Workflow executed successfully for configuration %s.", configuration)
@@ -140,6 +156,8 @@ def run_configuration(
 
 def run_benchmark(args: Namespace) -> None:
     """Run a complete ExtendableFEM benchmark workflow from parsed arguments."""
+    if not re.fullmatch(r"\d+(?:\.\d+)+", args.software_version):
+        raise ValueError("--software-version must be a dotted numeric version")
     benchmark = runner.prepare_benchmark(
         args.benchmark_file,
         BENCHMARK_DIR,
@@ -161,6 +179,7 @@ def run_benchmark(args: Namespace) -> None:
                 BENCHMARK_DIR,
                 shared_env_dir_conda,
                 shared_env_dir_apptainer,
+                args.software_version,
             )
         else:
             LOGGER.info(
@@ -176,6 +195,8 @@ def run_benchmark(args: Namespace) -> None:
         benchmark,
         rocrate_path,
         software_name=TOOL_NAME,
+        software_url=SOFTWARE_URL,
+        software_version=args.software_version,
         crate_license=args.crate_license,
         crate_name=args.crate_name,
         crate_description=args.crate_description,

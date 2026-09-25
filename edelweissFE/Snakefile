@@ -2,7 +2,7 @@ import os
 
 # Container image providing EdelweissFE and its Marmot element and material
 # libraries. Snakemake pulls it into the shared apptainer prefix.
-EDELWEISSFE_CONTAINER = "https://github.com/Edelweiss-Numerics/EdelweissFE-Apptainer/releases/download/v26.03/edelweissfe-debian-13.sif"
+EDELWEISSFE_CONTAINER = f"https://github.com/Edelweiss-Numerics/EdelweissFE-Apptainer/releases/download/v{config['tool_version']}/edelweissfe-debian-13.sif"
 
 # Snakemake stores the configuration file as an absolute path. The provenance
 # reporter can only put files below the working directory into the RO-Crate, so

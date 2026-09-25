@@ -18,6 +18,11 @@ on:
         required: false
         type: string
         default: ''
+      tool_version:
+        description: Exact simulation software version to record in the RO-Crate
+        required: false
+        type: string
+        default: ''
 
 env:
   BENCHMARK_NAME: linear-elastic-plate-with-hole
@@ -25,6 +30,7 @@ env:
   EXAMPLE_BENCHMARK_FILE: ${{ inputs.benchmark_file || 'benchmark/1.0.0/minimal-configurations.json' }}
   BRANCH_NAME: ${{ inputs.checkout_ref || github.head_ref || github.ref_name }}
   TOOL: kratos
+  TOOL_VERSION: ${{ inputs.tool_version || '10.3.1' }}
   ROCRATE_LICENSE: https://opensource.org/licenses/MIT
   ROCRATE_NAME: linear-elastic-plate-with-hole provenance (Kratos)
   ROCRATE_DESCRIPTION_BASE: Provenance run of the benchmark for linear-elastic plate with a hole using Kratos
@@ -77,6 +83,7 @@ jobs:
             --benchmark-file "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}" \
             --rocrate-name "${TOOL}_rocrate.zip" \
             --result-path "${GITHUB_WORKSPACE}/${TOOL}/results" \
+            --software-version "${TOOL_VERSION}" \
             --crate-license "${ROCRATE_LICENSE}" \
             --crate-name "${ROCRATE_NAME}" \
             --crate-description "${ROCRATE_DESCRIPTION}"

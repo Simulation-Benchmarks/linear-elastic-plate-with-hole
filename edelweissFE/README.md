@@ -13,7 +13,8 @@ configuration and runs the Snakemake workflow for each of them in
 mamba env create -f environment_benchmark.yml
 conda run -n edelweissfe-model-validation python run_benchmark.py \
     --benchmark-file ../benchmark/1.0.0/minimal-configurations.json \
-    --result-path results
+    --result-path results \
+    --software-version 26.03
 ```
 
 `analytical_solution.py`, `create_mesh.py` and `environment_mesh.yml` come from

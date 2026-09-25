@@ -15,6 +15,22 @@ on:
         required: true
         type: boolean
         default: true
+      fenics_tool_version:
+        description: FEniCS version used for this run
+        required: false
+        type: string
+      kratos_tool_version:
+        description: Kratos version used for this run
+        required: false
+        type: string
+      extendablefem_tool_version:
+        description: ExtendableFEM version used for this run
+        required: false
+        type: string
+      edelweissfe_tool_version:
+        description: EdelweissFE version used for this run
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -39,7 +55,7 @@ jobs:
           ref: ${{ inputs.branch || github.ref_name }}
 
       - name: Install semantic-benchmark
-        run: python -m pip install "semantic-benchmark<=0.3.2"
+        run: python -m pip install "semantic-benchmark @ git+https://github.com/Simulation-Benchmarks/semantic-benchmark.git@22-adding-tool-name-and-software-version-to-final-rocrate"
 
       - name: Select RoHub credentials
         shell: bash
@@ -82,6 +98,7 @@ jobs:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       benchmark_file: downloaded-benchmark/benchmark.json
       benchmark_artifact_name: downloaded-benchmark-resources
+      tool_version: ${{ inputs.fenics_tool_version || '0.9.0' }}
 
   run-kratos:
     needs: prepare-benchmark
@@ -90,6 +107,7 @@ jobs:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       benchmark_file: downloaded-benchmark/benchmark.json
       benchmark_artifact_name: downloaded-benchmark-resources
+      tool_version: ${{ inputs.kratos_tool_version || '10.3.1' }}
 
   run-extendablefem:
     needs: prepare-benchmark
@@ -98,6 +116,7 @@ jobs:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       benchmark_file: downloaded-benchmark/benchmark.json
       benchmark_artifact_name: downloaded-benchmark-resources
+      tool_version: ${{ inputs.extendablefem_tool_version || '1.4.0' }}
 
   run-edelweissFE:
     needs: prepare-benchmark
@@ -105,82 +124,49 @@ jobs:
     with:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       benchmark_file: downloaded-benchmark/benchmark.json
-      benchmark_artifact_name: downloaded-benchmark-resources    
+      benchmark_artifact_name: downloaded-benchmark-resources
+      tool_version: ${{ inputs.edelweissfe_tool_version || '26.03' }}
 
-  upload-rocrates:
-    runs-on: ubuntu-latest
-    needs:
-      - run-fenics
-      - run-kratos
-      - run-extendablefem
-      - run-edelweissFE
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        include:
-          - tool: fenics
-            display_name: Fenics
-            used_software_url: https://zbmath.org/software/4314
-          - tool: kratos
-            display_name: Kratos
-            used_software_url: https://zbmath.org/software/7804
-          - tool: extendablefem
-            display_name: ExtendableFEM
-            used_software_url: https://zbmath.org/software/53664
-          - tool: edelweissFE
-            display_name: EdelweissFE
-            used_software_url: https://zenodo.org/records/20496210
+  upload-fenics:
+    needs: run-fenics
+    uses: ./.github/workflows/upload-rocrate.yml
+    with:
+      tool: fenics
+      display_name: Fenics
+      used_software_url: https://zbmath.org/software/4314
+      checkout_ref: ${{ inputs.branch || github.ref_name }}
+      use_production_rohub: ${{ github.event_name != 'workflow_dispatch' || inputs.use_production_rohub }}
+    secrets: inherit
 
-    steps:
-      - name: Checkout repo content
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.branch || github.ref_name }}
+  upload-kratos:
+    needs: run-kratos
+    uses: ./.github/workflows/upload-rocrate.yml
+    with:
+      tool: kratos
+      display_name: Kratos
+      used_software_url: https://zbmath.org/software/7804
+      checkout_ref: ${{ inputs.branch || github.ref_name }}
+      use_production_rohub: ${{ github.event_name != 'workflow_dispatch' || inputs.use_production_rohub }}
+    secrets: inherit
 
-      - name: Download ${{ matrix.display_name }} aggregate RO-Crate artifact
-        uses: actions/download-artifact@v7
-        with:
-          name: ${{ matrix.tool }}-aggregate-rocrate
-          path: artifacts/${{ matrix.tool }}
+  upload-extendablefem:
+    needs: run-extendablefem
+    uses: ./.github/workflows/upload-rocrate.yml
+    with:
+      tool: extendablefem
+      display_name: ExtendableFEM
+      used_software_url: https://zbmath.org/software/53664
+      checkout_ref: ${{ inputs.branch || github.ref_name }}
+      use_production_rohub: ${{ github.event_name != 'workflow_dispatch' || inputs.use_production_rohub }}
+    secrets: inherit
 
-      - name: Setup Mambaforge with provenance env
-        uses: conda-incubator/setup-miniconda@v4
-        with:
-          miniforge-version: latest
-          activate-environment: provenance
-          use-mamba: true
-          environment-file: provenance/environment_provenance.yml
-          conda-remove-defaults: "true"
-
-      - name: Select RoHub credentials
-        shell: bash
-        run: |
-          if [ "${USE_PRODUCTION_ROHUB}" = "true" ]; then
-            echo "ROHUB_USERNAME=${{ secrets.ROHUB_PROD_USERNAME }}" >> "${GITHUB_ENV}"
-            echo "ROHUB_PASSWORD=${{ secrets.ROHUB_PROD_PASSWORD }}" >> "${GITHUB_ENV}"
-          else
-            echo "ROHUB_USERNAME=${{ secrets.ROHUB_DEV_USERNAME }}" >> "${GITHUB_ENV}"
-            echo "ROHUB_PASSWORD=${{ secrets.ROHUB_DEV_PASSWORD }}" >> "${GITHUB_ENV}"
-          fi
-
-      - name: Upload ${{ matrix.display_name }} RO-Crate Zip file onto RoHub
-        shell: bash -l {0}
-        env:
-          TOOL: ${{ matrix.tool }}
-          TOOL_DISPLAY_NAME: ${{ matrix.display_name }}
-          USED_SOFTWARE_URL: ${{ matrix.used_software_url }}
-        run: |
-          rohub_args=()
-          if [ "${USE_PRODUCTION_ROHUB}" = "true" ]; then
-            rohub_args=(--use-production-rohub)
-          fi
-
-          upload-semantic-benchmark \
-            --provenance_folderpath "${GITHUB_WORKSPACE}/artifacts/${TOOL}/${TOOL}_rocrate.zip" \
-            --benchmark-name "${BENCHMARK_NAME}" \
-            --username "${ROHUB_USERNAME}" \
-            --password "${ROHUB_PASSWORD}" \
-            --code-repository-url "${CODE_REPOSITORY_URL}" \
-            --used-software-url "${USED_SOFTWARE_URL}" \
-            "${rohub_args[@]}"
+  upload-edelweissFE:
+    needs: run-edelweissFE
+    uses: ./.github/workflows/upload-rocrate.yml
+    with:
+      tool: edelweissFE
+      display_name: EdelweissFE
+      used_software_url: https://zenodo.org/records/20496210
+      checkout_ref: ${{ inputs.branch || github.ref_name }}
+      use_production_rohub: ${{ github.event_name != 'workflow_dispatch' || inputs.use_production_rohub }}
+    secrets: inherit

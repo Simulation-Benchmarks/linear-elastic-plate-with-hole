@@ -1,0 +1,83 @@
+name: Upload RO-Crate to RoHub
+
+on:
+  workflow_call:
+    inputs:
+      tool:
+        required: true
+        type: string
+      display_name:
+        required: true
+        type: string
+      used_software_url:
+        required: true
+        type: string
+      checkout_ref:
+        required: true
+        type: string
+      use_production_rohub:
+        required: true
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  BENCHMARK_NAME: linear-elastic-plate-with-hole
+  CODE_REPOSITORY_URL: https://github.com/${{ github.repository }}/tree/${{ inputs.checkout_ref }}
+  USE_PRODUCTION_ROHUB: ${{ inputs.use_production_rohub }}
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo content
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.checkout_ref }}
+
+      - name: Download ${{ inputs.display_name }} aggregate RO-Crate artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ inputs.tool }}-aggregate-rocrate
+          path: artifacts/${{ inputs.tool }}
+
+      - name: Setup Mambaforge with provenance env
+        uses: conda-incubator/setup-miniconda@v4
+        with:
+          miniforge-version: latest
+          activate-environment: provenance
+          use-mamba: true
+          environment-file: provenance/environment_provenance.yml
+          conda-remove-defaults: "true"
+
+      - name: Select RoHub credentials
+        shell: bash
+        run: |
+          if [ "${USE_PRODUCTION_ROHUB}" = "true" ]; then
+            echo "ROHUB_USERNAME=${{ secrets.ROHUB_PROD_USERNAME }}" >> "${GITHUB_ENV}"
+            echo "ROHUB_PASSWORD=${{ secrets.ROHUB_PROD_PASSWORD }}" >> "${GITHUB_ENV}"
+          else
+            echo "ROHUB_USERNAME=${{ secrets.ROHUB_DEV_USERNAME }}" >> "${GITHUB_ENV}"
+            echo "ROHUB_PASSWORD=${{ secrets.ROHUB_DEV_PASSWORD }}" >> "${GITHUB_ENV}"
+          fi
+
+      - name: Upload ${{ inputs.display_name }} RO-Crate Zip file onto RoHub
+        shell: bash -l {0}
+        env:
+          TOOL: ${{ inputs.tool }}
+          USED_SOFTWARE_URL: ${{ inputs.used_software_url }}
+        run: |
+          rohub_args=()
+          if [ "${USE_PRODUCTION_ROHUB}" = "true" ]; then
+            rohub_args=(--use-production-rohub)
+          fi
+
+          upload-semantic-benchmark \
+            --provenance_folderpath "${GITHUB_WORKSPACE}/artifacts/${TOOL}/${TOOL}_rocrate.zip" \
+            --benchmark-name "${BENCHMARK_NAME}" \
+            --username "${ROHUB_USERNAME}" \
+            --password "${ROHUB_PASSWORD}" \
+            --code-repository-url "${CODE_REPOSITORY_URL}" \
+            --used-software-url "${USED_SOFTWARE_URL}" \
+            "${rohub_args[@]}"

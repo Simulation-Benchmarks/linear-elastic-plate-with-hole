@@ -10,4 +10,4 @@ dependencies:
   - python=3.10
   - pip
   - pip:
-      - semantic-benchmark<=0.3.2
+      - "semantic-benchmark @ git+https://github.com/Simulation-Benchmarks/semantic-benchmark.git@22-adding-tool-name-and-software-version-to-final-rocrate"
