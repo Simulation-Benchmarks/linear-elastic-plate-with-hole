@@ -30,7 +30,7 @@ env:
   EXAMPLE_BENCHMARK_FILE: ${{ inputs.benchmark_file || 'benchmark/1.0.0/minimal-configurations.json' }}
   BRANCH_NAME: ${{ inputs.checkout_ref || github.head_ref || github.ref_name }}
   TOOL: extendablefem
-  TOOL_VERSION: ${{ inputs.tool_version || '1.4.0' }}
+  TOOL_VERSION: ${{ inputs.tool_version || '1.12.0' }}
   ROCRATE_LICENSE: https://opensource.org/licenses/MIT
   ROCRATE_NAME: linear-elastic-plate-with-hole provenance (ExtendableFEM)
   ROCRATE_DESCRIPTION_BASE: Provenance run of the benchmark for linear-elastic plate with a hole using ExtendableFEM

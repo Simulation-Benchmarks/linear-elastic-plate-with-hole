@@ -107,7 +107,7 @@ jobs:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       benchmark_file: downloaded-benchmark/benchmark.json
       benchmark_artifact_name: downloaded-benchmark-resources
-      tool_version: ${{ inputs.kratos_tool_version || '10.3.1' }}
+      tool_version: ${{ inputs.kratos_tool_version || '10.3.0' }}
 
   run-extendablefem:
     needs: prepare-benchmark
@@ -116,7 +116,7 @@ jobs:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       benchmark_file: downloaded-benchmark/benchmark.json
       benchmark_artifact_name: downloaded-benchmark-resources
-      tool_version: ${{ inputs.extendablefem_tool_version || '1.4.0' }}
+      tool_version: ${{ inputs.extendablefem_tool_version || '1.12.0' }}
 
   run-edelweissFE:
     needs: prepare-benchmark

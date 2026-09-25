@@ -30,7 +30,7 @@ env:
   EXAMPLE_BENCHMARK_FILE: ${{ inputs.benchmark_file || 'benchmark/1.0.0/minimal-configurations.json' }}
   BRANCH_NAME: ${{ inputs.checkout_ref || github.head_ref || github.ref_name }}
   TOOL: kratos
-  TOOL_VERSION: ${{ inputs.tool_version || '10.3.1' }}
+  TOOL_VERSION: ${{ inputs.tool_version || '10.3.0' }}
   ROCRATE_LICENSE: https://opensource.org/licenses/MIT
   ROCRATE_NAME: linear-elastic-plate-with-hole provenance (Kratos)
   ROCRATE_DESCRIPTION_BASE: Provenance run of the benchmark for linear-elastic plate with a hole using Kratos
