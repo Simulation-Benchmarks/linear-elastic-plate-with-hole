@@ -15,22 +15,26 @@ on:
         required: true
         type: boolean
         default: true
-      fenics_tool_version:
+      fenics_software_version:
         description: FEniCS version used for this run
-        required: false
+        required: true
         type: string
-      kratos_tool_version:
+        default: '0.9.0'
+      kratos_software_version:
         description: Kratos version used for this run
-        required: false
+        required: true
         type: string
-      extendablefem_tool_version:
+        default: '10.3.0'
+      extendablefem_software_version:
         description: ExtendableFEM version used for this run
-        required: false
+        required: true
         type: string
-      edelweissfe_tool_version:
+        default: '1.12.0'
+      edelweissfe_software_version:
         description: EdelweissFE version used for this run
-        required: false
+        required: true
         type: string
+        default: '26.03'
 
 permissions:
   contents: read
@@ -49,7 +53,7 @@ jobs:
           ref: ${{ inputs.branch || github.ref_name }}
 
       - name: Install semantic-benchmark
-        run: python -m pip install "semantic-benchmark<=0.3.2"
+        run: python -m pip install "semantic-benchmark @ git+https://github.com/Simulation-Benchmarks/semantic-benchmark.git@22-adding-tool-name-and-software-version-to-final-rocrate"
 
       - name: Select RoHub credentials
         shell: bash
@@ -92,7 +96,7 @@ jobs:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       benchmark_file: downloaded-benchmark/benchmark.json
       benchmark_artifact_name: downloaded-benchmark-resources
-      tool_version: ${{ inputs.fenics_tool_version || '0.9.0' }}
+      software_version: ${{ inputs.fenics_software_version || '0.9.0' }}
 
   run-kratos:
     needs: prepare-benchmark
@@ -101,7 +105,7 @@ jobs:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       benchmark_file: downloaded-benchmark/benchmark.json
       benchmark_artifact_name: downloaded-benchmark-resources
-      tool_version: ${{ inputs.kratos_tool_version || '10.3.0' }}
+      software_version: ${{ inputs.kratos_software_version || '10.3.0' }}
 
   run-extendablefem:
     needs: prepare-benchmark
@@ -110,7 +114,7 @@ jobs:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       benchmark_file: downloaded-benchmark/benchmark.json
       benchmark_artifact_name: downloaded-benchmark-resources
-      tool_version: ${{ inputs.extendablefem_tool_version || '1.12.0' }}
+      software_version: ${{ inputs.extendablefem_software_version || '1.12.0' }}
 
   run-edelweissFE:
     needs: prepare-benchmark
@@ -119,48 +123,36 @@ jobs:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       benchmark_file: downloaded-benchmark/benchmark.json
       benchmark_artifact_name: downloaded-benchmark-resources
-      tool_version: ${{ inputs.edelweissfe_tool_version || '26.03' }}
+      software_version: ${{ inputs.edelweissfe_software_version || '26.03' }}
 
-  upload-fenics:
-    needs: run-fenics
+  upload:
+    needs: [run-fenics, run-kratos, run-extendablefem, run-edelweissFE]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - tool: fenics
+            display_name: Fenics
+            software_url: https://zbmath.org/software/4314
+            software_version: ${{ inputs.fenics_software_version || '0.9.0' }}
+          - tool: kratos
+            display_name: Kratos
+            software_url: https://zbmath.org/software/7804
+            software_version: ${{ inputs.kratos_software_version || '10.3.0' }}
+          - tool: extendablefem
+            display_name: ExtendableFEM
+            software_url: https://zbmath.org/software/53664
+            software_version: ${{ inputs.extendablefem_software_version || '1.12.0' }}
+          - tool: edelweissFE
+            display_name: EdelweissFE
+            software_url: https://zenodo.org/records/20496210
+            software_version: ${{ inputs.edelweissfe_software_version || '26.03' }}
     uses: ./.github/workflows/upload-rocrate.yml
     with:
-      tool: fenics
-      display_name: Fenics
-      used_software_url: https://zbmath.org/software/4314
-      checkout_ref: ${{ inputs.branch || github.ref_name }}
-      use_production_rohub: ${{ inputs.use_production_rohub }}
-    secrets: inherit
-
-  upload-kratos:
-    needs: run-kratos
-    uses: ./.github/workflows/upload-rocrate.yml
-    with:
-      tool: kratos
-      display_name: Kratos
-      used_software_url: https://zbmath.org/software/7804
-      checkout_ref: ${{ inputs.branch || github.ref_name }}
-      use_production_rohub: ${{ inputs.use_production_rohub }}
-    secrets: inherit
-
-  upload-extendablefem:
-    needs: run-extendablefem
-    uses: ./.github/workflows/upload-rocrate.yml
-    with:
-      tool: extendablefem
-      display_name: ExtendableFEM
-      used_software_url: https://zbmath.org/software/53664
-      checkout_ref: ${{ inputs.branch || github.ref_name }}
-      use_production_rohub: ${{ inputs.use_production_rohub }}
-    secrets: inherit
-
-  upload-edelweissFE:
-    needs: run-edelweissFE
-    uses: ./.github/workflows/upload-rocrate.yml
-    with:
-      tool: edelweissFE
-      display_name: EdelweissFE
-      used_software_url: https://zenodo.org/records/20496210
+      tool: ${{ matrix.tool }}
+      display_name: ${{ matrix.display_name }}
+      software_url: ${{ matrix.software_url }}
+      software_version: ${{ matrix.software_version }}
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       use_production_rohub: ${{ inputs.use_production_rohub }}
     secrets: inherit

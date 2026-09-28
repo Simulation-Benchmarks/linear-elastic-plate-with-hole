@@ -13,7 +13,6 @@ from semantic_benchmark import runner
 LOGGER = logging.getLogger(__name__)
 
 TOOL_NAME = "Kratos"
-SOFTWARE_URL = "https://zbmath.org/software/7804"
 BENCHMARK_DIR = Path(__file__).resolve().parent
 
 PROVENANCE_REPORT_NAME = "NFDI4Ing Provenance"
@@ -76,6 +75,11 @@ def parse_arguments() -> Namespace:
         "--software-version",
         required=True,
         help="Exact simulation software version recorded in the aggregate RO-Crate.",
+    )
+    parser.add_argument(
+        "--software-url",
+        required=True,
+        help="Software URL recorded in the aggregate RO-Crate.",
     )
     return parser.parse_args()
 
@@ -181,7 +185,7 @@ def run_benchmark(args: Namespace) -> None:
         benchmark,
         rocrate_path,
         software_name=TOOL_NAME,
-        software_url=SOFTWARE_URL,
+        software_url=args.software_url,
         software_version=args.software_version,
         crate_license=args.crate_license,
         crate_name=args.crate_name,
