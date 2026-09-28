@@ -91,9 +91,10 @@ jobs:
       - name: Archive results of the ${{ env.TOOL }} run of ${{ env.BENCHMARK_NAME }}
         uses: actions/upload-artifact@v7
         with:
-            name: ${{ env.TOOL }}_results_${{ env.BENCHMARK_NAME }}
-            path: |
-              ${{ env.TOOL }}/results/
+          name: ${{ env.TOOL }}_results_${{ env.BENCHMARK_NAME }}
+          path: |
+            ${{ env.TOOL }}/results/
+            !${{ env.TOOL }}/results/${{ env.TOOL }}_rocrate.zip
 
       - name: Archive ${{ env.TOOL }} aggregate RO-Crate artifact
         uses: actions/upload-artifact@v7
