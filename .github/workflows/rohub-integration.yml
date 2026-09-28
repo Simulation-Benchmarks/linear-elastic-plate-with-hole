@@ -72,7 +72,7 @@ jobs:
       display_name: Fenics
       used_software_url: https://zbmath.org/software/4314
       checkout_ref: ${{ inputs.branch || github.ref_name }}
-      use_production_rohub: ${{ github.event_name != 'workflow_dispatch' || inputs.use_production_rohub }}
+      use_production_rohub: ${{ inputs.use_production_rohub }}
     secrets: inherit
 
   upload-kratos:
@@ -83,7 +83,7 @@ jobs:
       display_name: Kratos
       used_software_url: https://zbmath.org/software/7804
       checkout_ref: ${{ inputs.branch || github.ref_name }}
-      use_production_rohub: ${{ github.event_name != 'workflow_dispatch' || inputs.use_production_rohub }}
+      use_production_rohub: ${{ inputs.use_production_rohub }}
     secrets: inherit
 
   upload-extendablefem:
@@ -94,7 +94,7 @@ jobs:
       display_name: ExtendableFEM
       used_software_url: https://zbmath.org/software/53664
       checkout_ref: ${{ inputs.branch || github.ref_name }}
-      use_production_rohub: ${{ github.event_name != 'workflow_dispatch' || inputs.use_production_rohub }}
+      use_production_rohub: ${{ inputs.use_production_rohub }}
     secrets: inherit
 
   upload-edelweissFE:
@@ -105,5 +105,5 @@ jobs:
       display_name: EdelweissFE
       used_software_url: https://zenodo.org/records/20496210
       checkout_ref: ${{ inputs.branch || github.ref_name }}
-      use_production_rohub: ${{ github.event_name != 'workflow_dispatch' || inputs.use_production_rohub }}
+      use_production_rohub: ${{ inputs.use_production_rohub }}
     secrets: inherit

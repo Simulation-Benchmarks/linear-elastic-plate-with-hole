@@ -518,7 +518,7 @@
       "@id": "local:variable_element_size",
       "@type": "numerical variable",
       "label": "element_size",
-      "has numerical value": [0.1, 0.003125],
+      "has numerical value": [0.1, 0.05, 0.025, 0.0125, 0.00625, 0.003125],
       "has unit": {
         "@id": "unit:M"
       }
