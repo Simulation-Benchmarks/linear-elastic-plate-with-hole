@@ -86,7 +86,7 @@ jobs:
           cd "$GITHUB_WORKSPACE/${TOOL}/"
           conda run -n "${TOOL}" python run_benchmark.py \
             --benchmark-file "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}" \
-            --rocrate-name "${TOOL}_rocrate.zip" \
+            --rocrate-name "${RUNNER_TEMP}/${TOOL}_rocrate.zip" \
             --result-path "${GITHUB_WORKSPACE}/${TOOL}/results" \
             --software-version "${SOFTWARE_VERSION}" \
             --software-url "${SOFTWARE_URL}" \
@@ -98,12 +98,10 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.TOOL }}_results_${{ env.BENCHMARK_NAME }}
-          path: |
-            ${{ env.TOOL }}/results/
-            !${{ env.TOOL }}/results/${{ env.TOOL }}_rocrate.zip
+          path: ${{ env.TOOL }}/results/
 
       - name: Archive ${{ env.TOOL }} aggregate RO-Crate artifact
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.TOOL }}-aggregate-rocrate
-          path: ${{ github.workspace }}/${{ env.TOOL }}/results/${{ env.TOOL }}_rocrate.zip
+          path: ${{ runner.temp }}/${{ env.TOOL }}_rocrate.zip
