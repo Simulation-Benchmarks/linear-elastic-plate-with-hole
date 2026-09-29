@@ -95,7 +95,6 @@ jobs:
     with:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       benchmark_file: benchmark/1.0.0/minimal-configurations.json
-      benchmark_artifact_name: downloaded-benchmark-resources
       software_version: ${{ inputs.fenics_software_version || '0.9.0' }}
 
   run-kratos:
@@ -103,7 +102,6 @@ jobs:
     with:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       benchmark_file: benchmark/1.0.0/minimal-configurations.json
-      benchmark_artifact_name: downloaded-benchmark-resources
       software_version: ${{ inputs.kratos_software_version || '10.3.0' }}
 
   run-extendablefem:
@@ -111,7 +109,6 @@ jobs:
     with:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       benchmark_file: benchmark/1.0.0/minimal-configurations.json
-      benchmark_artifact_name: downloaded-benchmark-resources
       software_version: ${{ inputs.extendablefem_software_version || '1.12.0' }}
 
   run-edelweissFE:
@@ -119,7 +116,6 @@ jobs:
     with:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       benchmark_file: benchmark/1.0.0/minimal-configurations.json
-      benchmark_artifact_name: downloaded-benchmark-resources
       software_version: ${{ inputs.edelweissfe_software_version || '26.03' }}
 
   upload:
