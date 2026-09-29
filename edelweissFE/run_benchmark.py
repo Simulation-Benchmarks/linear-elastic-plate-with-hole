@@ -197,18 +197,17 @@ def run_benchmark(args: Namespace) -> None:
             )
 
     rocrate_path = args.result_path / args.rocrate_name
-    with runner.stage_run_rocrates(args.result_path) as subcrates_path:
-        runner.create_aggregate_rocrate(
-            subcrates_path,
-            benchmark,
-            rocrate_path,
-            software_name=TOOL_NAME,
-            software_url=args.software_url,
-            software_version=args.software_version,
-            crate_license=args.crate_license,
-            crate_name=args.crate_name,
-            crate_description=args.crate_description,
-        )
+    runner.create_aggregate_rocrate(
+        args.result_path,
+        benchmark,
+        rocrate_path,
+        software_name=TOOL_NAME,
+        software_url=args.software_url,
+        software_version=args.software_version,
+        crate_license=args.crate_license,
+        crate_name=args.crate_name,
+        crate_description=args.crate_description,
+    )
     LOGGER.info("Aggregate RO-Crate created at %s.", rocrate_path)
 
 

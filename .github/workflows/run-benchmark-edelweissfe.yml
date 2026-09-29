@@ -99,7 +99,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.TOOL }}_results_${{ env.BENCHMARK_NAME }}
-          path: ${{ env.TOOL }}/results/
+          path: |
+            ${{ env.TOOL }}/results/
+            !${{ env.TOOL }}/results/*/EdelweissFE-*.zip
 
       - name: Archive ${{ env.TOOL }} aggregate RO-Crate artifact
         uses: actions/upload-artifact@v7
