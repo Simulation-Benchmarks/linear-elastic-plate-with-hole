@@ -132,15 +132,15 @@ jobs:
       matrix:
         include:
           - tool: fenics
-            display_name: Fenics
+            display_name: FEniCS
             software_url: https://zbmath.org/software/4314
             software_version: ${{ inputs.fenics_software_version || '0.9.0' }}
           - tool: kratos
-            display_name: Kratos
+            display_name: KRATOS
             software_url: https://zbmath.org/software/7804
             software_version: ${{ inputs.kratos_software_version || '10.3.0' }}
           - tool: extendablefem
-            display_name: ExtendableFEM
+            display_name: ExtendableFEM.jl
             software_url: https://zbmath.org/software/53664
             software_version: ${{ inputs.extendablefem_software_version || '1.12.0' }}
           - tool: edelweissFE
