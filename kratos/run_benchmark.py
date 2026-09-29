@@ -127,7 +127,7 @@ def run_configuration(
     benchmark_dir: Path,
     shared_env_dir: Path,
     software_version: str,
-) -> None:
+) -> Path:
     """Prepare and execute one benchmark configuration."""
     configuration, output_dir = runner.prepare_configuration(
         parameter_file, benchmark_dir
@@ -148,6 +148,7 @@ def run_configuration(
     )
 
     LOGGER.info("Workflow executed successfully for configuration %s.", configuration)
+    return runner.reporter_rocrate_path(output_dir, configuration, TOOL_NAME)
 
 
 def run_benchmark(args: Namespace) -> None:
@@ -163,14 +164,17 @@ def run_benchmark(args: Namespace) -> None:
         strict_units=True,
     )
     shared_env_dir = BENCHMARK_DIR / "conda_envs"
+    subcrate_paths = []
 
     for parameter_file in sorted(BENCHMARK_DIR.glob("parameters_*.json")):
         with open(parameter_file) as f:
             parameters = json.load(f)
             cell_type = parameters.get("cell_type")
             if cell_type == "triangle":
-                run_configuration(
-                    parameter_file, BENCHMARK_DIR, shared_env_dir, args.software_version
+                subcrate_paths.append(
+                    run_configuration(
+                        parameter_file, BENCHMARK_DIR, shared_env_dir, args.software_version
+                    )
                 )
             else:
                 LOGGER.info(
@@ -190,6 +194,7 @@ def run_benchmark(args: Namespace) -> None:
         crate_license=args.crate_license,
         crate_name=args.crate_name,
         crate_description=args.crate_description,
+        subcrate_paths=subcrate_paths,
     )
     LOGGER.info("Aggregate RO-Crate created at %s.", rocrate_path)
 
