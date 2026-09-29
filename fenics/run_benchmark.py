@@ -3,6 +3,7 @@
 import argparse
 import json
 import logging
+import re
 import subprocess
 from argparse import Namespace
 from pathlib import Path
@@ -70,6 +71,16 @@ def parse_arguments() -> Namespace:
         default=DEFAULT_CRATE_DESCRIPTION,
         help="Description recorded in the generated aggregate RO-Crate.",
     )
+    parser.add_argument(
+        "--software-version",
+        required=True,
+        help="Exact simulation software version recorded in the aggregate RO-Crate.",
+    )
+    parser.add_argument(
+        "--software-url",
+        required=True,
+        help="Software URL recorded in the aggregate RO-Crate.",
+    )
     return parser.parse_args()
 
 
@@ -115,10 +126,19 @@ def run_configuration(
     parameter_file: Path,
     benchmark_dir: Path,
     shared_env_dir: Path,
-) -> None:
+    software_version: str,
+) -> Path:
     """Prepare and execute one benchmark configuration."""
     configuration, output_dir = runner.prepare_configuration(
         parameter_file, benchmark_dir
+    )
+    environment_file = output_dir / "environment_simulation.yml"
+    environment = environment_file.read_text()
+    unpinned = "  - fenics-dolfinx\n"
+    if environment.count(unpinned) != 1:
+        raise ValueError(f"Expected one unpinned fenics-dolfinx entry in {environment_file}")
+    environment_file.write_text(
+        environment.replace(unpinned, f"  - fenics-dolfinx={software_version}\n")
     )
     run_snakemake_workflow(
         parameter_file,
@@ -128,10 +148,13 @@ def run_configuration(
     )
 
     LOGGER.info("Workflow executed successfully for configuration %s.", configuration)
+    return runner.reporter_rocrate_path(output_dir, configuration, TOOL_NAME)
 
 
 def run_benchmark(args: Namespace) -> None:
     """Run a complete Fenics benchmark workflow from parsed arguments."""
+    if not re.fullmatch(r"\d+(?:\.\d+)+", args.software_version):
+        raise ValueError("--software-version must be a dotted numeric version")
     benchmark = runner.prepare_benchmark(
         args.benchmark_file,
         BENCHMARK_DIR,
@@ -141,13 +164,18 @@ def run_benchmark(args: Namespace) -> None:
         strict_units=True,
     )
     shared_env_dir = BENCHMARK_DIR / "conda_envs"
+    subcrate_paths = []
 
     for parameter_file in sorted(BENCHMARK_DIR.glob("parameters_*.json")):
         with open(parameter_file) as f:
             parameters = json.load(f)
             cell_type = parameters.get("cell_type")
             if cell_type == "triangle":
-                run_configuration(parameter_file, BENCHMARK_DIR, shared_env_dir)
+                subcrate_paths.append(
+                    run_configuration(
+                        parameter_file, BENCHMARK_DIR, shared_env_dir, args.software_version
+                    )
+                )
             else:
                 LOGGER.info(
                     "Skipping configuration %s with cell_type '%s'.",
@@ -161,9 +189,12 @@ def run_benchmark(args: Namespace) -> None:
         benchmark,
         rocrate_path,
         software_name=TOOL_NAME,
+        software_url=args.software_url,
+        software_version=args.software_version,
         crate_license=args.crate_license,
         crate_name=args.crate_name,
         crate_description=args.crate_description,
+        subcrate_paths=subcrate_paths,
     )
     LOGGER.info("Aggregate RO-Crate created at %s.", rocrate_path)
 

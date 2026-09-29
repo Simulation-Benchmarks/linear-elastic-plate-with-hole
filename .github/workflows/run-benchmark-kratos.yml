@@ -18,6 +18,11 @@ on:
         required: false
         type: string
         default: ''
+      software_version:
+        description: Exact simulation software version to record in the RO-Crate
+        required: false
+        type: string
+        default: ''
 
 env:
   BENCHMARK_NAME: linear-elastic-plate-with-hole
@@ -25,6 +30,8 @@ env:
   EXAMPLE_BENCHMARK_FILE: ${{ inputs.benchmark_file || 'benchmark/1.0.0/minimal-configurations.json' }}
   BRANCH_NAME: ${{ inputs.checkout_ref || github.head_ref || github.ref_name }}
   TOOL: kratos
+  SOFTWARE_URL: https://zbmath.org/software/7804
+  SOFTWARE_VERSION: ${{ inputs.software_version || '10.3.0' }}
   ROCRATE_LICENSE: https://opensource.org/licenses/MIT
   ROCRATE_NAME: linear-elastic-plate-with-hole provenance (Kratos)
   ROCRATE_DESCRIPTION_BASE: Provenance run of the benchmark for linear-elastic plate with a hole using Kratos
@@ -33,7 +40,6 @@ jobs:
   run-examples:
     name: Kratos
     runs-on: ubuntu-latest
-
     steps:
       - name: checkout repo content
         uses: actions/checkout@v7
@@ -75,8 +81,10 @@ jobs:
           cd "$GITHUB_WORKSPACE/${TOOL}/"
           conda run -n "${TOOL}" python run_benchmark.py \
             --benchmark-file "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}" \
-            --rocrate-name "${TOOL}_rocrate.zip" \
+            --rocrate-name "${RUNNER_TEMP}/${TOOL}_rocrate.zip" \
             --result-path "${GITHUB_WORKSPACE}/${TOOL}/results" \
+            --software-version "${SOFTWARE_VERSION}" \
+            --software-url "${SOFTWARE_URL}" \
             --crate-license "${ROCRATE_LICENSE}" \
             --crate-name "${ROCRATE_NAME}" \
             --crate-description "${ROCRATE_DESCRIPTION}"
@@ -84,12 +92,13 @@ jobs:
       - name: Archive results of the ${{ env.TOOL }} run of ${{ env.BENCHMARK_NAME }}
         uses: actions/upload-artifact@v7
         with:
-            name: ${{ env.TOOL }}_results_${{ env.BENCHMARK_NAME }}
-            path: |
-              ${{ env.TOOL }}/results/
+          name: ${{ env.TOOL }}_results_${{ env.BENCHMARK_NAME }}
+          path: |
+            ${{ env.TOOL }}/results/
+            !${{ env.TOOL }}/results/*/Kratos-*.zip
 
       - name: Archive ${{ env.TOOL }} aggregate RO-Crate artifact
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.TOOL }}-aggregate-rocrate
-          path: ${{ github.workspace }}/${{ env.TOOL }}/results/${{ env.TOOL }}_rocrate.zip
+          path: ${{ runner.temp }}/${{ env.TOOL }}_rocrate.zip
