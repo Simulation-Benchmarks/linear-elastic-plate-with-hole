@@ -9,11 +9,6 @@ A benchmark for the linear-elastic infinite plate with a circular hole, solved w
 
 An infinite plate with a circular hole of radius $a$ is subjected to uniform tensile load $p$ at infinity. The analytical stress field (Kirsch, 1898) is used to set Dirichlet and Neumann boundary conditions on a finite quarter-domain, making the full analytical solution available for error evaluation.
 
-Metrics reported for each run:
-- **Max von Mises stress** — convergence towards the stress-concentration peak at the hole boundary
-- **Max displacement error** — pointwise maximum of the displacement error against the analytical solution
-- **L2 displacement error** — L2 norm of the displacement error over the domain
-
 See [documentation](docs/benchmark-documentation.md) for the full mathematical formulation.
 
 ## Simulation Tools
