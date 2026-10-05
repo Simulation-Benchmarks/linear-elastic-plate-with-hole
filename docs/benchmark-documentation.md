@@ -94,58 +94,30 @@ B(\boldsymbol u,\boldsymbol v) &= \int_{\Omega} \boldsymbol\varepsilon(\boldsymb
 $$
 
 
-In order to solve the weak formulation, the finite-element method (FEM) can be used. This method discretizes the domain $\Omega$ into so called finite elements that can for example be triangles or quadrilaterals in 2D. On these elements, ansatz functions are defined such that they are continuous on the boundaries between elements. These functions form a basis for the solution space for an approximate solution $\boldsymbol{u}_h$ of the problem.
+In order to solve the weak formulation, the Finite Element Method (FEM) can be used. This method discretizes the domain $\Omega$ into so called finite elements that can for example be triangles or quadrilaterals in 2D. On these elements, ansatz functions are defined such that they are continuous on the boundaries between elements. These functions form a basis for the solution space for an approximate solution $\boldsymbol{u}_h$ of the problem.
 
-## Output metrics
-
-- The approximate solution is compared with the analytical solution using the $L_2$ norm which is defined as
-
-    $$
-    \Vert \boldsymbol{f}\Vert_{L_2} = \sqrt{\int_\Omega \left|\boldsymbol{f}(\boldsymbol{x})\right|^2 \mathrm d \boldsymbol x}
-    $$
-
-    This norm is computed for the error between the finite element solution and the analytical solution of displacements i.e., $\Vert \boldsymbol{u}-\boldsymbol{u}_h\Vert_{L_2}$.
-
-- The maximum displacement error is computed at the nodes of the finite element mesh with respect to the analytical solution.
-
-    $$
-    e_{\max}
-    =
-    \max_{i \in \mathcal{N}}
-    \left\|
-    \mathbf{u}(\mathbf{x}_i)
-    -
-    \mathbf{u}_h(\mathbf{x}_i)
-    \right\|
-    $$
-
-    where $\mathcal{N}$ denotes the set of nodes of the finite element mesh.
-
-- Max Von-Mises stress
-
-- Displacement at the top-right corner of the plate.
-
-- The reaction force at the left boundary.
-
-- The number of Degrees of Freedom in the finite element mesh.
-
-## Table of parameters
-
-### Model parameters
-| Parameter    | Description                     |
-| ------------ | ------------------------------  |
-| $a$[m]   | Radius of the hole.             |
-| $l$[m]   | Length of the benchmark domain. |
-| $E$[Pa]  | Youngs modulus.                 |
-| $\nu$[-]  | Poisson ratio.                  |
-| $p$[Pa]  | Load at infinity.               |
-
-### Numerical parameters
+## Input Parameters
 
 | Parameter    | Description                     |
 | ------------ | ------------------------------  |
-| $h$[m]   | Element size.                        |
-| $q$[-] | Element order, i.e. the geometry interpolation order (curved edges or linear edges). |
-| $p$[-]  | Degree of the ansatz functions.           |
-| $r$[-]  | Degree of the quadrature rule, meaning the polynomial degree which is still integrated exactly.      |
-| $\mathcal Q$[-]  | Quadrature rule (e.g. Gauss or Gauss-Lobatto).               |
+| $radius$[m]   | Radius of the hole.             |
+| $length$[m]   | Length of the benchmark domain. |
+| $youngs\_modulus$[Pa]  | Youngs modulus.                 |
+| $poissons\_ratio$  | Poisson ratio.                  |
+| $load$[Pa]  | Load at infinity.               |
+| $element\_size$[m]   | Element size.                        |
+| $isoparametric\_element\_degree$ | Degree of shape functions used to model the element's geometry and the solution field. |
+| $cell\_type$  | Element shape ("triangle" or "quadrilateral").           |
+| $element\_category$  | "lagrange" (default) or "serendipity".         |
+
+## Output Metrics
+
+| Metric | Description |                     
+| ------------ | ------------------------------  |
+| $number\_of\_dofs$[-] | Total degrees of freedom in the FE mesh. |
+| $max\_von\_mises\_stress$[Pa] | FE model max Von-Mises stress output. |
+| $l2\_error\_displacement$[m] | $L_2$ norm of the error between the FE and the analytical displacements. $\Vert \boldsymbol{f}\Vert_{L_2} := \sqrt{\int_\Omega \|\boldsymbol{f}(\boldsymbol{x})\|^2 \mathrm{d} \boldsymbol{x}}$ |
+| $max\_displacement\_error$[m] | Error between the FE and the analytical displacements computed at the nodes of the mesh. |
+| $reaction\_force\_left\_boundary\_x$[N]  | FE model reaction force along the X-direction at the left boundary.|
+| $reaction\_force\_left\_boundary\_y$[N]  | FE model reaction force along the Y-direction at the left boundary.|
+| $displacement\_top\_right\_corner$[m] | FE model displacements at the top-right corner.|
