@@ -11,8 +11,10 @@ from semantic_benchmark import runner
 
 LOGGER = logging.getLogger(__name__)
 
-TOOL_NAME = "EdelweissFE"
+SOFTWARE_NAME = "EdelweissFE"
 BENCHMARK_DIR = Path(__file__).resolve().parent
+SOFTWARE_VERSION = "26.03"
+SOFTWARE_URL = "https://zenodo.org/records/20496210"
 
 PROVENANCE_REPORT_NAME = "NFDI4Ing Provenance"
 PROVENANCE_REPORT_DESCRIPTION = "Benchmark for linear-elastic plate with a hole"
@@ -34,7 +36,7 @@ def parse_arguments() -> Namespace:
     """Parse command-line arguments for the EdelweissFE benchmark runner."""
     parser = argparse.ArgumentParser(
         description=(
-            f"Run the {TOOL_NAME} benchmark workflow for all benchmark configurations."
+            f"Run the {SOFTWARE_NAME} benchmark workflow for all benchmark configurations."
         )
     )
     parser.add_argument(
@@ -52,7 +54,7 @@ def parse_arguments() -> Namespace:
     parser.add_argument(
         "--rocrate-name",
         type=str,
-        default=f"{TOOL_NAME}-RoCrate.zip",
+        default=f"{SOFTWARE_NAME}-RoCrate.zip",
         help="Filename or path for the generated aggregate RO-Crate zip file.",
     )
     parser.add_argument(
@@ -77,6 +79,7 @@ def build_snakemake_command(
     parameter_file: Path,
     shared_env_dir_conda: Path,
     shared_env_dir_apptainer: Path,
+    software_version: str,
 ) -> list[str]:
     """Build the base Snakemake command for one configuration."""
     return [
@@ -92,6 +95,8 @@ def build_snakemake_command(
         str(shared_env_dir_apptainer),
         "--configfile",
         str(parameter_file),
+        "--config",
+        f"software_version={software_version}",
     ]
 
 
@@ -101,14 +106,18 @@ def run_snakemake_workflow(
     output_dir: Path,
     shared_env_dir_conda: Path,
     shared_env_dir_apptainer: Path,
+    software_version: str,
 ) -> None:
     """Run the Snakemake workflow normally and then with provenance reporting."""
     base_cmd = build_snakemake_command(
-        parameter_file, shared_env_dir_conda, shared_env_dir_apptainer
+        parameter_file,
+        shared_env_dir_conda,
+        shared_env_dir_apptainer,
+        software_version,
     )
     reporter_args = runner.build_provenance_reporter_args(
         configuration,
-        tool_name=TOOL_NAME,
+        tool_name=SOFTWARE_NAME,
         report_name=PROVENANCE_REPORT_NAME,
         report_description=PROVENANCE_REPORT_DESCRIPTION,
         report_license=PROVENANCE_REPORT_LICENSE,
@@ -123,7 +132,8 @@ def run_configuration(
     benchmark_dir: Path,
     shared_env_dir_conda: Path,
     shared_env_dir_apptainer: Path,
-) -> None:
+    software_version: str,
+) -> Path:
     """Prepare and execute one benchmark configuration."""
     configuration, output_dir = runner.prepare_configuration(
         parameter_file, benchmark_dir
@@ -134,9 +144,11 @@ def run_configuration(
         output_dir,
         shared_env_dir_conda,
         shared_env_dir_apptainer,
+        software_version,
     )
 
     LOGGER.info("Workflow executed successfully for configuration %s.", configuration)
+    return runner.reporter_rocrate_path(output_dir, configuration, SOFTWARE_NAME)
 
 
 def run_benchmark(args: Namespace) -> None:
@@ -151,6 +163,7 @@ def run_benchmark(args: Namespace) -> None:
     )
     shared_env_dir_conda = BENCHMARK_DIR / "conda_envs"
     shared_env_dir_apptainer = BENCHMARK_DIR / "apptainer_envs"
+    subcrate_paths = []
 
     for parameter_file in sorted(BENCHMARK_DIR.glob("parameters_*.json")):
         with open(parameter_file) as f:
@@ -160,11 +173,14 @@ def run_benchmark(args: Namespace) -> None:
         # quadrilateral configurations of the benchmark can be run.
         cell_type = parameters.get("cell_type")
         if cell_type == "quadrilateral":
-            run_configuration(
-                parameter_file,
-                BENCHMARK_DIR,
-                shared_env_dir_conda,
-                shared_env_dir_apptainer,
+            subcrate_paths.append(
+                run_configuration(
+                    parameter_file,
+                    BENCHMARK_DIR,
+                    shared_env_dir_conda,
+                    shared_env_dir_apptainer,
+                    SOFTWARE_VERSION,
+                )
             )
         else:
             LOGGER.info(
@@ -178,10 +194,13 @@ def run_benchmark(args: Namespace) -> None:
         args.result_path,
         benchmark,
         rocrate_path,
-        software_name=TOOL_NAME,
+        software_name=SOFTWARE_NAME,
+        software_url=SOFTWARE_URL,
+        software_version=SOFTWARE_VERSION,
         crate_license=args.crate_license,
         crate_name=args.crate_name,
         crate_description=args.crate_description,
+        subcrate_paths=subcrate_paths,
     )
     LOGGER.info("Aggregate RO-Crate created at %s.", rocrate_path)
 

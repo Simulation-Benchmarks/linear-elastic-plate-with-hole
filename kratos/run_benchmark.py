@@ -11,8 +11,10 @@ from semantic_benchmark import runner
 
 LOGGER = logging.getLogger(__name__)
 
-TOOL_NAME = "Kratos"
+SOFTWARE_NAME = "Kratos"
 BENCHMARK_DIR = Path(__file__).resolve().parent
+SOFTWARE_VERSION = "10.3.0"
+SOFTWARE_URL = "https://zbmath.org/software/7804"
 
 PROVENANCE_REPORT_NAME = "NFDI4Ing Provenance"
 PROVENANCE_REPORT_DESCRIPTION = "Benchmark for linear-elastic plate with a hole"
@@ -34,7 +36,7 @@ def parse_arguments() -> Namespace:
     """Parse command-line arguments for the Kratos benchmark runner."""
     parser = argparse.ArgumentParser(
         description=(
-            f"Run the {TOOL_NAME} benchmark workflow for all benchmark configurations."
+            f"Run the {SOFTWARE_NAME} benchmark workflow for all benchmark configurations."
         )
     )
     parser.add_argument(
@@ -52,7 +54,7 @@ def parse_arguments() -> Namespace:
     parser.add_argument(
         "--rocrate-name",
         type=str,
-        default=f"{TOOL_NAME}-RoCrate.zip",
+        default=f"{SOFTWARE_NAME}-RoCrate.zip",
         help="Filename or path for the generated aggregate RO-Crate zip file.",
     )
     parser.add_argument(
@@ -101,7 +103,7 @@ def run_snakemake_workflow(
     base_cmd = build_snakemake_command(parameter_file, shared_env_dir)
     reporter_args = runner.build_provenance_reporter_args(
         configuration,
-        tool_name=TOOL_NAME,
+        tool_name=SOFTWARE_NAME,
         report_name=PROVENANCE_REPORT_NAME,
         report_description=PROVENANCE_REPORT_DESCRIPTION,
         report_license=PROVENANCE_REPORT_LICENSE,
@@ -115,10 +117,19 @@ def run_configuration(
     parameter_file: Path,
     benchmark_dir: Path,
     shared_env_dir: Path,
-) -> None:
+    software_version: str,
+) -> Path:
     """Prepare and execute one benchmark configuration."""
     configuration, output_dir = runner.prepare_configuration(
         parameter_file, benchmark_dir
+    )
+    environment_file = output_dir / "environment_simulation.yml"
+    environment = environment_file.read_text()
+    unpinned = "    - KratosMultiphysics-all\n"
+    if environment.count(unpinned) != 1:
+        raise ValueError(f"Expected one unpinned KratosMultiphysics-all entry in {environment_file}")
+    environment_file.write_text(
+        environment.replace(unpinned, f"    - KratosMultiphysics-all=={software_version}\n")
     )
     run_snakemake_workflow(
         parameter_file,
@@ -128,6 +139,7 @@ def run_configuration(
     )
 
     LOGGER.info("Workflow executed successfully for configuration %s.", configuration)
+    return runner.reporter_rocrate_path(output_dir, configuration, SOFTWARE_NAME)
 
 
 def run_benchmark(args: Namespace) -> None:
@@ -141,13 +153,18 @@ def run_benchmark(args: Namespace) -> None:
         strict_units=True,
     )
     shared_env_dir = BENCHMARK_DIR / "conda_envs"
+    subcrate_paths = []
 
     for parameter_file in sorted(BENCHMARK_DIR.glob("parameters_*.json")):
         with open(parameter_file) as f:
             parameters = json.load(f)
             cell_type = parameters.get("cell_type")
             if cell_type == "triangle":
-                run_configuration(parameter_file, BENCHMARK_DIR, shared_env_dir)
+                subcrate_paths.append(
+                    run_configuration(
+                        parameter_file, BENCHMARK_DIR, shared_env_dir, SOFTWARE_VERSION
+                    )
+                )
             else:
                 LOGGER.info(
                     "Skipping configuration %s with cell_type '%s'.",
@@ -160,10 +177,13 @@ def run_benchmark(args: Namespace) -> None:
         args.result_path,
         benchmark,
         rocrate_path,
-        software_name=TOOL_NAME,
+        software_name=SOFTWARE_NAME,
+        software_url=SOFTWARE_URL,
+        software_version=SOFTWARE_VERSION,
         crate_license=args.crate_license,
         crate_name=args.crate_name,
         crate_description=args.crate_description,
+        subcrate_paths=subcrate_paths,
     )
     LOGGER.info("Aggregate RO-Crate created at %s.", rocrate_path)
 
