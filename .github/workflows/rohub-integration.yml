@@ -33,7 +33,7 @@ jobs:
           ref: ${{ inputs.branch || github.ref_name }}
 
       - name: Install semantic-benchmark
-        run: python -m pip install "semantic-benchmark<=0.4.0"
+        run: python -m pip install "semantic-benchmark<=0.4.1"
 
       - name: Select RoHub credentials
         shell: bash
@@ -109,26 +109,16 @@ jobs:
         include:
           - software: fenics
             display_name: FEniCS
-            software_url: https://zbmath.org/software/4314
-            software_version: '0.9.0'
           - software: kratos
             display_name: KRATOS
-            software_url: https://zbmath.org/software/7804
-            software_version: '10.3.0'
           - software: extendablefem
             display_name: ExtendableFEM.jl
-            software_url: https://zbmath.org/software/53664
-            software_version: '1.12.0'
           - software: edelweissFE
             display_name: EdelweissFE
-            software_url: https://zenodo.org/records/20496210
-            software_version: '26.03'
     uses: ./.github/workflows/upload-rocrate.yml
     with:
       software: ${{ matrix.software }}
       display_name: ${{ matrix.display_name }}
-      software_url: ${{ matrix.software_url }}
-      software_version: ${{ matrix.software_version }}
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       use_production_rohub: ${{ inputs.use_production_rohub }}
     secrets: inherit

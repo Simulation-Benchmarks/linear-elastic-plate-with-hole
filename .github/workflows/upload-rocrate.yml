@@ -9,12 +9,6 @@ on:
       display_name:
         required: true
         type: string
-      software_url:
-        required: true
-        type: string
-      software_version:
-        required: true
-        type: string
       checkout_ref:
         required: true
         type: string
@@ -69,8 +63,6 @@ jobs:
         shell: bash -l {0}
         env:
           SOFTWARE_NAME: ${{ inputs.software }}
-          SOFTWARE_URL: ${{ inputs.software_url }}
-          SOFTWARE_VERSION: ${{ inputs.software_version }}
         run: |
           rohub_args=()
           if [ "${USE_PRODUCTION_ROHUB}" = "true" ]; then
@@ -83,6 +75,4 @@ jobs:
             --username "${ROHUB_USERNAME}" \
             --password "${ROHUB_PASSWORD}" \
             --code-repository-url "${CODE_REPOSITORY_URL}" \
-            --software-url "${SOFTWARE_URL}" \
-            --software-version "${SOFTWARE_VERSION}" \
             "${rohub_args[@]}"
