@@ -3,7 +3,6 @@
 import argparse
 import json
 import logging
-import re
 import subprocess
 from argparse import Namespace
 from pathlib import Path
@@ -12,8 +11,10 @@ from semantic_benchmark import runner
 
 LOGGER = logging.getLogger(__name__)
 
-TOOL_NAME = "ExtendableFEM"
+SOFTWARE_NAME = "ExtendableFEM"
 BENCHMARK_DIR = Path(__file__).resolve().parent
+SOFTWARE_VERSION = "1.12.0"
+SOFTWARE_URL = "https://zbmath.org/software/53664"
 
 PROVENANCE_REPORT_NAME = "NFDI4Ing Provenance"
 PROVENANCE_REPORT_DESCRIPTION = "Benchmark for linear-elastic plate with a hole"
@@ -35,7 +36,7 @@ def parse_arguments() -> Namespace:
     """Parse command-line arguments for the ExtendableFEM benchmark runner."""
     parser = argparse.ArgumentParser(
         description=(
-            f"Run the {TOOL_NAME} benchmark workflow for all benchmark configurations."
+            f"Run the {SOFTWARE_NAME} benchmark workflow for all benchmark configurations."
         )
     )
     parser.add_argument(
@@ -53,7 +54,7 @@ def parse_arguments() -> Namespace:
     parser.add_argument(
         "--rocrate-name",
         type=str,
-        default=f"{TOOL_NAME}-RoCrate.zip",
+        default=f"{SOFTWARE_NAME}-RoCrate.zip",
         help="Filename or path for the generated aggregate RO-Crate zip file.",
     )
     parser.add_argument(
@@ -70,16 +71,6 @@ def parse_arguments() -> Namespace:
         "--crate-description",
         default=DEFAULT_CRATE_DESCRIPTION,
         help="Description recorded in the generated aggregate RO-Crate.",
-    )
-    parser.add_argument(
-        "--software-version",
-        required=True,
-        help="Exact simulation software version recorded in the aggregate RO-Crate.",
-    )
-    parser.add_argument(
-        "--software-url",
-        required=True,
-        help="Software URL recorded in the aggregate RO-Crate.",
     )
     return parser.parse_args()
 
@@ -125,7 +116,7 @@ def run_snakemake_workflow(
     )
     reporter_args = runner.build_provenance_reporter_args(
         configuration,
-        tool_name=TOOL_NAME,
+        tool_name=SOFTWARE_NAME,
         report_name=PROVENANCE_REPORT_NAME,
         report_description=PROVENANCE_REPORT_DESCRIPTION,
         report_license=PROVENANCE_REPORT_LICENSE,
@@ -156,13 +147,11 @@ def run_configuration(
     )
 
     LOGGER.info("Workflow executed successfully for configuration %s.", configuration)
-    return runner.reporter_rocrate_path(output_dir, configuration, TOOL_NAME)
+    return runner.reporter_rocrate_path(output_dir, configuration, SOFTWARE_NAME)
 
 
 def run_benchmark(args: Namespace) -> None:
     """Run a complete ExtendableFEM benchmark workflow from parsed arguments."""
-    if not re.fullmatch(r"\d+(?:\.\d+)+", args.software_version):
-        raise ValueError("--software-version must be a dotted numeric version")
     benchmark = runner.prepare_benchmark(
         args.benchmark_file,
         BENCHMARK_DIR,
@@ -186,7 +175,7 @@ def run_benchmark(args: Namespace) -> None:
                     BENCHMARK_DIR,
                     shared_env_dir_conda,
                     shared_env_dir_apptainer,
-                    args.software_version,
+                    SOFTWARE_VERSION,
                 )
             )
         else:
@@ -202,9 +191,9 @@ def run_benchmark(args: Namespace) -> None:
         args.result_path,
         benchmark,
         rocrate_path,
-        software_name=TOOL_NAME,
-        software_url=args.software_url,
-        software_version=args.software_version,
+        software_name=SOFTWARE_NAME,
+        software_url=SOFTWARE_URL,
+        software_version=SOFTWARE_VERSION,
         crate_license=args.crate_license,
         crate_name=args.crate_name,
         crate_description=args.crate_description,

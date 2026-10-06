@@ -18,20 +18,13 @@ on:
         required: false
         type: string
         default: ''
-      software_version:
-        description: Exact simulation software version to record in the RO-Crate
-        required: false
-        type: string
-        default: ''
 
 env:
   BENCHMARK_NAME: linear-elastic-plate-with-hole
   BENCHMARK_VERSION: 1.0.0
   EXAMPLE_BENCHMARK_FILE: ${{ inputs.benchmark_file || 'benchmark/1.0.0/minimal-configurations.json' }}
   BRANCH_NAME: ${{ inputs.checkout_ref || github.head_ref || github.ref_name }}
-  TOOL: fenics
-  SOFTWARE_URL: https://zbmath.org/software/4314
-  SOFTWARE_VERSION: ${{ inputs.software_version || '0.9.0' }}
+  SOFTWARE_NAME: fenics
   ROCRATE_LICENSE: https://opensource.org/licenses/MIT
   ROCRATE_NAME: linear-elastic-plate-with-hole provenance (Fenics)
   ROCRATE_DESCRIPTION_BASE: Provenance run of the benchmark for linear-elastic plate with a hole using Fenics
@@ -53,8 +46,8 @@ jobs:
             use-mamba: true
             conda-remove-defaults: "true"
         
-      - name: Create ${{ env.TOOL }} environment
-        run: mamba env create -n "${TOOL}" -f "${TOOL}/environment_benchmark.yml"
+      - name: Create ${{ env.SOFTWARE_NAME }} environment
+        run: mamba env create -n "${SOFTWARE_NAME}" -f "${SOFTWARE_NAME}/environment_benchmark.yml"
 
       - name: Install provenance Python packages
         shell: bash -l {0}
@@ -73,32 +66,30 @@ jobs:
         run: |
           test -f "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}"
 
-      - name: Run ${{ env.BENCHMARK_NAME }} using ${{ env.TOOL }}
+      - name: Run ${{ env.BENCHMARK_NAME }} using ${{ env.SOFTWARE_NAME }}
         shell: bash -l {0}
         run: |
           ROCRATE_DESCRIPTION="${ROCRATE_DESCRIPTION_BASE}, Version ${BENCHMARK_VERSION}, Branch ${BRANCH_NAME}"
 
-          cd "$GITHUB_WORKSPACE/${TOOL}/"
-          conda run -n "${TOOL}" python run_benchmark.py \
+          cd "$GITHUB_WORKSPACE/${SOFTWARE_NAME}/"
+          conda run -n "${SOFTWARE_NAME}" python run_benchmark.py \
             --benchmark-file "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}" \
-            --rocrate-name "${RUNNER_TEMP}/${TOOL}_rocrate.zip" \
-            --result-path "${GITHUB_WORKSPACE}/${TOOL}/results" \
-            --software-version "${SOFTWARE_VERSION}" \
-            --software-url "${SOFTWARE_URL}" \
+            --rocrate-name "${RUNNER_TEMP}/${SOFTWARE_NAME}_rocrate.zip" \
+            --result-path "${GITHUB_WORKSPACE}/${SOFTWARE_NAME}/results" \
             --crate-license "${ROCRATE_LICENSE}" \
             --crate-name "${ROCRATE_NAME}" \
             --crate-description "${ROCRATE_DESCRIPTION}"
 
-      - name: Archive results of the ${{ env.TOOL }} run of ${{ env.BENCHMARK_NAME }}
+      - name: Archive results of the ${{ env.SOFTWARE_NAME }} run of ${{ env.BENCHMARK_NAME }}
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ env.TOOL }}_results_${{ env.BENCHMARK_NAME }}
+          name: ${{ env.SOFTWARE_NAME }}_results_${{ env.BENCHMARK_NAME }}
           path: |
-            ${{ env.TOOL }}/results/
-            !${{ env.TOOL }}/results/*/Fenics-*.zip
+            ${{ env.SOFTWARE_NAME }}/results/
+            !${{ env.SOFTWARE_NAME }}/results/*/Fenics-*.zip
 
-      - name: Archive ${{ env.TOOL }} aggregate RO-Crate artifact
+      - name: Archive ${{ env.SOFTWARE_NAME }} aggregate RO-Crate artifact
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ env.TOOL }}-aggregate-rocrate
-          path: ${{ runner.temp }}/${{ env.TOOL }}_rocrate.zip
+          name: ${{ env.SOFTWARE_NAME }}-aggregate-rocrate
+          path: ${{ runner.temp }}/${{ env.SOFTWARE_NAME }}_rocrate.zip

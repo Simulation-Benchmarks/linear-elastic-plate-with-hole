@@ -3,7 +3,7 @@ name: Upload RO-Crate to RoHub
 on:
   workflow_call:
     inputs:
-      tool:
+      software:
         required: true
         type: string
       display_name:
@@ -42,8 +42,8 @@ jobs:
       - name: Download ${{ inputs.display_name }} aggregate RO-Crate artifact
         uses: actions/download-artifact@v7
         with:
-          name: ${{ inputs.tool }}-aggregate-rocrate
-          path: artifacts/${{ inputs.tool }}
+          name: ${{ inputs.software }}-aggregate-rocrate
+          path: artifacts/${{ inputs.software }}
 
       - name: Setup Mambaforge with provenance env
         uses: conda-incubator/setup-miniconda@v4
@@ -68,7 +68,7 @@ jobs:
       - name: Upload ${{ inputs.display_name }} RO-Crate Zip file onto RoHub
         shell: bash -l {0}
         env:
-          TOOL: ${{ inputs.tool }}
+          SOFTWARE_NAME: ${{ inputs.software }}
           SOFTWARE_URL: ${{ inputs.software_url }}
           SOFTWARE_VERSION: ${{ inputs.software_version }}
         run: |
@@ -78,7 +78,7 @@ jobs:
           fi
 
           upload-semantic-benchmark \
-            --provenance_folderpath "${GITHUB_WORKSPACE}/artifacts/${TOOL}/${TOOL}_rocrate.zip" \
+            --provenance_folderpath "${GITHUB_WORKSPACE}/artifacts/${SOFTWARE_NAME}/${SOFTWARE_NAME}_rocrate.zip" \
             --benchmark-name "${BENCHMARK_NAME}" \
             --username "${ROHUB_USERNAME}" \
             --password "${ROHUB_PASSWORD}" \

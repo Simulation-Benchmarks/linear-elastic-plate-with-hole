@@ -15,26 +15,6 @@ on:
         required: true
         type: boolean
         default: true
-      fenics_software_version:
-        description: FEniCS version used for this run
-        required: true
-        type: string
-        default: '0.9.0'
-      kratos_software_version:
-        description: Kratos version used for this run
-        required: true
-        type: string
-        default: '10.3.0'
-      extendablefem_software_version:
-        description: ExtendableFEM version used for this run
-        required: true
-        type: string
-        default: '1.12.0'
-      edelweissfe_software_version:
-        description: EdelweissFE version used for this run
-        required: true
-        type: string
-        default: '26.03'
 
 permissions:
   contents: read
@@ -96,7 +76,6 @@ jobs:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       benchmark_file: downloaded-benchmark/benchmark.json
       benchmark_artifact_name: downloaded-benchmark-resources
-      software_version: ${{ inputs.fenics_software_version || '0.9.0' }}
 
   run-kratos:
     needs: prepare-benchmark
@@ -105,7 +84,6 @@ jobs:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       benchmark_file: downloaded-benchmark/benchmark.json
       benchmark_artifact_name: downloaded-benchmark-resources
-      software_version: ${{ inputs.kratos_software_version || '10.3.0' }}
 
   run-extendablefem:
     needs: prepare-benchmark
@@ -114,7 +92,6 @@ jobs:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       benchmark_file: downloaded-benchmark/benchmark.json
       benchmark_artifact_name: downloaded-benchmark-resources
-      software_version: ${{ inputs.extendablefem_software_version || '1.12.0' }}
 
   run-edelweissFE:
     needs: prepare-benchmark
@@ -123,7 +100,6 @@ jobs:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       benchmark_file: downloaded-benchmark/benchmark.json
       benchmark_artifact_name: downloaded-benchmark-resources
-      software_version: ${{ inputs.edelweissfe_software_version || '26.03' }}
 
   upload:
     needs: [run-fenics, run-kratos, run-extendablefem, run-edelweissFE]
@@ -131,25 +107,25 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - tool: fenics
+          - software: fenics
             display_name: FEniCS
             software_url: https://zbmath.org/software/4314
-            software_version: ${{ inputs.fenics_software_version || '0.9.0' }}
-          - tool: kratos
+            software_version: '0.9.0'
+          - software: kratos
             display_name: KRATOS
             software_url: https://zbmath.org/software/7804
-            software_version: ${{ inputs.kratos_software_version || '10.3.0' }}
-          - tool: extendablefem
+            software_version: '10.3.0'
+          - software: extendablefem
             display_name: ExtendableFEM.jl
             software_url: https://zbmath.org/software/53664
-            software_version: ${{ inputs.extendablefem_software_version || '1.12.0' }}
-          - tool: edelweissFE
+            software_version: '1.12.0'
+          - software: edelweissFE
             display_name: EdelweissFE
             software_url: https://zenodo.org/records/20496210
-            software_version: ${{ inputs.edelweissfe_software_version || '26.03' }}
+            software_version: '26.03'
     uses: ./.github/workflows/upload-rocrate.yml
     with:
-      tool: ${{ matrix.tool }}
+      software: ${{ matrix.software }}
       display_name: ${{ matrix.display_name }}
       software_url: ${{ matrix.software_url }}
       software_version: ${{ matrix.software_version }}
