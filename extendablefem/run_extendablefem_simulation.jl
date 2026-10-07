@@ -111,13 +111,22 @@ function vonMises!(result, ∇u, qpinfo)
     return nothing
 end
 
-function reaction_force_kernel!(result,∇u,qpinfo)
+# σ(u):∇w for the input [∇u; ∇w], the integrand of the bilinear form a(u, w)
+function internal_work_kernel!(result, input, qpinfo)
     sig = zeros(4)
-    sigma!(sig,∇u,qpinfo)
-    σ = tensor_view(sig,1,TDMatrix(2))
-    traction = σ*qpinfo.normal
-    result .= traction
+    sigma!(sig, view(input, 1:4), qpinfo)
+    result[1] = dot(sig, view(input, 5:8))
     return nothing
+end
+
+# t·w for the traction t of the given kernel, the integrand of the linear form f(w)
+function external_work_kernel(traction_kernel!)
+    return function (result, w, qpinfo)
+        t = zeros(2)
+        traction_kernel!(t, qpinfo)
+        result[1] = dot(t, w)
+        return nothing
+    end
 end
 
 function u_ex_kernel!(result, qpinfo)
@@ -175,7 +184,8 @@ function solve_plate_with_hole(config::PlateConfig, grid::ExtendableGrid, output
     assign_operator!(PD, BilinearOperator(sigma!, [grad(u)]; params = [config.E, config.ν]))
     assign_operator!(PD, LinearOperator(traction_right_kernel!, [id(u)]; entities = ON_BFACES, regions = [3], params = [config.radius, config.F]))
     assign_operator!(PD, LinearOperator(traction_top_kernel!, [id(u)]; entities = ON_BFACES, regions = [4], params = [config.radius, config.F]))
-    assign_operator!(PD, HomogeneousBoundaryData(u; regions = [1], mask = [1, 0]))
+    left_boundary_data = HomogeneousBoundaryData(u; regions = [1], mask = [1, 0])
+    assign_operator!(PD, left_boundary_data)
     assign_operator!(PD, HomogeneousBoundaryData(u; regions = [2], mask = [0, 1]))
 
     FEType = H1Pk{2, 2, config.element_order}
@@ -204,14 +214,20 @@ function solve_plate_with_hole(config::PlateConfig, grid::ExtendableGrid, output
         [maximum(abs.(u_x - u_exx)), maximum(abs.(u_y - u_exy))]
     )
 
-    reaction_force_left_boundary = [0.,0.]
-    
-    LeftBoundaryTractionIntegrator = ItemIntegratorDG(reaction_force_kernel!, [grad(u)];resultdim=2,entities = ON_BFACES, regions= [1],params = [config.E, config.ν])
-    rflb = evaluate(LeftBoundaryTractionIntegrator,sol)
+    # Reaction force from the residual a(u_h, w) - f(w), where w is the sum of the
+    # x-shape functions of the constrained dofs on the left boundary. The left
+    # boundary only constrains u_x, so the y-component vanishes.
+    reaction_force_left_boundary = [0.0, 0.0]
+    uw = FEVector([FES, FES])
+    view(uw[1]) .= view(sol[u])
+    uw[2][fixed_dofs(left_boundary_data)] = ones(length(fixed_dofs(left_boundary_data)))
+    InternalWorkIntegrator = ItemIntegrator(internal_work_kernel!, [grad(1), grad(2)]; resultdim = 1, params = [config.E, config.ν])
+    reaction_force_left_boundary[1] = sum(evaluate(InternalWorkIntegrator, uw))
+    for (traction_kernel!, region) in ((traction_right_kernel!, 3), (traction_top_kernel!, 4))
+        ExternalWorkIntegrator = ItemIntegrator(external_work_kernel(traction_kernel!), [id(2)]; resultdim = 1, entities = ON_BFACES, regions = [region], params = [config.radius, config.F])
+        reaction_force_left_boundary[1] -= sum(evaluate(ExternalWorkIntegrator, uw))
+    end
 
-    reaction_force_left_boundary[1] = sum(rflb[1,:])
-    reaction_force_left_boundary[2] = sum(rflb[2,:])
-    
     displacement_top_right_corner = [0.0, 0.0]
 
     evaluate!(displacement_top_right_corner,PointEvaluator([id(u)],sol),[config.length,config.length])

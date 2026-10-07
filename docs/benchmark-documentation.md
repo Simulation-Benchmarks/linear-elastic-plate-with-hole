@@ -118,6 +118,25 @@ In order to solve the weak formulation, the Finite Element Method (FEM) can be u
 | $max\_von\_mises\_stress$[Pa] | FE model max Von-Mises stress output. |
 | $l2\_error\_displacement$[m] | $L_2$ norm of the error between the FE and the analytical displacements. $\Vert \boldsymbol{f}\Vert_{L_2} := \sqrt{\int_\Omega \|\boldsymbol{f}(\boldsymbol{x})\|^2 \mathrm{d} \boldsymbol{x}}$ |
 | $max\_displacement\_error$[m] | Error between the FE and the analytical displacements computed at the nodes of the mesh. |
-| $reaction\_force\_left\_boundary\_x$[N]  | FE model reaction force along the X-direction at the left boundary.|
-| $reaction\_force\_left\_boundary\_y$[N]  | FE model reaction force along the Y-direction at the left boundary.|
+| $reaction\_force\_left\_boundary\_x$[N]  | FE model reaction force along the X-direction at the left boundary, computed from the residual as defined below.|
+| $reaction\_force\_left\_boundary\_y$[N]  | FE model reaction force along the Y-direction at the left boundary, computed from the residual as defined below.|
 | $displacement\_top\_right\_corner$[m] | FE model displacements at the top-right corner.|
+
+### Reaction forces
+
+The reaction forces are the forces that the supports exert on the plate. They are computed from the residual of the discrete problem at the constrained degrees of freedom, not by integrating the traction $\boldsymbol\sigma(\boldsymbol u_h)\cdot\boldsymbol n$ of the discrete solution along the boundary. With the shape function $\varphi_i$ of node $i$ and the unit vectors $\boldsymbol e_x, \boldsymbol e_y$,
+
+$$
+\begin{aligned}
+reaction\_force\_left\_boundary\_x &= \sum_{i \in I_x} \Big( B(\boldsymbol u_h, \varphi_i \boldsymbol e_x) - f(\varphi_i \boldsymbol e_x) \Big), \\
+reaction\_force\_left\_boundary\_y &= \sum_{i \in I_y} \Big( B(\boldsymbol u_h, \varphi_i \boldsymbol e_y) - f(\varphi_i \boldsymbol e_y) \Big),
+\end{aligned}
+$$
+
+where $I_x$ and $I_y$ are the nodes on the left boundary $\Gamma_\mathrm{D_2}$ whose $x$- and $y$-displacement is constrained, and $f$ includes every Neumann load acting on these nodes, such as the load on the top boundary at the corner $(0, l)$. Every tool reports the components of the force acting on the plate, so the $x$-component is negative.
+
+Only $\boldsymbol u_x$ is constrained on $\Gamma_\mathrm{D_2}$, so $I_y$ is empty and the $y$-component vanishes. Since $\sum_i \varphi_i = 1$, the sum over all nodes of $B(\boldsymbol u_h, \varphi_i \boldsymbol e_x)$ vanishes, and the residual is zero at all unconstrained degrees of freedom. The $x$-component is therefore equal to the negative total $x$-load applied on $\Gamma_\mathrm{N}$ by the discrete load vector, and its error only measures how accurately a tool integrates the Neumann load. The analytical value is
+
+$$
+reaction\_force\_left\_boundary\_x = -\int_a^l \sigma_{xx}(0, y)\,\mathrm{d}y = -p\left( l - a + \frac{a}{2}\left(1 - \frac{a}{l}\right) + \frac{a}{2}\left(1 - \frac{a^3}{l^3}\right) \right).
+$$
