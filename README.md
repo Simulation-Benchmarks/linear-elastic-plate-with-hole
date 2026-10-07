@@ -38,6 +38,14 @@ Click the badge to open the pre-built notebook on the NFDI JupyterHub and explor
 
 The notebook fetches run data from RoHub and plots the three metrics against element size, grouped by tool and element degree. See [docs/notebook-pipeline.md](docs/notebook-pipeline.md) for details on how the notebook is built.
 
+## Traction Integral
+
+[`scripts/traction_integral.py`](scripts/traction_integral.py) computes the traction integral $\int_{x=0} \boldsymbol\sigma(\boldsymbol u_h)\boldsymbol n\,\mathrm ds$ over the left boundary from the stored results of every tool, identically for all of them, using only `mesh.msh` and the nodal displacements:
+
+```
+python scripts/traction_integral.py fenics/results kratos/results --output traction.json
+```
+
 ## License
 
 This repository follows the [REUSE](https://reuse.software/) specification.
