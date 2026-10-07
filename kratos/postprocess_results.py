@@ -11,6 +11,119 @@ from typing import cast
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from analytical_solution import AnalyticalSolution
 
+# Symmetric 7-point, degree-5 Gauss quadrature rule on the reference triangle
+# {(xi, eta): xi >= 0, eta >= 0, xi + eta <= 1} (Dunavant 1985). Weights sum to 1
+# and are scaled by the reference triangle's area (0.5) when used.
+_QUADRATURE_POINTS = np.array(
+    [
+        [1.0 / 3.0, 1.0 / 3.0],
+        [0.0597158717, 0.4701420641],
+        [0.4701420641, 0.0597158717],
+        [0.4701420641, 0.4701420641],
+        [0.7974269853, 0.1012865073],
+        [0.1012865073, 0.7974269853],
+        [0.1012865073, 0.1012865073],
+    ]
+)
+_QUADRATURE_WEIGHTS = np.array(
+    [0.225, 0.1323941527, 0.1323941527, 0.1323941527, 0.1259391805, 0.1259391805, 0.1259391805]
+)
+_REFERENCE_TRIANGLE_AREA = 0.5
+
+
+def _triangle_shape_functions(xi, eta, n_nodes):
+    """
+    Shape functions and their reference-coordinate derivatives for a straight- or
+    curved-sided triangle, evaluated at (xi, eta), following the VTK node ordering:
+    3 corner nodes, followed (for 6-node elements) by the mid-edge nodes on edges
+    (0-1), (1-2), (2-0).
+    """
+    l1, l2, l3 = 1.0 - xi - eta, xi, eta
+    if n_nodes == 3:
+        N = np.array([l1, l2, l3])
+        dN_dxi = np.array([-1.0, 1.0, 0.0])
+        dN_deta = np.array([-1.0, 0.0, 1.0])
+        return N, dN_dxi, dN_deta
+    if n_nodes == 6:
+        N = np.array(
+            [
+                l1 * (2.0 * l1 - 1.0),
+                l2 * (2.0 * l2 - 1.0),
+                l3 * (2.0 * l3 - 1.0),
+                4.0 * l1 * l2,
+                4.0 * l2 * l3,
+                4.0 * l3 * l1,
+            ]
+        )
+        # dl1 = (-1, -1), dl2 = (1, 0), dl3 = (0, 1)
+        dN_dxi = np.array(
+            [
+                -(4.0 * l1 - 1.0),
+                4.0 * l2 - 1.0,
+                0.0,
+                4.0 * (l1 - l2),
+                4.0 * l3,
+                -4.0 * l3,
+            ]
+        )
+        dN_deta = np.array(
+            [
+                -(4.0 * l1 - 1.0),
+                0.0,
+                4.0 * l3 - 1.0,
+                -4.0 * l2,
+                4.0 * l2,
+                4.0 * (l1 - l3),
+            ]
+        )
+        return N, dN_dxi, dN_deta
+    raise ValueError(f"Unsupported triangle with {n_nodes} nodes; expected 3 or 6.")
+
+
+def _l2_error_squared_displacement(mesh, displacement, analytical_solution):
+    """
+    Integrates the squared displacement error over the mesh using isoparametric
+    Gauss quadrature on each triangle, exact to the element's own interpolation
+    degree (matching how Fenics assembles its L2 error via ufl.dx). This is required
+    for quadratic (isoparametric_element_degree=2) elements: a naive vertex/nodal
+    average is not a valid quadrature rule for a P2 field and silently caps the
+    observed convergence order at that of a linear element.
+    """
+    coords = np.asarray(mesh.points)[:, :2]
+
+    # Group cells by node count so each group's quadrature points can be evaluated
+    # in one batched call to analytical_solution.displacement, rather than once per
+    # quadrature point per cell (meshes at the finest resolutions have 10^5+ cells).
+    point_ids_by_type = {3: [], 6: []}
+    for i in range(mesh.n_cells):
+        point_ids = np.asarray(mesh.get_cell(i).point_ids)
+        if len(point_ids) in point_ids_by_type:
+            point_ids_by_type[len(point_ids)].append(point_ids)
+
+    l2_error_sq = 0.0
+    for n_nodes, point_id_lists in point_ids_by_type.items():
+        if not point_id_lists:
+            continue
+        point_ids = np.array(point_id_lists)  # (n_cells, n_nodes)
+        node_coords = coords[point_ids]  # (n_cells, n_nodes, 2)
+        node_displacement = displacement[point_ids]  # (n_cells, n_nodes, 2)
+
+        for (xi, eta), weight in zip(_QUADRATURE_POINTS, _QUADRATURE_WEIGHTS):
+            N, dN_dxi, dN_deta = _triangle_shape_functions(xi, eta, n_nodes)
+            x_phys = np.einsum("n,cnd->cd", N, node_coords)
+            dx_dxi, dy_dxi = np.einsum("n,cnd->cd", dN_dxi, node_coords).T
+            dx_deta, dy_deta = np.einsum("n,cnd->cd", dN_deta, node_coords).T
+            det_j = dx_dxi * dy_deta - dy_dxi * dx_deta
+
+            u_fe = np.einsum("n,cnd->cd", N, node_displacement)
+            u_ref_x, u_ref_y = analytical_solution.displacement(x_phys.T)
+            err_sq = (u_fe[:, 0] - u_ref_x) ** 2 + (u_fe[:, 1] - u_ref_y) ** 2
+
+            l2_error_sq += np.sum(weight * _REFERENCE_TRIANGLE_AREA * np.abs(det_j) * err_sq)
+
+    return float(l2_error_sq)
+
+
 def postprocess_results(input_parameter_file, input_result_vtk, output_metrics_file, output_solution_file_zip):
     ureg = UnitRegistry()
     with open(input_parameter_file) as f:
@@ -71,16 +184,8 @@ def postprocess_results(input_parameter_file, input_result_vtk, output_metrics_f
     displacement = np.asarray(mesh.point_data["DISPLACEMENT"])[:, :2]
     u_ref_x, u_ref_y = analytical_solution.displacement(coords[:, :2].T)
     u_ref = np.column_stack((np.asarray(u_ref_x), np.asarray(u_ref_y)))
-    err_sq_node = np.sum((displacement - u_ref) ** 2, axis=1)
 
-    cell_sizes = mesh.compute_cell_sizes(length=False, area=True, volume=False)
-    cell_areas = np.asarray(cell_sizes.cell_data["Area"])
-    l2_error_sq = 0.0
-    for i in range(mesh.n_cells):
-        point_ids = mesh.get_cell(i).point_ids
-        if len(point_ids) == 0:
-            continue
-        l2_error_sq += float(np.mean(err_sq_node[point_ids]) * cell_areas[i])
+    l2_error_sq = _l2_error_squared_displacement(mesh, displacement, analytical_solution)
     l2_error_displacement = float(np.sqrt(l2_error_sq))
 
     # Compute reaction forces on the left boundary (x=0) by summing the reaction forces at the nodes on that boundary.
