@@ -51,8 +51,11 @@ metrics:
   magnitude per surface, so the analytical traction is evaluated at the center
   of every element face of the Neumann boundary and applied face by face. This
   is a midpoint-rule approximation of the boundary term of the weak form.
-* **Reaction force from the nodal right hand side.** The reaction force is the
-  sum of the nodal right-hand-side entries of the degrees of freedom constrained
-  on the left boundary.
+* **Reaction force from the nodal right hand side.** EdelweissFE exports the
+  nodal right hand side of the elements, i.e. the negative internal forces,
+  without the distributed loads. `create_metrics.py` rebuilds the nodal loads
+  of the face-wise constant traction from `neumann_faces.json` and sums the
+  residual, internal minus external force, over the nodes of the left
+  boundary.
 * **Approximated L2 error.** The L2 norm of the displacement error is
   approximated from the nodal errors weighted by the cell areas.

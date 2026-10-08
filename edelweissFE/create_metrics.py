@@ -16,16 +16,27 @@ from pint import UnitRegistry
 
 from analytical_solution import AnalyticalSolution
 
+# Weights that distribute a constant traction on a straight element face to the
+# face nodes, i.e. the integrals of the face shape functions divided by the face
+# length. A face lists its corner nodes first, then the mid-side node of CPS8R.
+FACE_LOAD_WEIGHTS = {
+    2: np.array([1.0 / 2.0, 1.0 / 2.0]),
+    3: np.array([1.0 / 6.0, 1.0 / 6.0, 2.0 / 3.0]),
+}
+
 
 def create_metrics(
     parameter_file: str,
     case_file: str,
+    neumann_faces_file: str,
     metrics_file: str,
     solution_file_zip: str,
 ) -> None:
     ureg = UnitRegistry()
     with open(parameter_file) as f:
         parameters = json.load(f)
+    with open(neumann_faces_file) as f:
+        neumann_faces = json.load(f)
     configuration = parameters["configuration"]
 
     youngs_modulus = (
@@ -77,12 +88,29 @@ def create_metrics(
         )
     l2_error_displacement = float(np.sqrt(l2_error_squared))
 
-    # The nodal field 'P' holds the element contributions to the right hand side,
-    # i.e. the negative internal forces. On the constrained dofs of the left
-    # boundary those balance the support reaction.
+    # The reaction force is the residual of the discrete problem, internal minus
+    # external nodal force, summed over the nodes of the left boundary. The nodal field 'P' holds the element contributions to the right
+    # hand side, i.e. the negative internal forces, but not the distributed
+    # loads. Those are rebuilt here from the face-wise constant traction that
+    # create_edelweiss_input.py applies, since the corner (0, l) of the left
+    # boundary also carries a share of the traction on the top boundary.
+    external = np.zeros((mesh.n_points, 2))
+    centres = np.array([face["centre"] for face in neumann_faces], dtype=float)
+    normals = np.array([face["normal"] for face in neumann_faces], dtype=float)
+    sxx, sxy, syy = analytical_solution.stress(centres.T)
+    traction = np.column_stack(
+        (sxx * normals[:, 0] + sxy * normals[:, 1], sxy * normals[:, 0] + syy * normals[:, 1])
+    )
+    for face, face_traction in zip(neumann_faces, traction):
+        face_nodes = np.asarray(face["nodes"], dtype=float)
+        face_length = float(np.linalg.norm(face_nodes[1] - face_nodes[0]))
+        for node, weight in zip(face_nodes, FACE_LOAD_WEIGHTS[len(face_nodes)]):
+            point = mesh.find_closest_point([node[0], node[1], 0.0])
+            external[point] += weight * face_length * face_traction
+    reaction = -np.asarray(mesh.point_data["reaction_force"])[:, :2] - external
+
     tolerance = 1e-10 * max(1.0, length)
     left_boundary = np.isclose(coords[:, 0], 0.0, atol=tolerance)
-    reaction = -np.asarray(mesh.point_data["reaction_force"])[:, :2]
     reaction_force_left_boundary_x = float(np.sum(reaction[left_boundary, 0]))
     reaction_force_left_boundary_y = float(np.sum(reaction[left_boundary, 1]))
 
@@ -136,6 +164,11 @@ if __name__ == "__main__":
         help="Path to the Ensight case file written by EdelweissFE (input)",
     )
     parser.add_argument(
+        "--input_neumann_faces_file",
+        required=True,
+        help="Path to the JSON description of the Neumann boundary faces (input)",
+    )
+    parser.add_argument(
         "--output_solution_file_zip",
         required=True,
         help="Path to the zipped solution files (output)",
@@ -149,6 +182,7 @@ if __name__ == "__main__":
     create_metrics(
         args.input_parameter_file,
         args.input_case_file,
+        args.input_neumann_faces_file,
         args.output_metrics_file,
         args.output_solution_file_zip,
     )
