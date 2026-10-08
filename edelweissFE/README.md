@@ -55,7 +55,7 @@ metrics:
   nodal right hand side of the elements, i.e. the negative internal forces,
   without the distributed loads. `create_metrics.py` rebuilds the nodal loads
   of the face-wise constant traction from `neumann_faces.json` and sums the
-  residual, internal minus external force, over the degrees of freedom
-  constrained on the left boundary.
+  residual, internal minus external force, over the nodes of the left
+  boundary.
 * **Approximated L2 error.** The L2 norm of the displacement error is
   approximated from the nodal errors weighted by the cell areas.

@@ -84,14 +84,12 @@ def postprocess_results(input_parameter_file, input_result_vtk, output_metrics_f
     l2_error_displacement = float(np.sqrt(l2_error_sq))
 
     # Compute reaction forces on the left boundary (x=0) by summing the Kratos REACTION, i.e. the residual of the
-    # discrete problem, over the constrained dofs of that boundary. The left boundary constrains u_x only and the
-    # bottom boundary u_y only, so the y-component only collects nodes on both boundaries.
+    # discrete problem, over the nodes on that boundary.
     tolerance = 1e-10 * max(1.0, L)
     left_boundary_mask = np.isclose(coords[:, 0], 0.0, atol=tolerance)
-    bottom_boundary_mask = np.isclose(coords[:, 1], 0.0, atol=tolerance)
     reaction = np.asarray(mesh.point_data.get("REACTION", np.zeros((mesh.n_points, 3))))
     reaction_force_left_boundary_x = float(np.sum(reaction[left_boundary_mask, 0]))
-    reaction_force_left_boundary_y = float(np.sum(reaction[left_boundary_mask & bottom_boundary_mask, 1]))
+    reaction_force_left_boundary_y = float(np.sum(reaction[left_boundary_mask, 1]))
 
     # Compute displacement at the top-right corner
     probe_points = pyvista.PolyData(

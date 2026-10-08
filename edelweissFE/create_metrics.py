@@ -89,8 +89,7 @@ def create_metrics(
     l2_error_displacement = float(np.sqrt(l2_error_squared))
 
     # The reaction force is the residual of the discrete problem, internal minus
-    # external nodal force, summed over the constrained dofs of the left
-    # boundary. The nodal field 'P' holds the element contributions to the right
+    # external nodal force, summed over the nodes of the left boundary. The nodal field 'P' holds the element contributions to the right
     # hand side, i.e. the negative internal forces, but not the distributed
     # loads. Those are rebuilt here from the face-wise constant traction that
     # create_edelweiss_input.py applies, since the corner (0, l) of the left
@@ -110,14 +109,10 @@ def create_metrics(
             external[point] += weight * face_length * face_traction
     reaction = -np.asarray(mesh.point_data["reaction_force"])[:, :2] - external
 
-    # The left boundary constrains u_x only, the bottom boundary u_y only.
     tolerance = 1e-10 * max(1.0, length)
     left_boundary = np.isclose(coords[:, 0], 0.0, atol=tolerance)
-    bottom_boundary = np.isclose(coords[:, 1], 0.0, atol=tolerance)
     reaction_force_left_boundary_x = float(np.sum(reaction[left_boundary, 0]))
-    reaction_force_left_boundary_y = float(
-        np.sum(reaction[left_boundary & bottom_boundary, 1])
-    )
+    reaction_force_left_boundary_y = float(np.sum(reaction[left_boundary, 1]))
 
     # The top right corner is a node of the mesh, so no interpolation is needed.
     corner = mesh.find_closest_point([length, length, 0.0])

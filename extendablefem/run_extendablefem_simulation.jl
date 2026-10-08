@@ -215,17 +215,22 @@ function solve_plate_with_hole(config::PlateConfig, grid::ExtendableGrid, output
     )
 
     # Reaction force from the residual a(u_h, w) - f(w), where w is the sum of the
-    # x-shape functions of the constrained dofs on the left boundary. The left
-    # boundary only constrains u_x, so the y-component vanishes.
+    # x- or y-shape functions of all dofs on the left boundary. The y-dofs there
+    # are free, so their dofs are collected with an operator that is not
+    # assigned to the problem.
+    left_boundary_y_dofs = HomogeneousBoundaryData(u; regions = [1], mask = [0, 1])
+    assemble!(left_boundary_y_dofs, FES)
     reaction_force_left_boundary = [0.0, 0.0]
-    uw = FEVector([FES, FES])
-    view(uw[1]) .= view(sol[u])
-    uw[2][fixed_dofs(left_boundary_data)] = ones(length(fixed_dofs(left_boundary_data)))
     InternalWorkIntegrator = ItemIntegrator(internal_work_kernel!, [grad(1), grad(2)]; resultdim = 1, params = [config.E, config.ν])
-    reaction_force_left_boundary[1] = sum(evaluate(InternalWorkIntegrator, uw))
-    for (traction_kernel!, region) in ((traction_right_kernel!, 3), (traction_top_kernel!, 4))
-        ExternalWorkIntegrator = ItemIntegrator(external_work_kernel(traction_kernel!), [id(2)]; resultdim = 1, entities = ON_BFACES, regions = [region], params = [config.radius, config.F])
-        reaction_force_left_boundary[1] -= sum(evaluate(ExternalWorkIntegrator, uw))
+    for (component, boundary_dofs) in enumerate(fixed_dofs.((left_boundary_data, left_boundary_y_dofs)))
+        uw = FEVector([FES, FES])
+        view(uw[1]) .= view(sol[u])
+        uw[2][boundary_dofs] = ones(length(boundary_dofs))
+        reaction_force_left_boundary[component] = sum(evaluate(InternalWorkIntegrator, uw))
+        for (traction_kernel!, region) in ((traction_right_kernel!, 3), (traction_top_kernel!, 4))
+            ExternalWorkIntegrator = ItemIntegrator(external_work_kernel(traction_kernel!), [id(2)]; resultdim = 1, entities = ON_BFACES, regions = [region], params = [config.radius, config.F])
+            reaction_force_left_boundary[component] -= sum(evaluate(ExternalWorkIntegrator, uw))
+        end
     end
 
     displacement_top_right_corner = [0.0, 0.0]

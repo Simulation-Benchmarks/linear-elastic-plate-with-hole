@@ -147,9 +147,9 @@ def run_fenics_simulation(
     solver.solve()
 
     # Support reaction on the left boundary, computed from the residual
-    # a(u_h, phi_i) - f(phi_i) of the discrete problem and summed over the
-    # constrained dofs of the left boundary. The left boundary only constrains
-    # u_x, so the y-component only collects dofs shared with the bottom boundary.
+    # a(u_h, phi_i) - f(phi_i) of the discrete problem and summed over all dofs
+    # of the left boundary. The residual vanishes at the free dofs, so only the
+    # constrained x-dofs contribute.
     residual = df.fem.assemble_vector(
         df.fem.form(
             ufl.inner(sigma(u), eps(u_)) * dx
@@ -157,9 +157,7 @@ def run_fenics_simulation(
             - ufl.inner(traction_top, u_) * ds(4)
         )
     )
-    dofs_left_y = np.intersect1d(
-        df.fem.locate_dofs_topological(V.sub(1), 1, tags_left), dofs_bottom
-    )
+    dofs_left_y = df.fem.locate_dofs_topological(V.sub(1), 1, tags_left)
     reaction_left_x = float(np.sum(residual.array[dofs_left]))
     reaction_left_y = float(np.sum(residual.array[dofs_left_y]))
     num_dofs = V.dofmap.index_map.size_global * V.dofmap.index_map_bs
