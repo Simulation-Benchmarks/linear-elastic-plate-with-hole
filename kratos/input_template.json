@@ -12,6 +12,7 @@
         "echo_level": 1,
         "domain_size": 2,
         "analysis_type": "linear",
+        "move_mesh_flag": false,
         "compute_reactions": true,
         "model_import_settings": {
             "input_type": "mdpa",
