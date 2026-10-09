@@ -1,6 +1,8 @@
 import json
 import os
 
+PARAMETERS = os.path.relpath(workflow.configfiles[0])
+
 SOFTWARE_VERSION = str(config["software_version"])
 JULIA_IMAGE = "docker://julia:1.12.2-bookworm"
 
@@ -12,7 +14,7 @@ rule all:
 rule create_mesh:    
     input:
         script = "create_mesh.py",
-        parameters = workflow.configfiles[0],
+        parameters = PARAMETERS,
     output:
         mesh = "mesh.msh",
     conda: "environment_mesh.yml"
@@ -33,7 +35,7 @@ rule setup_julia_environment:
 
 rule run_extendablefem_simulation:
     input: 
-        parameters = workflow.configfiles[0],
+        parameters = PARAMETERS,
         mesh = "mesh.msh",
         manifest = "Manifest.toml",
     output:

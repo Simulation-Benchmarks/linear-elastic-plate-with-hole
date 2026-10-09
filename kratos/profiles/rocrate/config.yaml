@@ -1,0 +1,7 @@
+report-rocrate-filename: "workflow-run"
+report-rocrate-run-name: "Linear-elastic plate with a hole (Kratos)"
+report-rocrate-run-description: "Benchmark for a linear-elastic plate with a hole"
+report-rocrate-run-license: "https://opensource.org/licenses/MIT"
+report-rocrate-main-tool: "kratosmultiphysics-all"
+report-rocrate-workflow-inputs: '{"parameters": "parameters.json"}'
+report-rocrate-validation-severity: "REQUIRED"
