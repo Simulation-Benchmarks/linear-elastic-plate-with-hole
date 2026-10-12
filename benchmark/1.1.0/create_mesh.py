@@ -7,7 +7,7 @@ from pint import UnitRegistry
 ureg = UnitRegistry()
 
 
-def create_mesh(parameter_file, element_category, mesh_file):
+def create_mesh(parameter_file, element_category, mesh_file,ignore_element_degree):
     # Load parameters
     with open(parameter_file) as f:
         parameters = json.load(f)
@@ -47,7 +47,10 @@ def create_mesh(parameter_file, element_category, mesh_file):
     gmsh.option.setNumber("Mesh.CharacteristicLengthMin", element_size)
     gmsh.option.setNumber("Mesh.CharacteristicLengthMax", element_size)
     gmsh.option.setNumber("Mesh.CharacteristicLengthFactor", 1.0)
-    gmsh.option.setNumber("Mesh.ElementOrder", parameters["isoparametric_element_degree"])
+    if ignore_element_degree==True:
+        gmsh.option.setNumber("Mesh.ElementOrder", 1)
+    else:
+        gmsh.option.setNumber("Mesh.ElementOrder", parameters["isoparametric_element_degree"])
     
     cell_type = parameters["cell_type"]
     
@@ -109,6 +112,7 @@ def create_mesh(parameter_file, element_category, mesh_file):
     gmsh.model.addPhysicalGroup(1, [l1], 2, name="boundary_bottom")
     gmsh.model.addPhysicalGroup(1, [l2], 3, name="boundary_right")
     gmsh.model.addPhysicalGroup(1, [l3], 4, name="boundary_top")
+    gmsh.model.addPhysicalGroup(1, [l5], 5, name="boundary_circle")
 
     gmsh.model.mesh.generate(2)
     gmsh.write(mesh_file)
@@ -120,5 +124,6 @@ if __name__ == "__main__":
     PARSER.add_argument("--input_parameter_file", required=True, help="JSON file containing simulation parameters")
     PARSER.add_argument("--element_category", default="lagrange", type=str, help="Either a lagrange or a serendipity element (default: lagrange)")
     PARSER.add_argument("--output_mesh_file", required=True, help="Output path for the generated mesh (.msh)")
+    PARSER.add_argument("--ignore_element_degree",default=False,action="store_true",help="Always create a mesh with element order 1")
     ARGS = vars(PARSER.parse_args())
-    create_mesh(ARGS["input_parameter_file"], ARGS["element_category"], ARGS["output_mesh_file"])
+    create_mesh(ARGS["input_parameter_file"], ARGS["element_category"], ARGS["output_mesh_file"],ARGS["ignore_element_degree"])
