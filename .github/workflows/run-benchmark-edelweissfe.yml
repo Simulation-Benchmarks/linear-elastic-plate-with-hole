@@ -92,7 +92,7 @@ jobs:
           name: ${{ env.SOFTWARE_NAME }}_results_${{ env.BENCHMARK_NAME }}
           path: |
             ${{ env.SOFTWARE_NAME }}/results/
-            !${{ env.SOFTWARE_NAME }}/results/*/EdelweissFE-*.zip
+            !${{ env.SOFTWARE_NAME }}/results/*/workflow-run.zip
 
       - name: Archive ${{ env.SOFTWARE_NAME }} aggregate RO-Crate artifact
         uses: actions/upload-artifact@v7
