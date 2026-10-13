@@ -20,32 +20,32 @@ permissions:
   contents: read
 
 env:
-  BENCHMARK_ROHUB_IDENTIFIER: &benchmark_rohub_identifier 60428bde-5935-4109-8f23-0448667ee706
+  BENCHMARK_ROHUB_IDENTIFIER: &benchmark_rohub_identifier 68b027dd-666b-4b32-a416-952960022c2c
 
 jobs:
   run-fenics:
     uses: ./.github/workflows/run-benchmark-fenics.yml
     with:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
-      benchmark_file: benchmark/1.1.0/minimal-configurations.json
+      benchmark_file: benchmark/1.0.0/minimal-configurations.json
 
   run-kratos:
     uses: ./.github/workflows/run-benchmark-kratos.yml
     with:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
-      benchmark_file: benchmark/1.1.0/minimal-configurations.json
+      benchmark_file: benchmark/1.0.0/minimal-configurations.json
 
   run-extendablefem:
     uses: ./.github/workflows/run-benchmark-extendablefem.yml
     with:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
-      benchmark_file: benchmark/1.1.0/minimal-configurations.json
+      benchmark_file: benchmark/1.0.0/minimal-configurations.json
 
   run-edelweissFE:
     uses: ./.github/workflows/run-benchmark-edelweissfe.yml
     with:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
-      benchmark_file: benchmark/1.1.0/minimal-configurations.json
+      benchmark_file: benchmark/1.0.0/minimal-configurations.json
 
   upload:
     needs: [run-fenics, run-kratos, run-extendablefem, run-edelweissFE]
