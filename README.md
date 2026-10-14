@@ -44,7 +44,7 @@ This repository follows the [REUSE](https://reuse.software/) specification.
 License information is provided per file via [REUSE.toml](./REUSE.toml).
 In short:
 
-- Source code files (`.py`, `.jl`, `Snakefile*`, `.github/workflows/*.yml`) are licensed under the [MIT License](./LICENSES/MIT.txt).
+- Source code files (`.py`, `.jl`, `.cc`, `Snakefile*`, `CMakeLists.txt`, `.github/workflows/*.yml`) are licensed under the [MIT License](./LICENSES/MIT.txt).
 - Documentation and figures (`.md`, `.svg`) are licensed under [CC-BY-4.0](./LICENSES/CC-BY-4.0.txt).
 - Data, configuration, and generated artifacts (`.json`, `.yml`, `.toml`, `.ipynb`, `.zip`) are licensed under [CC0-1.0](./LICENSES/CC0-1.0.txt).
 

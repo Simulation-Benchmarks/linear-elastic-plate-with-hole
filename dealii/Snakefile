@@ -1,0 +1,71 @@
+import json
+import os
+
+SOFTWARE_VERSION = str(config["software_version"])
+#TODO: insert software version into image?
+DEALII_IMAGE = "docker://dealii/dealii:v9.7.1-jammy"
+
+rule all:
+    input:
+        "solution_field_data.zip",
+        "metrics.json"
+
+rule create_mesh:    
+    input:
+        script = "create_mesh.py",
+        parameters = workflow.configfiles[0],
+    output:
+        mesh = "mesh.msh",
+    conda: "environment_mesh.yml"
+    shell:
+        """
+        python3 {input.script} --input_parameter_file {input.parameters} --output_mesh_file {output.mesh} --element_category "principal-vertices" 
+        """
+
+rule configure_cmake:
+    input: "CMakeLists.txt",
+           "kirsch_plate.cc"
+    output: "build/CMakeCache.txt"
+    
+    singularity: DEALII_IMAGE
+    shell: 
+        """
+            cmake -S. -Bbuild
+        """
+
+rule build_cmake:
+    input: "build/CMakeCache.txt"
+    output: "build/kirsch_plate"
+    singularity: DEALII_IMAGE
+    shell:
+        """
+            cmake --build build --target="release"
+            cmake --build build
+        """
+
+rule run_dealii_simulation:
+    input: 
+        parameters = workflow.configfiles[0],
+        executable = "build/kirsch_plate",
+        mesh = "mesh.msh"
+    output:
+        vtk = "solution.vtk",
+        metrics = "metrics.json",
+    singularity: DEALII_IMAGE
+    shell:
+        """
+            build/kirsch_plate {input.parameters}
+        """
+
+rule compress_solution:
+    input: 
+        file="solution.vtk"
+    output:
+        "solution_field_data.zip"
+    params:
+        format_name="zip"
+    log:
+        "logs/libarchive_compress_solution.log"
+    threads: 1
+    wrapper:
+        "v9.8.0/utils/libarchive/compress"
