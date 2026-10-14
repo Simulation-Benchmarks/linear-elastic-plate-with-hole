@@ -25,8 +25,8 @@ env:
   BRANCH_NAME: ${{ inputs.checkout_ref || github.head_ref || github.ref_name }}
   SOFTWARE_NAME: kratos
   ROCRATE_LICENSE: https://opensource.org/licenses/MIT
-  ROCRATE_NAME: linear-elastic-plate-with-hole provenance (Kratos)
-  ROCRATE_DESCRIPTION_BASE: Provenance run of the benchmark for linear-elastic plate with a hole using Kratos
+  ROCRATE_NAME: linear-elastic-plate-with-hole provenance (KRATOS)
+  ROCRATE_DESCRIPTION_BASE: Provenance run of the benchmark for linear-elastic plate with a hole using KRATOS
 
 jobs:
   run-examples:
@@ -85,7 +85,7 @@ jobs:
           name: ${{ env.SOFTWARE_NAME }}_results_${{ env.BENCHMARK_NAME }}
           path: |
             ${{ env.SOFTWARE_NAME }}/results/
-            !${{ env.SOFTWARE_NAME }}/results/*/Kratos-*.zip
+            !${{ env.SOFTWARE_NAME }}/results/*/KRATOS-*.zip
 
       - name: Archive ${{ env.SOFTWARE_NAME }} aggregate RO-Crate artifact
         uses: actions/upload-artifact@v7

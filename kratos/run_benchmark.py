@@ -11,7 +11,7 @@ from semantic_benchmark import runner
 
 LOGGER = logging.getLogger(__name__)
 
-SOFTWARE_NAME = "Kratos"
+SOFTWARE_NAME = "KRATOS"
 BENCHMARK_DIR = Path(__file__).resolve().parent
 SOFTWARE_VERSION = "10.3.0"
 SOFTWARE_URL = "https://zbmath.org/software/7804"
@@ -20,7 +20,7 @@ PROVENANCE_REPORT_NAME = "NFDI4Ing Provenance"
 PROVENANCE_REPORT_DESCRIPTION = "Benchmark for linear-elastic plate with a hole"
 PROVENANCE_REPORT_LICENSE = "https://opensource.org/licenses/MIT"
 DEFAULT_CRATE_LICENSE = "https://opensource.org/licenses/MIT"
-DEFAULT_CRATE_NAME = "linear-elastic-plate-with-hole provenance (Kratos)"
+DEFAULT_CRATE_NAME = "linear-elastic-plate-with-hole provenance (KRATOS)"
 DEFAULT_CRATE_DESCRIPTION = "Benchmark for linear-elastic plate with a hole"
 
 UNIT_SYMBOLS = {
