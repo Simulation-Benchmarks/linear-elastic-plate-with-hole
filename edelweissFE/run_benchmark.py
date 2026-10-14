@@ -4,6 +4,7 @@ import argparse
 import json
 import logging
 import subprocess
+import time
 from argparse import Namespace
 from pathlib import Path
 
@@ -124,7 +125,28 @@ def run_snakemake_workflow(
     )
 
     subprocess.run(base_cmd, check=True, cwd=output_dir)
-    subprocess.run(base_cmd + reporter_args, check=True, cwd=output_dir)
+    report_cmd = base_cmd + reporter_args
+    for attempt in range(3):
+        report = subprocess.run(
+            report_cmd,
+            cwd=output_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=False,
+        )
+        if report.stdout:
+            print(report.stdout, end="", flush=True)
+        if report.returncode == 0:
+            break
+        remote_validation_failure = (
+            "ROCrateValidationError" in report.stdout
+            and "RemoteDisconnected" in report.stdout
+        )
+        if not remote_validation_failure or attempt == 2:
+            raise subprocess.CalledProcessError(report.returncode, report_cmd)
+        LOGGER.warning("RO-Crate validation connection closed; retrying report (%s/3).", attempt + 2)
+        time.sleep(10)
 
 
 def run_configuration(
