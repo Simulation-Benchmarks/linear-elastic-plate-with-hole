@@ -1,5 +1,5 @@
 import json
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawTextHelpFormatter
 
 import gmsh
 from pint import UnitRegistry
@@ -7,7 +7,7 @@ from pint import UnitRegistry
 ureg = UnitRegistry()
 
 
-def create_mesh(parameter_file, element_category, mesh_file,ignore_element_degree):
+def create_mesh(parameter_file, element_category, mesh_file):
     # Load parameters
     with open(parameter_file) as f:
         parameters = json.load(f)
@@ -47,7 +47,7 @@ def create_mesh(parameter_file, element_category, mesh_file,ignore_element_degre
     gmsh.option.setNumber("Mesh.CharacteristicLengthMin", element_size)
     gmsh.option.setNumber("Mesh.CharacteristicLengthMax", element_size)
     gmsh.option.setNumber("Mesh.CharacteristicLengthFactor", 1.0)
-    if ignore_element_degree==True:
+    if element_category=="principal-vertices":
         gmsh.option.setNumber("Mesh.ElementOrder", 1)
     else:
         gmsh.option.setNumber("Mesh.ElementOrder", parameters["isoparametric_element_degree"])
@@ -57,11 +57,6 @@ def create_mesh(parameter_file, element_category, mesh_file,ignore_element_degre
     if cell_type != "triangle" and cell_type != "quadrilateral":
         raise ValueError(
             f"Unsupported cell_type '{cell_type}'. Use one of: triangle, quadrilateral."
-        )
-
-    if element_category not in ("lagrange", "serendipity"):
-        raise ValueError(
-            f"Unsupported element_category '{element_category}'. Use one of: lagrange, serendipity."
         )
 
     z = 0.0
@@ -120,10 +115,15 @@ def create_mesh(parameter_file, element_category, mesh_file,ignore_element_degre
 
 
 if __name__ == "__main__":
-    PARSER = ArgumentParser(description="Create input files and mesh for FEniCS simulation")
+    PARSER = ArgumentParser(description="Create input mesh for the linear elastic plate with a hole",formatter_class=RawTextHelpFormatter)
     PARSER.add_argument("--input_parameter_file", required=True, help="JSON file containing simulation parameters")
-    PARSER.add_argument("--element_category", default="lagrange", type=str, help="Either a lagrange or a serendipity element (default: lagrange)")
+    PARSER.add_argument("--element_category", default="all-nodes", choices=["all-nodes","principal-vertices","serendipity"], 
+    help=
+"""Which gmsh elementType to output:
+  all-nodes (default) -> Output the triangle/quad matching the element degree
+  principal-vertices  -> Only output the lowest order types, i.e. 3-node triangle and 4-node quadrilateral
+  serendipity         -> Output 8-node quadrilateral for p=2, otherwise like default
+""")
     PARSER.add_argument("--output_mesh_file", required=True, help="Output path for the generated mesh (.msh)")
-    PARSER.add_argument("--ignore_element_degree",default=False,action="store_true",help="Always create a mesh with element order 1")
     ARGS = vars(PARSER.parse_args())
-    create_mesh(ARGS["input_parameter_file"], ARGS["element_category"], ARGS["output_mesh_file"],ARGS["ignore_element_degree"])
+    create_mesh(ARGS["input_parameter_file"], ARGS["element_category"], ARGS["output_mesh_file"])

@@ -9,9 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.0]
 
+### Changed
+- Option `element_category` is now of proper `choices` type, no longer requiring a manual check of the options
+- Renamed default option for `element_category` to `all-nodes`
+
 ### Added
 - This changelog
-- Option `--ignore_element_degree` to always create a triangulation into three point triangles in `create_mesh.py`
+- Option `principal-vertices` for `element_category` so the `mesh.msh` file always contains lowest order elements.
 
 ## [1.0.0]
 
