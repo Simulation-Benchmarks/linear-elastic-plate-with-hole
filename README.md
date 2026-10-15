@@ -30,6 +30,13 @@ Reusable semantic benchmark, RO-Crate, and RoHub helpers are provided by the ext
 
 The local `provenance/` scripts keep repository-specific configuration and command-line entrypoints for this plate-with-hole benchmark.
 
+## RoHub integration workflow
+
+The scheduled workflow and manual runs use the benchmark files in `benchmark/1.0.0/` by default.
+For a manual run, enable `download_from_rohub` to download the benchmark RO-Crate and JSON-LD
+from RoHub before the tools start. Each tool uploads its aggregate RO-Crate as soon as its own
+benchmark job succeeds.
+
 ## Interactive Benchmark Evaluation
 
 Click the badge to open the pre-built notebook on the NFDI JupyterHub and explore the provenance plots interactively:
