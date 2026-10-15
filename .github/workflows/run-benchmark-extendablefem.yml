@@ -20,8 +20,8 @@ on:
 
 env:
   BENCHMARK_NAME: linear-elastic-plate-with-hole
-  BENCHMARK_VERSION: 1.1.0
-  EXAMPLE_BENCHMARK_FILE: ${{ inputs.benchmark_file || 'benchmark/1.1.0/minimal-configurations.json' }}
+  BENCHMARK_VERSION: 1.0.0
+  EXAMPLE_BENCHMARK_FILE: ${{ inputs.benchmark_file || 'benchmark/1.0.0/minimal-configurations.json' }}
   BRANCH_NAME: ${{ inputs.checkout_ref || github.head_ref || github.ref_name }}
   SOFTWARE_NAME: extendablefem
   ROCRATE_LICENSE: https://opensource.org/licenses/MIT
