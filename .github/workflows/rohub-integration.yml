@@ -111,45 +111,25 @@ jobs:
       benchmark_file: ${{ inputs.download_from_rohub && 'downloaded-benchmark/benchmark.json' || 'benchmark/1.0.0/minimal-configurations.json' }}
       benchmark_artifact_name: ${{ inputs.download_from_rohub && 'downloaded-benchmark-resources' || '' }}
 
-  upload-fenics:
-    needs: run-fenics
+  upload:
+    needs: [run-fenics, run-kratos, run-extendablefem, run-edelweissFE]
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - software: fenics
+            display_name: FEniCS
+          - software: kratos
+            display_name: KRATOS
+          - software: extendablefem
+            display_name: ExtendableFEM.jl
+          - software: edelweissFE
+            display_name: EdelweissFE
     uses: ./.github/workflows/upload-rocrate.yml
     with:
-      software: fenics
-      display_name: FEniCS
-      checkout_ref: ${{ inputs.branch || github.ref_name }}
-      use_production_rohub: ${{ inputs.use_production_rohub }}
-      benchmark_rohub_identifier: *benchmark_rohub_identifier
-    secrets: inherit
-
-  upload-kratos:
-    needs: run-kratos
-    uses: ./.github/workflows/upload-rocrate.yml
-    with:
-      software: kratos
-      display_name: KRATOS
-      checkout_ref: ${{ inputs.branch || github.ref_name }}
-      use_production_rohub: ${{ inputs.use_production_rohub }}
-      benchmark_rohub_identifier: *benchmark_rohub_identifier
-    secrets: inherit
-
-  upload-extendablefem:
-    needs: run-extendablefem
-    uses: ./.github/workflows/upload-rocrate.yml
-    with:
-      software: extendablefem
-      display_name: ExtendableFEM.jl
-      checkout_ref: ${{ inputs.branch || github.ref_name }}
-      use_production_rohub: ${{ inputs.use_production_rohub }}
-      benchmark_rohub_identifier: *benchmark_rohub_identifier
-    secrets: inherit
-
-  upload-edelweissFE:
-    needs: run-edelweissFE
-    uses: ./.github/workflows/upload-rocrate.yml
-    with:
-      software: edelweissFE
-      display_name: EdelweissFE
+      software: ${{ matrix.software }}
+      display_name: ${{ matrix.display_name }}
       checkout_ref: ${{ inputs.branch || github.ref_name }}
       use_production_rohub: ${{ inputs.use_production_rohub }}
       benchmark_rohub_identifier: *benchmark_rohub_identifier
