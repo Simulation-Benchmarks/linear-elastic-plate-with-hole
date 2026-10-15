@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 env:
-  BENCHMARK_ROHUB_IDENTIFIER: &benchmark_rohub_identifier 68b027dd-666b-4b32-a416-952960022c2c
+  BENCHMARK_ROHUB_IDENTIFIER: &benchmark_rohub_identifier 60428bde-5935-4109-8f23-0448667ee706
 
 jobs:
   run-fenics:
