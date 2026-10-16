@@ -10,4 +10,4 @@ dependencies:
   - python=3.10
   - pip
   - pip:
-      - git+https://github.com/Simulation-Benchmarks/semantic-benchmark.git@main
+      - semantic-benchmark~=0.4.2

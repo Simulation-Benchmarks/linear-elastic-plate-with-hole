@@ -15,6 +15,9 @@ on:
       use_production_rohub:
         required: true
         type: boolean
+      benchmark_rohub_identifier:
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -75,4 +78,5 @@ jobs:
             --username "${ROHUB_USERNAME}" \
             --password "${ROHUB_PASSWORD}" \
             --code-repository-url "${CODE_REPOSITORY_URL}" \
+            --benchmark-rohub-identifier "${{ inputs.benchmark_rohub_identifier }}" \
             "${rohub_args[@]}"
