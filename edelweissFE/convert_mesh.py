@@ -131,6 +131,8 @@ def convert_mesh(
                         "face": local_face,
                         "centre": points[corners].mean(axis=0).tolist(),
                         "normal": list(normal),
+                        # Corner nodes first, then the mid-side node of CPS8R.
+                        "nodes": points[face_nodes[element]].tolist(),
                     }
                 )
 

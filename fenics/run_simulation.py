@@ -146,11 +146,20 @@ def run_fenics_simulation(
     )
     solver.solve()
 
-    # Support reaction on the left boundary
-    n = ufl.FacetNormal(mesh)
-    traction = ufl.dot(sigma(u), n)
-    reaction_left_x = df.fem.assemble_scalar(df.fem.form(traction[0] * ds(1)))
-    reaction_left_y = df.fem.assemble_scalar(df.fem.form(traction[1] * ds(1)))
+    # Support reaction on the left boundary, computed from the residual
+    # a(u_h, phi_i) - f(phi_i) of the discrete problem and summed over all dofs
+    # of the left boundary. The residual vanishes at the free dofs, so only the
+    # constrained x-dofs contribute.
+    residual = df.fem.assemble_vector(
+        df.fem.form(
+            ufl.inner(sigma(u), eps(u_)) * dx
+            - ufl.inner(traction_right, u_) * ds(3)
+            - ufl.inner(traction_top, u_) * ds(4)
+        )
+    )
+    dofs_left_y = df.fem.locate_dofs_topological(V.sub(1), 1, tags_left)
+    reaction_left_x = float(np.sum(residual.array[dofs_left]))
+    reaction_left_y = float(np.sum(residual.array[dofs_left_y]))
     num_dofs = V.dofmap.index_map.size_global * V.dofmap.index_map_bs
 
 

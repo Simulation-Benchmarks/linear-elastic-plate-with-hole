@@ -90,6 +90,7 @@ rule create_metrics:
         script = "create_metrics.py",
         parameters = PARAMETERS,
         case = "esExport.case",
+        neumann_faces = "neumann_faces.json",
         analytical_solution = "analytical_solution.py",
     output:
         metrics = "solution_metrics.json",
@@ -100,6 +101,7 @@ rule create_metrics:
         python3 {input.script} \
             --input_parameter_file {input.parameters} \
             --input_case_file {input.case} \
+            --input_neumann_faces_file {input.neumann_faces} \
             --output_metrics_file {output.metrics} \
             --output_solution_file_zip {output.zip}
         """

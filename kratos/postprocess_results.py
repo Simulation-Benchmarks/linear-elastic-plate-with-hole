@@ -83,9 +83,8 @@ def postprocess_results(input_parameter_file, input_result_vtk, output_metrics_f
         l2_error_sq += float(np.mean(err_sq_node[point_ids]) * cell_areas[i])
     l2_error_displacement = float(np.sqrt(l2_error_sq))
 
-    # Compute reaction forces on the left boundary (x=0) by summing the reaction forces at the nodes on that boundary.
-    # Note: Kratos REACTION variable represents force exerted BY structure ON constraint, 
-    # so we negate to get the standard FEA convention (constraint force ON structure).
+    # Compute reaction forces on the left boundary (x=0) by summing the Kratos REACTION, i.e. the residual of the
+    # discrete problem, over the nodes on that boundary.
     tolerance = 1e-10 * max(1.0, L)
     left_boundary_mask = np.isclose(coords[:, 0], 0.0, atol=tolerance)
     reaction = np.asarray(mesh.point_data.get("REACTION", np.zeros((mesh.n_points, 3))))
