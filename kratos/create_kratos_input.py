@@ -2,26 +2,7 @@ import json
 import os
 from pint import UnitRegistry
 from argparse import ArgumentParser
-from pathlib import Path
-import sys
-import sympy as sp
-# Ensure the parent directory is in the path to import AnalyticalSolution
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from analytical_solution import AnalyticalSolution
 
-
-def _to_kratos_expression(expr: str) -> str:
-    """Convert trig(atan2) patterns to algebraic forms supported by Kratos expressions."""
-    replacements = {
-        "cos(2*atan2(Y, X))": "((X**2 - Y**2)/(X**2 + Y**2))",
-        "sin(2*atan2(Y, X))": "((2*X*Y)/(X**2 + Y**2))",
-        "cos(4*atan2(Y, X))": "((X**4 - 6*X**2*Y**2 + Y**4)/(X**2 + Y**2)**2)",
-        "sin(4*atan2(Y, X))": "((4*X*Y*(X**2 - Y**2)/(X**2 + Y**2)**2))",
-    }
-    for old, new in replacements.items():
-        expr = expr.replace(old, new)
-    expr = expr.replace("**", "^")
-    return expr
 
 def create_kratos_input(
     parameter_file: str,
@@ -65,26 +46,6 @@ def create_kratos_input(
         .magnitude
     )
 
-    analytical_solution = AnalyticalSolution(
-        E=E,
-        nu=nu,
-        radius=radius,
-        L=L,
-        load=load,
-    )
-
-    # Build traction expressions t = sigma * n on right (n=[1,0]) and top (n=[0,1]) boundaries.
-    sxx_sym, sxy_sym, syy_sym = analytical_solution.stress_symbolic()
-    x, y = sp.symbols("x y")
-    X_sym = sp.Symbol("x")
-    Y_sym = sp.Symbol("y")
-    E_sym, nu_sym, a_sym, T_sym = sp.symbols("E nu a T")
-    subs_vars = {x: X_sym, y: Y_sym}
-    subs_params = {E_sym: E, nu_sym: nu, a_sym: radius, T_sym: load}
-    sxx_str = _to_kratos_expression(sp.sstr(sxx_sym.subs(subs_vars).subs(subs_params)))
-    sxy_str = _to_kratos_expression(sp.sstr(sxy_sym.subs(subs_vars).subs(subs_params)))
-    syy_str = _to_kratos_expression(sp.sstr(syy_sym.subs(subs_vars).subs(subs_params)))
-    
     with open(kratos_material_template_file) as f:
         material_string = f.read()
 
@@ -102,18 +63,11 @@ def create_kratos_input(
     project_parameters_string = project_parameters_string.replace(
         r"{{MATERIAL_FILE}}", kratos_material_file
     )
-    project_parameters_string = project_parameters_string.replace(
-        r"{{BOUNDARY_RIGHT_TRACTION_X}}", sxx_str
-    )
-    project_parameters_string = project_parameters_string.replace(
-        r"{{BOUNDARY_RIGHT_TRACTION_Y}}", sxy_str
-    )
-    project_parameters_string = project_parameters_string.replace(
-        r"{{BOUNDARY_TOP_TRACTION_X}}", sxy_str
-    )
-    project_parameters_string = project_parameters_string.replace(
-        r"{{BOUNDARY_TOP_TRACTION_Y}}", syy_str
-    )
+    project_parameters_string = project_parameters_string.replace(r"{{YOUNG_MODULUS}}", str(E))
+    project_parameters_string = project_parameters_string.replace(r"{{POISSON_RATIO}}", str(nu))
+    project_parameters_string = project_parameters_string.replace(r"{{RADIUS}}", str(radius))
+    project_parameters_string = project_parameters_string.replace(r"{{LENGTH}}", str(L))
+    project_parameters_string = project_parameters_string.replace(r"{{LOAD}}", str(load))
 
     output_dir = os.path.join(os.path.dirname(os.path.abspath(kratos_input_file)),"vtk")
     os.makedirs(output_dir, exist_ok=True)
