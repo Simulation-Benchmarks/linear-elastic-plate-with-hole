@@ -21,8 +21,17 @@ rule create_mesh:
         python3 {input.script} --input_parameter_file {input.parameters} --output_mesh_file {output.mesh}
         """
 
+rule setup_julia_package:
+    input: local("LocalSimulationPackage/Project.toml")
+    output: local("LocalSimulationPackage/Manifest.toml")
+    singularity: "docker://julia:1.12.2-bookworm"
+    shell: 
+        """
+        julia --project=LocalSimulationPackage -e 'using Pkg;Pkg.instantiate()'
+        """
+
 rule setup_julia_environment:
-    input: "Project.toml"
+    input: "Project.toml", local("LocalSimulationPackage/Manifest.toml")
     output: manifest= "Manifest.toml"
     params: software_version=SOFTWARE_VERSION
     singularity: JULIA_IMAGE
