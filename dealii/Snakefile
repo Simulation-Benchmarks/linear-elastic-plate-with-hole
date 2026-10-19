@@ -8,7 +8,7 @@ DEALII_IMAGE = "docker://dealii/dealii:v9.7.1-jammy"
 rule all:
     input:
         "solution_field_data.zip",
-        "metrics.json"
+        "solution_metrics.json"
 
 rule create_mesh:    
     input:
@@ -50,7 +50,7 @@ rule run_dealii_simulation:
         mesh = "mesh.msh"
     output:
         vtk = "solution.vtk",
-        metrics = "metrics.json",
+        metrics = "solution_metrics.json",
     singularity: DEALII_IMAGE
     shell:
         """
