@@ -270,8 +270,8 @@ class Metrics{
 };
 
 void Metrics::print_to_json(){
-  //Todo: open metrics.json file and print to it
-  std::ofstream metricsfile("metrics.json");
+  //Todo: open solution_metrics.json file and print to it
+  std::ofstream metricsfile("solution_metrics.json");
 
   // std::cout 
   metricsfile
