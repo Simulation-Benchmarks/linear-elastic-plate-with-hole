@@ -15,18 +15,13 @@ on:
         required: true
         type: boolean
         default: false
-      use_production_rohub:
-        description: Upload to production RoHub
-        required: true
-        type: boolean
-        default: true
 
 permissions:
   contents: read
 
 env:
   BENCHMARK_ROHUB_IDENTIFIER: &benchmark_rohub_identifier 60428bde-5935-4109-8f23-0448667ee706
-  USE_PRODUCTION_ROHUB: ${{ inputs.use_production_rohub }}
+  USE_PRODUCTION_ROHUB: "true"
 
 jobs:
   prepare-benchmark:
@@ -131,6 +126,6 @@ jobs:
       software: ${{ matrix.software }}
       display_name: ${{ matrix.display_name }}
       checkout_ref: ${{ inputs.branch || github.ref_name }}
-      use_production_rohub: ${{ inputs.use_production_rohub }}
+      use_production_rohub: true
       benchmark_rohub_identifier: *benchmark_rohub_identifier
     secrets: inherit
