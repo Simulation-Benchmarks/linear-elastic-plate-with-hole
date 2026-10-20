@@ -11,13 +11,13 @@ from semantic_benchmark import runner
 
 LOGGER = logging.getLogger(__name__)
 
-SOFTWARE_NAME = "Fenics"
+SOFTWARE_NAME = "FEniCS"
 BENCHMARK_DIR = Path(__file__).resolve().parent
 SOFTWARE_VERSION = "0.9.0"
 SOFTWARE_URL = "https://zbmath.org/software/4314"
 
 DEFAULT_CRATE_LICENSE = "https://opensource.org/licenses/MIT"
-DEFAULT_CRATE_NAME = "linear-elastic-plate-with-hole provenance (Fenics)"
+DEFAULT_CRATE_NAME = "linear-elastic-plate-with-hole provenance (FEniCS)"
 DEFAULT_CRATE_DESCRIPTION = "Benchmark for linear-elastic plate with a hole"
 
 UNIT_SYMBOLS = {
