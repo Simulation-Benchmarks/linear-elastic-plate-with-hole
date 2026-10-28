@@ -84,7 +84,7 @@ jobs:
     uses: ./.github/workflows/run-benchmark-fenics.yml
     with:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
-      benchmark_file: ${{ inputs.download_from_rohub && 'downloaded-benchmark/benchmark.json' || 'benchmark/1.1.0/full-configurations.json' }}
+      benchmark_file: ${{ inputs.download_from_rohub && 'downloaded-benchmark/benchmark.json' || 'benchmark/1.1.0/minimal-configurations.json' }}
       benchmark_artifact_name: ${{ inputs.download_from_rohub && 'downloaded-benchmark-resources' || '' }}
 
   run-kratos:
@@ -92,7 +92,7 @@ jobs:
     uses: ./.github/workflows/run-benchmark-kratos.yml
     with:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
-      benchmark_file: ${{ inputs.download_from_rohub && 'downloaded-benchmark/benchmark.json' || 'benchmark/1.1.0/full-configurations.json' }}
+      benchmark_file: ${{ inputs.download_from_rohub && 'downloaded-benchmark/benchmark.json' || 'benchmark/1.1.0/minimal-configurations.json' }}
       benchmark_artifact_name: ${{ inputs.download_from_rohub && 'downloaded-benchmark-resources' || '' }}
 
   run-extendablefem:
@@ -100,7 +100,7 @@ jobs:
     uses: ./.github/workflows/run-benchmark-extendablefem.yml
     with:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
-      benchmark_file: ${{ inputs.download_from_rohub && 'downloaded-benchmark/benchmark.json' || 'benchmark/1.1.0/full-configurations.json' }}
+      benchmark_file: ${{ inputs.download_from_rohub && 'downloaded-benchmark/benchmark.json' || 'benchmark/1.1.0/minimal-configurations.json' }}
       benchmark_artifact_name: ${{ inputs.download_from_rohub && 'downloaded-benchmark-resources' || '' }}
 
   run-edelweissFE:
@@ -108,7 +108,7 @@ jobs:
     uses: ./.github/workflows/run-benchmark-edelweissfe.yml
     with:
       checkout_ref: ${{ inputs.branch || github.ref_name }}
-      benchmark_file: ${{ inputs.download_from_rohub && 'downloaded-benchmark/benchmark.json' || 'benchmark/1.1.0/full-configurations.json' }}
+      benchmark_file: ${{ inputs.download_from_rohub && 'downloaded-benchmark/benchmark.json' || 'benchmark/1.1.0/minimal-configurations.json' }}
       benchmark_artifact_name: ${{ inputs.download_from_rohub && 'downloaded-benchmark-resources' || '' }}
 
   upload:
