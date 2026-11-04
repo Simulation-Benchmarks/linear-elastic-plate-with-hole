@@ -72,6 +72,14 @@ def parse_arguments() -> Namespace:
         default=DEFAULT_CRATE_DESCRIPTION,
         help="Description recorded in the generated aggregate RO-Crate.",
     )
+    parser.add_argument(
+        "--workflow-path",
+        type=Path,
+        required=True,
+        help="YAML workflow file used as the aggregate crate main entity.",
+    )
+    parser.add_argument("--agent-name", required=True, help="Workflow author and creator name.")
+    parser.add_argument("--agent-orcid", required=True, help="Workflow author and creator ORCID URL.")
     return parser.parse_args()
 
 
@@ -184,6 +192,9 @@ def run_benchmark(args: Namespace) -> None:
         crate_name=args.crate_name,
         crate_description=args.crate_description,
         subcrate_paths=subcrate_paths,
+        workflow_path=args.workflow_path,
+        agent_name=args.agent_name,
+        agent_orcid=args.agent_orcid,
     )
     LOGGER.info("Aggregate RO-Crate created at %s.", rocrate_path)
 
