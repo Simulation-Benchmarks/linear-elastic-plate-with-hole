@@ -77,9 +77,11 @@ jobs:
         env:
           JULIA_DEPOT_PATH: ${{ github.workspace }}/extendablefem/julia_depot
           APPTAINERENV_JULIA_DEPOT_PATH: ${{ github.workspace }}/extendablefem/julia_depot
+          APPTAINER_BIND: ${{ github.workspace }}/extendablefem/julia_depot
         run: |
           ROCRATE_DESCRIPTION="${ROCRATE_DESCRIPTION_BASE}, Version ${BENCHMARK_VERSION}, Branch ${BRANCH_NAME}"
 
+          mkdir -p "${JULIA_DEPOT_PATH}"
           cd "$GITHUB_WORKSPACE/${SOFTWARE_NAME}/"
           conda run -n "${SOFTWARE_NAME}" python run_benchmark.py \
             --benchmark-file "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}" \
