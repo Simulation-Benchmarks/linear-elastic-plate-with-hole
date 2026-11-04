@@ -150,6 +150,28 @@ def run_configuration(
     return runner.reporter_rocrate_path(output_dir, configuration, SOFTWARE_NAME)
 
 
+def setup_phase(_benchmark, benchmark_dir: Path) -> None:
+    """Prepare the versioned Julia project once for all configurations."""
+    subprocess.run(
+        [
+            "snakemake",
+            "-s",
+            "Setup.smk",
+            "--use-apptainer",
+            "--cores",
+            "all",
+            "--apptainer-prefix",
+            str(benchmark_dir / "apptainer_envs"),
+            "--config",
+            f"software_version={SOFTWARE_VERSION}",
+            "--force",
+            "Manifest.toml",
+        ],
+        check=True,
+        cwd=benchmark_dir,
+    )
+
+
 def run_benchmark(args: Namespace) -> None:
     """Run a complete ExtendableFEM benchmark workflow from parsed arguments."""
     benchmark = runner.prepare_benchmark(
@@ -159,6 +181,7 @@ def run_benchmark(args: Namespace) -> None:
         resource_dir=args.benchmark_file.parent,
         shared_directories=("conda_envs", "apptainer_envs"),
         strict_units=True,
+        setup_phase=setup_phase,
     )
     shared_env_dir_conda = BENCHMARK_DIR / "conda_envs"
     shared_env_dir_apptainer = BENCHMARK_DIR / "apptainer_envs"
