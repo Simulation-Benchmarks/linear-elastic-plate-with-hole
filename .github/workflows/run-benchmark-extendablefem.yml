@@ -74,6 +74,9 @@ jobs:
 
       - name: Run ${{ env.BENCHMARK_NAME }} using ${{ env.SOFTWARE_NAME }}
         shell: bash -l {0}
+        env:
+          JULIA_DEPOT_PATH: ${{ github.workspace }}/extendablefem/julia_depot
+          APPTAINERENV_JULIA_DEPOT_PATH: ${{ github.workspace }}/extendablefem/julia_depot
         run: |
           ROCRATE_DESCRIPTION="${ROCRATE_DESCRIPTION_BASE}, Version ${BENCHMARK_VERSION}, Branch ${BRANCH_NAME}"
 
