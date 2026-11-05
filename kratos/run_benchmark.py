@@ -16,9 +16,6 @@ BENCHMARK_DIR = Path(__file__).resolve().parent
 SOFTWARE_VERSION = "10.3.0"
 SOFTWARE_URL = "https://zbmath.org/software/7804"
 
-PROVENANCE_REPORT_NAME = "NFDI4Ing Provenance"
-PROVENANCE_REPORT_DESCRIPTION = "Benchmark for linear-elastic plate with a hole"
-PROVENANCE_REPORT_LICENSE = "https://opensource.org/licenses/MIT"
 DEFAULT_CRATE_LICENSE = "https://opensource.org/licenses/MIT"
 DEFAULT_CRATE_NAME = "linear-elastic-plate-with-hole provenance (KRATOS)"
 DEFAULT_CRATE_DESCRIPTION = "Benchmark for linear-elastic plate with a hole"
@@ -72,6 +69,14 @@ def parse_arguments() -> Namespace:
         default=DEFAULT_CRATE_DESCRIPTION,
         help="Description recorded in the generated aggregate RO-Crate.",
     )
+    parser.add_argument(
+        "--workflow-path",
+        type=Path,
+        required=True,
+        help="YAML workflow file used as the aggregate crate main entity.",
+    )
+    parser.add_argument("--agent-name", required=True, help="Workflow author and creator name.")
+    parser.add_argument("--agent-orcid", required=True, help="Workflow author and creator ORCID URL.")
     return parser.parse_args()
 
 
@@ -95,18 +100,13 @@ def build_snakemake_command(
 
 def run_snakemake_workflow(
     parameter_file: Path,
-    configuration: str,
     output_dir: Path,
     shared_env_dir: Path,
 ) -> None:
     """Run the Snakemake workflow normally and then with provenance reporting."""
     base_cmd = build_snakemake_command(parameter_file, shared_env_dir)
     reporter_args = runner.build_provenance_reporter_args(
-        configuration,
-        tool_name=SOFTWARE_NAME,
-        report_name=PROVENANCE_REPORT_NAME,
-        report_description=PROVENANCE_REPORT_DESCRIPTION,
-        report_license=PROVENANCE_REPORT_LICENSE,
+        BENCHMARK_DIR / "profiles" / "rocrate"
     )
 
     subprocess.run(base_cmd, check=True, cwd=output_dir)
@@ -132,14 +132,13 @@ def run_configuration(
         environment.replace(unpinned, f"    - KratosMultiphysics-all=={software_version}\n")
     )
     run_snakemake_workflow(
-        parameter_file,
-        configuration,
+        output_dir / "parameters.json",
         output_dir,
         shared_env_dir,
     )
 
     LOGGER.info("Workflow executed successfully for configuration %s.", configuration)
-    return runner.reporter_rocrate_path(output_dir, configuration, SOFTWARE_NAME)
+    return runner.reporter_rocrate_path(output_dir)
 
 
 def run_benchmark(args: Namespace) -> None:
@@ -184,6 +183,9 @@ def run_benchmark(args: Namespace) -> None:
         crate_name=args.crate_name,
         crate_description=args.crate_description,
         subcrate_paths=subcrate_paths,
+        workflow_path=args.workflow_path,
+        agent_name=args.agent_name,
+        agent_orcid=args.agent_orcid,
     )
     LOGGER.info("Aggregate RO-Crate created at %s.", rocrate_path)
 
