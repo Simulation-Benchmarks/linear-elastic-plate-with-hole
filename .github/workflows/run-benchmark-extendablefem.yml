@@ -19,6 +19,8 @@ on:
         default: ''
 
 env:
+  ROCRATE_AGENT_NAME: Mahdi Jafarkhani
+  ROCRATE_AGENT_ORCID: https://orcid.org/0009-0008-6162-8404
   BENCHMARK_NAME: linear-elastic-plate-with-hole
   BENCHMARK_VERSION: 1.1.0
   EXAMPLE_BENCHMARK_FILE: ${{ inputs.benchmark_file || 'benchmark/1.1.0/minimal-configurations.json' }}
@@ -72,9 +74,14 @@ jobs:
 
       - name: Run ${{ env.BENCHMARK_NAME }} using ${{ env.SOFTWARE_NAME }}
         shell: bash -l {0}
+        env:
+          JULIA_DEPOT_PATH: ${{ github.workspace }}/extendablefem/julia_depot
+          APPTAINERENV_JULIA_DEPOT_PATH: ${{ github.workspace }}/extendablefem/julia_depot
+          APPTAINER_BIND: ${{ github.workspace }}/extendablefem/julia_depot
         run: |
           ROCRATE_DESCRIPTION="${ROCRATE_DESCRIPTION_BASE}, Version ${BENCHMARK_VERSION}, Branch ${BRANCH_NAME}"
 
+          mkdir -p "${JULIA_DEPOT_PATH}"
           cd "$GITHUB_WORKSPACE/${SOFTWARE_NAME}/"
           conda run -n "${SOFTWARE_NAME}" python run_benchmark.py \
             --benchmark-file "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}" \
@@ -82,7 +89,10 @@ jobs:
             --result-path "${GITHUB_WORKSPACE}/${SOFTWARE_NAME}/results" \
             --crate-license "${ROCRATE_LICENSE}" \
             --crate-name "${ROCRATE_NAME}" \
-            --crate-description "${ROCRATE_DESCRIPTION}"
+            --crate-description "${ROCRATE_DESCRIPTION}" \
+            --workflow-path "${GITHUB_WORKSPACE}/.github/workflows/run-benchmark-extendablefem.yml" \
+            --agent-name "${ROCRATE_AGENT_NAME}" \
+            --agent-orcid "${ROCRATE_AGENT_ORCID}"
 
       - name: Archive results of the ${{ env.SOFTWARE_NAME }} run of ${{ env.BENCHMARK_NAME }}
         uses: actions/upload-artifact@v7

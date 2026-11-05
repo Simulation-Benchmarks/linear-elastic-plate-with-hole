@@ -1,13 +1,9 @@
-import json
-import os
-
-SOFTWARE_VERSION = str(config["software_version"])
-JULIA_IMAGE = "docker://julia:1.12.2-bookworm"
-
 rule all:
     input:
         "solution_field_data.zip",
         "solution_metrics.json"
+
+include: "Setup.smk"
 
 rule create_mesh:    
     input:
@@ -21,26 +17,17 @@ rule create_mesh:
         python3 {input.script} --input_parameter_file {input.parameters} --output_mesh_file {output.mesh}
         """
 
-rule setup_julia_environment:
-    input: "Project.toml"
-    output: manifest= "Manifest.toml"
-    params: software_version=SOFTWARE_VERSION
-    singularity: JULIA_IMAGE
-    shell: 
-        """
-        julia --project=. -e 'using Pkg; Pkg.add(Pkg.PackageSpec(name="ExtendableFEM", version="{params.software_version}")); Pkg.instantiate()'
-        """
-
 rule run_extendablefem_simulation:
     input: 
         parameters = workflow.configfiles[0],
         mesh = "mesh.msh",
-        manifest = "Manifest.toml",
+        manifest = str(SHARED_PROJECT_DIR / "Manifest.toml"),
     output:
         zip = "solution_field_data.zip",
         metrics = "solution_metrics.json",
     singularity: JULIA_IMAGE
+    params: project_dir=str(SHARED_PROJECT_DIR)
     shell:
         """
-        julia --project=. run_extendablefem_simulation.jl --configfile {input.parameters} --meshfile {input.mesh} --outputzip {output.zip} --outputmetrics {output.metrics}
+        julia --project={params.project_dir:q} run_extendablefem_simulation.jl --configfile {input.parameters} --meshfile {input.mesh} --outputzip {output.zip} --outputmetrics {output.metrics}
         """

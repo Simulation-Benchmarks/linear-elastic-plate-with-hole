@@ -72,6 +72,14 @@ def parse_arguments() -> Namespace:
         default=DEFAULT_CRATE_DESCRIPTION,
         help="Description recorded in the generated aggregate RO-Crate.",
     )
+    parser.add_argument(
+        "--workflow-path",
+        type=Path,
+        required=True,
+        help="YAML workflow file used as the aggregate crate main entity.",
+    )
+    parser.add_argument("--agent-name", required=True, help="Workflow author and creator name.")
+    parser.add_argument("--agent-orcid", required=True, help="Workflow author and creator ORCID URL.")
     return parser.parse_args()
 
 
@@ -96,6 +104,7 @@ def build_snakemake_command(
         str(parameter_file),
         "--config",
         f"software_version={software_version}",
+        f"benchmark_dir={BENCHMARK_DIR}",
     ]
 
 
@@ -107,7 +116,7 @@ def run_snakemake_workflow(
     shared_env_dir_apptainer: Path,
     software_version: str,
 ) -> None:
-    """Run the Snakemake workflow normally and then with provenance reporting."""
+    """Execute the workflow, then report its completed jobs."""
     base_cmd = build_snakemake_command(
         parameter_file,
         shared_env_dir_conda,
@@ -150,6 +159,28 @@ def run_configuration(
     return runner.reporter_rocrate_path(output_dir, configuration, SOFTWARE_NAME)
 
 
+def setup_phase(_benchmark, benchmark_dir: Path) -> None:
+    """Prepare the versioned Julia project once for all configurations."""
+    subprocess.run(
+        [
+            "snakemake",
+            "-s",
+            "Setup.smk",
+            "--use-apptainer",
+            "--cores",
+            "all",
+            "--apptainer-prefix",
+            str(benchmark_dir / "apptainer_envs"),
+            "setup_all",
+            "--config",
+            f"software_version={SOFTWARE_VERSION}",
+            f"benchmark_dir={benchmark_dir}",
+        ],
+        check=True,
+        cwd=benchmark_dir,
+    )
+
+
 def run_benchmark(args: Namespace) -> None:
     """Run a complete ExtendableFEM benchmark workflow from parsed arguments."""
     benchmark = runner.prepare_benchmark(
@@ -159,6 +190,7 @@ def run_benchmark(args: Namespace) -> None:
         resource_dir=args.benchmark_file.parent,
         shared_directories=("conda_envs", "apptainer_envs"),
         strict_units=True,
+        setup_phase=setup_phase,
     )
     shared_env_dir_conda = BENCHMARK_DIR / "conda_envs"
     shared_env_dir_apptainer = BENCHMARK_DIR / "apptainer_envs"
@@ -198,6 +230,9 @@ def run_benchmark(args: Namespace) -> None:
         crate_name=args.crate_name,
         crate_description=args.crate_description,
         subcrate_paths=subcrate_paths,
+        workflow_path=args.workflow_path,
+        agent_name=args.agent_name,
+        agent_orcid=args.agent_orcid,
     )
     LOGGER.info("Aggregate RO-Crate created at %s.", rocrate_path)
 

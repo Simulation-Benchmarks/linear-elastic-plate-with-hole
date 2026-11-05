@@ -37,6 +37,12 @@ SPDX-FileCopyrightText = "2026 The linear-elastic-plate-with-hole authors"
 SPDX-License-Identifier = "MIT"
 
 [[annotations]]
+path = "**/Setup.smk"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 The linear-elastic-plate-with-hole authors"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
 path = ".github/workflows/*"
 precedence = "closest"
 SPDX-FileCopyrightText = "2026 The linear-elastic-plate-with-hole authors"
