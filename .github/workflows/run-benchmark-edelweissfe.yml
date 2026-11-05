@@ -19,6 +19,8 @@ on:
         default: ''
 
 env:
+  ROCRATE_AGENT_NAME: Mahdi Jafarkhani
+  ROCRATE_AGENT_ORCID: https://orcid.org/0009-0008-6162-8404
   BENCHMARK_NAME: linear-elastic-plate-with-hole
   BENCHMARK_VERSION: 1.1.0
   EXAMPLE_BENCHMARK_FILE: ${{ inputs.benchmark_file || 'benchmark/1.1.0/minimal-configurations.json' }}
@@ -83,7 +85,10 @@ jobs:
             --result-path "${GITHUB_WORKSPACE}/${SOFTWARE_NAME}/results" \
             --crate-license "${ROCRATE_LICENSE}" \
             --crate-name "${ROCRATE_NAME}" \
-            --crate-description "${ROCRATE_DESCRIPTION}"
+            --crate-description "${ROCRATE_DESCRIPTION}" \
+            --workflow-path "${GITHUB_WORKSPACE}/.github/workflows/run-benchmark-edelweissfe.yml" \
+            --agent-name "${ROCRATE_AGENT_NAME}" \
+            --agent-orcid "${ROCRATE_AGENT_ORCID}"
 
       - name: Archive results of the ${{ env.SOFTWARE_NAME }} run of ${{ env.BENCHMARK_NAME }}
         uses: actions/upload-artifact@v7
