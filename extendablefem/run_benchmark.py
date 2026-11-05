@@ -104,6 +104,7 @@ def build_snakemake_command(
         str(parameter_file),
         "--config",
         f"software_version={software_version}",
+        f"benchmark_dir={BENCHMARK_DIR}",
     ]
 
 
@@ -115,7 +116,7 @@ def run_snakemake_workflow(
     shared_env_dir_apptainer: Path,
     software_version: str,
 ) -> None:
-    """Run the Snakemake workflow normally and then with provenance reporting."""
+    """Run the workflow once with provenance reporting enabled."""
     base_cmd = build_snakemake_command(
         parameter_file,
         shared_env_dir_conda,
@@ -130,7 +131,6 @@ def run_snakemake_workflow(
         report_license=PROVENANCE_REPORT_LICENSE,
     )
 
-    subprocess.run(base_cmd, check=True, cwd=output_dir)
     subprocess.run(base_cmd + reporter_args, check=True, cwd=output_dir)
 
 
@@ -170,10 +170,10 @@ def setup_phase(_benchmark, benchmark_dir: Path) -> None:
             "all",
             "--apptainer-prefix",
             str(benchmark_dir / "apptainer_envs"),
+            "setup_all",
             "--config",
             f"software_version={SOFTWARE_VERSION}",
-            "--force",
-            "Manifest.toml",
+            f"benchmark_dir={benchmark_dir}",
         ],
         check=True,
         cwd=benchmark_dir,
