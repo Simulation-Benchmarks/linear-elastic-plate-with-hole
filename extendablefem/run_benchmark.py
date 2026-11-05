@@ -116,7 +116,7 @@ def run_snakemake_workflow(
     shared_env_dir_apptainer: Path,
     software_version: str,
 ) -> None:
-    """Run the workflow once with provenance reporting enabled."""
+    """Execute the workflow, then report its completed jobs."""
     base_cmd = build_snakemake_command(
         parameter_file,
         shared_env_dir_conda,
@@ -131,6 +131,7 @@ def run_snakemake_workflow(
         report_license=PROVENANCE_REPORT_LICENSE,
     )
 
+    subprocess.run(base_cmd, check=True, cwd=output_dir)
     subprocess.run(base_cmd + reporter_args, check=True, cwd=output_dir)
 
 
