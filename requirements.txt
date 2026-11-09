@@ -1,3 +1,3 @@
 pandas
 matplotlib
-semantic-benchmark @ git+https://github.com/Simulation-Benchmarks/semantic-benchmark.git@39-aggregate-profile
+semantic-benchmark~=0.5.1
