@@ -46,16 +46,16 @@ def parse_arguments() -> Namespace:
         help="Filename or path for the generated aggregate RO-Crate zip file.",
     )
     parser.add_argument(
-        "--aggregated-profile",
+        "--aggregate-rocrate-profile",
         type=Path,
         default=BENCHMARK_DIR.parent / "provenance" / "profiles" / "aggregate-rocrate-extendablefem.yml",
         help="Aggregate RO-Crate profile YAML file.",
     )
     parser.add_argument(
-        "--subcrate-profile",
+        "--reporter-rocrate-profile",
         type=Path,
         required=True,
-        help="Path to the subcrate RO-Crate profile YAML file.",
+        help="Path to the reporter RO-Crate profile YAML file.",
     )
     parser.add_argument(
         "--workflow-path",
@@ -96,7 +96,7 @@ def run_snakemake_workflow(
     shared_env_dir_conda: Path,
     shared_env_dir_apptainer: Path,
     software_version: str,
-    subcrate_profile: Path,
+    reporter_rocrate_profile: Path,
 ) -> None:
     """Run the Snakemake workflow normally and then with provenance reporting."""
     base_cmd = build_snakemake_command(
@@ -105,7 +105,7 @@ def run_snakemake_workflow(
         shared_env_dir_apptainer,
         software_version,
     )
-    reporter_args = runner.build_subcrate_args(subcrate_profile)
+    reporter_args = runner.build_subcrate_args(reporter_rocrate_profile)
 
     subprocess.run(base_cmd, check=True, cwd=output_dir)
     subprocess.run(base_cmd + reporter_args, check=True, cwd=output_dir)
@@ -117,7 +117,7 @@ def run_configuration(
     shared_env_dir_conda: Path,
     shared_env_dir_apptainer: Path,
     software_version: str,
-    subcrate_profile: Path,
+    reporter_rocrate_profile: Path,
 ) -> Path:
     """Prepare and execute one benchmark configuration."""
     configuration, output_dir = runner.prepare_configuration(
@@ -129,7 +129,7 @@ def run_configuration(
         shared_env_dir_conda,
         shared_env_dir_apptainer,
         software_version,
-        subcrate_profile,
+        reporter_rocrate_profile,
     )
 
     LOGGER.info("Workflow executed successfully for configuration %s.", configuration)
@@ -144,8 +144,7 @@ def run_benchmark(args: Namespace) -> None:
         UNIT_SYMBOLS,
         resource_dir=args.benchmark_file.parent,
         shared_directories=("conda_envs", "apptainer_envs"),
-        strict_units=True,
-        aggregate_profile=args.aggregated_profile,
+        aggregate_profile=args.aggregate_rocrate_profile,
     )
     aggregate_metadata = benchmark.aggregate_profile
     shared_env_dir_conda = BENCHMARK_DIR / "conda_envs"
@@ -164,7 +163,7 @@ def run_benchmark(args: Namespace) -> None:
                     shared_env_dir_conda,
                     shared_env_dir_apptainer,
                     aggregate_metadata.software_version,
-                    args.subcrate_profile,
+                    args.reporter_rocrate_profile,
                 )
             )
         else:

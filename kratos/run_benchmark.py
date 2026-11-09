@@ -46,16 +46,16 @@ def parse_arguments() -> Namespace:
         help="Filename or path for the generated aggregate RO-Crate zip file.",
     )
     parser.add_argument(
-        "--aggregated-profile",
+        "--aggregate-rocrate-profile",
         type=Path,
         default=BENCHMARK_DIR.parent / "provenance" / "profiles" / "aggregate-rocrate-kratos.yml",
         help="Aggregate RO-Crate profile YAML file.",
     )
     parser.add_argument(
-        "--subcrate-profile",
+        "--reporter-rocrate-profile",
         type=Path,
         required=True,
-        help="Path to the subcrate RO-Crate profile YAML file.",
+        help="Path to the reporter RO-Crate profile YAML file.",
     )
     parser.add_argument(
         "--workflow-path",
@@ -88,11 +88,11 @@ def run_snakemake_workflow(
     parameter_file: Path,
     output_dir: Path,
     shared_env_dir: Path,
-    subcrate_profile: Path,
+    reporter_rocrate_profile: Path,
 ) -> None:
     """Run the Snakemake workflow normally and then with provenance reporting."""
     base_cmd = build_snakemake_command(parameter_file, shared_env_dir)
-    reporter_args = runner.build_subcrate_args(subcrate_profile)
+    reporter_args = runner.build_subcrate_args(reporter_rocrate_profile)
 
     subprocess.run(base_cmd, check=True, cwd=output_dir)
     subprocess.run(base_cmd + reporter_args, check=True, cwd=output_dir)
@@ -103,7 +103,7 @@ def run_configuration(
     benchmark_dir: Path,
     shared_env_dir: Path,
     software_version: str,
-    subcrate_profile: Path,
+    reporter_rocrate_profile: Path,
 ) -> Path:
     """Prepare and execute one benchmark configuration."""
     configuration, output_dir = runner.prepare_configuration(
@@ -121,7 +121,7 @@ def run_configuration(
         output_dir / "parameters.json",
         output_dir,
         shared_env_dir,
-        subcrate_profile,
+        reporter_rocrate_profile,
     )
 
     LOGGER.info("Workflow executed successfully for configuration %s.", configuration)
@@ -136,8 +136,7 @@ def run_benchmark(args: Namespace) -> None:
         UNIT_SYMBOLS,
         resource_dir=args.benchmark_file.parent,
         shared_directories=("conda_envs",),
-        strict_units=True,
-        aggregate_profile=args.aggregated_profile,
+        aggregate_profile=args.aggregate_rocrate_profile,
     )
     aggregate_metadata = benchmark.aggregate_profile
     shared_env_dir = BENCHMARK_DIR / "conda_envs"
@@ -151,7 +150,7 @@ def run_benchmark(args: Namespace) -> None:
                 subcrate_paths.append(
                     run_configuration(
                         parameter_file, BENCHMARK_DIR, shared_env_dir,
-                        aggregate_metadata.software_version, args.subcrate_profile,
+                        aggregate_metadata.software_version, args.reporter_rocrate_profile,
                     )
                 )
             else:
