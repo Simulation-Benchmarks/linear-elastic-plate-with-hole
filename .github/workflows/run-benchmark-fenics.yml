@@ -70,8 +70,8 @@ jobs:
             --benchmark-file "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}" \
             --rocrate-name "${RUNNER_TEMP}/${SOFTWARE_NAME}_rocrate.zip" \
             --result-path "${GITHUB_WORKSPACE}/${SOFTWARE_NAME}/results" \
-            --aggregated-profile "${GITHUB_WORKSPACE}/provenance/profiles/aggregate-crate-${SOFTWARE_NAME}.yml" \
-            --subcrate-profile "${GITHUB_WORKSPACE}/provenance/profiles/sub-crate.yml" \
+            --aggregated-profile "${GITHUB_WORKSPACE}/provenance/profiles/aggregate-rocrate-${SOFTWARE_NAME}.yml" \
+            --subcrate-profile "${GITHUB_WORKSPACE}/provenance/profiles/reporter-rocrate.yml" \
             --workflow-path "${GITHUB_WORKSPACE}/.github/workflows/run-benchmark-fenics.yml"
 
       - name: Archive results of the ${{ env.SOFTWARE_NAME }} run of ${{ env.BENCHMARK_NAME }}
