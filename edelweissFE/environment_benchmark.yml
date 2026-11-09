@@ -6,4 +6,4 @@ dependencies:
   - snakemake
   - pip:
     - semantic-benchmark~=0.5.0
-    - snakemake-report-plugin-rocrate==0.1.0
+    - snakemake-report-plugin-rocrate~=0.1.0
