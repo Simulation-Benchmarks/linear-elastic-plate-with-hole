@@ -11,14 +11,7 @@ from semantic_benchmark import runner
 
 LOGGER = logging.getLogger(__name__)
 
-SOFTWARE_NAME = "KRATOS"
 BENCHMARK_DIR = Path(__file__).resolve().parent
-SOFTWARE_VERSION = "10.3.0"
-SOFTWARE_URL = "https://zbmath.org/software/7804"
-
-DEFAULT_CRATE_LICENSE = "https://opensource.org/licenses/MIT"
-DEFAULT_CRATE_NAME = "linear-elastic-plate-with-hole provenance (KRATOS)"
-DEFAULT_CRATE_DESCRIPTION = "Benchmark for linear-elastic plate with a hole"
 
 UNIT_SYMBOLS = {
     "M": "m",
@@ -32,9 +25,7 @@ UNIT_SYMBOLS = {
 def parse_arguments() -> Namespace:
     """Parse command-line arguments for the Kratos benchmark runner."""
     parser = argparse.ArgumentParser(
-        description=(
-            f"Run the {SOFTWARE_NAME} benchmark workflow for all benchmark configurations."
-        )
+        description="Run the benchmark workflow for all benchmark configurations."
     )
     parser.add_argument(
         "--benchmark-file",
@@ -51,23 +42,20 @@ def parse_arguments() -> Namespace:
     parser.add_argument(
         "--rocrate-name",
         type=str,
-        default=f"{SOFTWARE_NAME}-RoCrate.zip",
+        default=None,
         help="Filename or path for the generated aggregate RO-Crate zip file.",
     )
     parser.add_argument(
-        "--crate-license",
-        default=DEFAULT_CRATE_LICENSE,
-        help="License URL recorded in the generated aggregate RO-Crate.",
+        "--aggregated-profile",
+        type=Path,
+        default=BENCHMARK_DIR.parent / "provenance" / "profiles" / "aggregate-crate-kratos.yml",
+        help="Aggregate RO-Crate profile YAML file.",
     )
     parser.add_argument(
-        "--crate-name",
-        default=DEFAULT_CRATE_NAME,
-        help="Name recorded in the generated aggregate RO-Crate.",
-    )
-    parser.add_argument(
-        "--crate-description",
-        default=DEFAULT_CRATE_DESCRIPTION,
-        help="Description recorded in the generated aggregate RO-Crate.",
+        "--subcrate-profile",
+        type=Path,
+        required=True,
+        help="Path to the subcrate RO-Crate profile YAML file.",
     )
     parser.add_argument(
         "--workflow-path",
@@ -75,8 +63,6 @@ def parse_arguments() -> Namespace:
         required=True,
         help="YAML workflow file used as the aggregate crate main entity.",
     )
-    parser.add_argument("--agent-name", required=True, help="Workflow author and creator name.")
-    parser.add_argument("--agent-orcid", required=True, help="Workflow author and creator ORCID URL.")
     return parser.parse_args()
 
 
@@ -102,12 +88,11 @@ def run_snakemake_workflow(
     parameter_file: Path,
     output_dir: Path,
     shared_env_dir: Path,
+    subcrate_profile: Path,
 ) -> None:
     """Run the Snakemake workflow normally and then with provenance reporting."""
     base_cmd = build_snakemake_command(parameter_file, shared_env_dir)
-    reporter_args = runner.build_provenance_reporter_args(
-        BENCHMARK_DIR / "profiles" / "rocrate"
-    )
+    reporter_args = runner.build_subcrate_args(subcrate_profile)
 
     subprocess.run(base_cmd, check=True, cwd=output_dir)
     subprocess.run(base_cmd + reporter_args, check=True, cwd=output_dir)
@@ -118,6 +103,7 @@ def run_configuration(
     benchmark_dir: Path,
     shared_env_dir: Path,
     software_version: str,
+    subcrate_profile: Path,
 ) -> Path:
     """Prepare and execute one benchmark configuration."""
     configuration, output_dir = runner.prepare_configuration(
@@ -135,6 +121,7 @@ def run_configuration(
         output_dir / "parameters.json",
         output_dir,
         shared_env_dir,
+        subcrate_profile,
     )
 
     LOGGER.info("Workflow executed successfully for configuration %s.", configuration)
@@ -150,7 +137,9 @@ def run_benchmark(args: Namespace) -> None:
         resource_dir=args.benchmark_file.parent,
         shared_directories=("conda_envs",),
         strict_units=True,
+        aggregate_profile=args.aggregated_profile,
     )
+    aggregate_metadata = benchmark.aggregate_profile
     shared_env_dir = BENCHMARK_DIR / "conda_envs"
     subcrate_paths = []
 
@@ -161,7 +150,8 @@ def run_benchmark(args: Namespace) -> None:
             if cell_type == "triangle":
                 subcrate_paths.append(
                     run_configuration(
-                        parameter_file, BENCHMARK_DIR, shared_env_dir, SOFTWARE_VERSION
+                        parameter_file, BENCHMARK_DIR, shared_env_dir,
+                        aggregate_metadata.software_version, args.subcrate_profile,
                     )
                 )
             else:
@@ -171,21 +161,14 @@ def run_benchmark(args: Namespace) -> None:
                     cell_type,
                 )
 
-    rocrate_path = args.result_path / args.rocrate_name
+    rocrate_name = args.rocrate_name or f'{aggregate_metadata.software_name}-RoCrate.zip'
+    rocrate_path = args.result_path / rocrate_name
     runner.create_aggregate_rocrate(
         args.result_path,
         benchmark,
         rocrate_path,
-        software_name=SOFTWARE_NAME,
-        software_url=SOFTWARE_URL,
-        software_version=SOFTWARE_VERSION,
-        crate_license=args.crate_license,
-        crate_name=args.crate_name,
-        crate_description=args.crate_description,
         subcrate_paths=subcrate_paths,
         workflow_path=args.workflow_path,
-        agent_name=args.agent_name,
-        agent_orcid=args.agent_orcid,
     )
     LOGGER.info("Aggregate RO-Crate created at %s.", rocrate_path)
 
