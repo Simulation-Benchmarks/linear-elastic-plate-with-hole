@@ -1,6 +1,6 @@
 crate-license: "https://opensource.org/licenses/MIT"
-agent-name: "Mahdi Jafarkhani"
-agent-orcid: "https://orcid.org/0009-0008-6162-8404"
+agent-name: "Jan Philipp Thiele"
+agent-orcid: "https://orcid.org/0000-0002-8901-6660"
 software-name: "ExtendableFEM.jl"
 software-version: "1.12.0"
 software-url: "https://zbmath.org/software/53664"
