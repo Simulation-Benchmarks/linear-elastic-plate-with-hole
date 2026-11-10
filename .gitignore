@@ -3,5 +3,3 @@ fenics/__pycache__/
 provenance/__pycache__/
 benchmark_runner/__pycache__/
 notebooks/benchmark-results.ipynb
-extendablefem/__pycache__/
-edelweissFE/__pycache__/
