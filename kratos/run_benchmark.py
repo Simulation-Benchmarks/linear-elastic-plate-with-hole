@@ -43,13 +43,13 @@ def parse_arguments() -> Namespace:
         "--rocrate-name",
         type=str,
         default=None,
-        help="Filename or path for the generated aggregate RO-Crate zip file.",
+        help="Filename or path for the generated main RO-Crate zip file.",
     )
     parser.add_argument(
-        "--aggregate-rocrate-profile",
+        "--main-rocrate-profile",
         type=Path,
-        default=BENCHMARK_DIR.parent / "provenance" / "profiles" / "aggregate-rocrate-kratos.yml",
-        help="Aggregate RO-Crate profile YAML file.",
+        default=BENCHMARK_DIR.parent / "provenance" / "profiles" / "main-rocrate-kratos.yml",
+        help="Main RO-Crate profile YAML file.",
     )
     parser.add_argument(
         "--reporter-rocrate-profile",
@@ -61,7 +61,7 @@ def parse_arguments() -> Namespace:
         "--workflow-path",
         type=Path,
         required=True,
-        help="YAML workflow file used as the aggregate crate main entity.",
+        help="YAML workflow file used as the main RO-Crate entity.",
     )
     return parser.parse_args()
 
@@ -136,9 +136,9 @@ def run_benchmark(args: Namespace) -> None:
         UNIT_SYMBOLS,
         resource_dir=args.benchmark_file.parent,
         shared_directories=("conda_envs",),
-        aggregate_profile=args.aggregate_rocrate_profile,
+        main_profile=args.main_rocrate_profile,
     )
-    aggregate_metadata = benchmark.aggregate_profile
+    main_metadata = benchmark.main_profile
     shared_env_dir = BENCHMARK_DIR / "conda_envs"
     subcrate_paths = []
 
@@ -150,7 +150,7 @@ def run_benchmark(args: Namespace) -> None:
                 subcrate_paths.append(
                     run_configuration(
                         parameter_file, BENCHMARK_DIR, shared_env_dir,
-                        aggregate_metadata.software_version, args.reporter_rocrate_profile,
+                        main_metadata.software_version, args.reporter_rocrate_profile,
                     )
                 )
             else:
@@ -160,16 +160,16 @@ def run_benchmark(args: Namespace) -> None:
                     cell_type,
                 )
 
-    rocrate_name = args.rocrate_name or f'{aggregate_metadata.software_name}-RoCrate.zip'
+    rocrate_name = args.rocrate_name or f'{main_metadata.software_name}-RoCrate.zip'
     rocrate_path = args.result_path / rocrate_name
-    runner.create_aggregate_rocrate(
+    runner.create_main_rocrate(
         args.result_path,
         benchmark,
         rocrate_path,
         subcrate_paths=subcrate_paths,
         workflow_path=args.workflow_path,
     )
-    LOGGER.info("Aggregate RO-Crate created at %s.", rocrate_path)
+    LOGGER.info("Main RO-Crate created at %s.", rocrate_path)
 
 
 def main() -> None:

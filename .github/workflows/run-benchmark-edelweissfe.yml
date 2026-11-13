@@ -74,7 +74,7 @@ jobs:
             --benchmark-file "${GITHUB_WORKSPACE}/${EXAMPLE_BENCHMARK_FILE}" \
             --rocrate-name "${RUNNER_TEMP}/${SOFTWARE_NAME}_rocrate.zip" \
             --result-path "${GITHUB_WORKSPACE}/${SOFTWARE_NAME}/results" \
-            --aggregate-rocrate-profile "${GITHUB_WORKSPACE}/provenance/profiles/aggregate-rocrate-${SOFTWARE_NAME}.yml" \
+            --main-rocrate-profile "${GITHUB_WORKSPACE}/provenance/profiles/main-rocrate-${SOFTWARE_NAME}.yml" \
             --reporter-rocrate-profile "${GITHUB_WORKSPACE}/provenance/profiles/reporter-rocrate.yml" \
             --workflow-path "${GITHUB_WORKSPACE}/.github/workflows/run-benchmark-edelweissfe.yml"
 
@@ -86,8 +86,8 @@ jobs:
             ${{ env.SOFTWARE_NAME }}/results/
             !${{ env.SOFTWARE_NAME }}/results/*/workflow-run.zip
 
-      - name: Archive ${{ env.SOFTWARE_NAME }} aggregate RO-Crate artifact
+      - name: Archive ${{ env.SOFTWARE_NAME }} main RO-Crate artifact
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ env.SOFTWARE_NAME }}-aggregate-rocrate
+          name: ${{ env.SOFTWARE_NAME }}-main-rocrate
           path: ${{ runner.temp }}/${{ env.SOFTWARE_NAME }}_rocrate.zip
