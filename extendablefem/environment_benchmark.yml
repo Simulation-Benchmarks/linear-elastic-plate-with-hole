@@ -5,5 +5,5 @@ channels:
 dependencies:
   - snakemake
   - pip:
-    - semantic-benchmark @ git+https://github.com/Simulation-Benchmarks/semantic-benchmark.git@42-reporter-plugin-changes
+    - semantic-benchmark~=0.5.3
     - snakemake-report-plugin-rocrate~=0.1.0
