@@ -26,7 +26,7 @@ env:
 jobs:
   run-examples:
     name: ExtendableFEM
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: checkout repo content
         uses: actions/checkout@v7
