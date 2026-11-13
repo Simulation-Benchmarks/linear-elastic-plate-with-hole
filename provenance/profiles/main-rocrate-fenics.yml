@@ -1,0 +1,8 @@
+crate-license: "https://opensource.org/licenses/MIT"
+agent-name: "Divyansh Tyagi"
+agent-orcid: "https://orcid.org/0009-0005-2483-3589"
+software-name: "FEniCS"
+software-version: "0.9.0"
+software-url: "https://zbmath.org/software/4314"
+crate-name: "linear-elastic-plate-with-hole provenance (FEniCS)"
+crate-description: "Provenance run of the benchmark for linear-elastic plate with a hole using FEniCS"
