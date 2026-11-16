@@ -108,7 +108,7 @@ In order to solve the weak formulation, the Finite Element Method (FEM) can be u
 | $element\_size$[m]   | Element size.                        |
 | $isoparametric\_element\_degree$ | Degree of shape functions used to model the element's geometry and the solution field. |
 | $cell\_type$  | Element shape ("triangle" or "quadrilateral").           |
-| $element\_category$  | "lagrange" (default) or "serendipity".         |
+| $element\_category$  | "all-nodes" (default), "serendipity" or "principal-vertices".       |
 
 ## Output Metrics
 
