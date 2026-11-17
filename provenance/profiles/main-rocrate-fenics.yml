@@ -1,6 +1,12 @@
 crate-license: "https://opensource.org/licenses/MIT"
-agent-name: "Divyansh Tyagi"
-agent-orcid: "https://orcid.org/0009-0005-2483-3589"
+authors:
+  - name: "Divyansh Tyagi"
+    orcid: "https://orcid.org/0009-0005-2483-3589"
+  - name: "Sjard Rosenbusch"
+    orcid: "https://orcid.org/0009-0006-4444-2494"
+creator:
+  name: "Mahdi Jafarkhani"
+  orcid: "https://orcid.org/0009-0008-6162-8404"
 software-name: "FEniCS"
 software-version: "0.9.0"
 software-url: "https://zbmath.org/software/4314"

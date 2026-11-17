@@ -1,6 +1,10 @@
 crate-license: "https://opensource.org/licenses/MIT"
-agent-name: "Divyansh Tyagi"
-agent-orcid: "https://orcid.org/0009-0005-2483-3589"
+authors:
+  - name: "Divyansh Tyagi"
+    orcid: "https://orcid.org/0009-0005-2483-3589"
+creator:
+  name: "Mahdi Jafarkhani"
+  orcid: "https://orcid.org/0009-0008-6162-8404"
 software-name: "KRATOS"
 software-version: "10.3.0"
 software-url: "https://zbmath.org/software/7804"
