@@ -1,0 +1,12 @@
+crate-license: "https://opensource.org/licenses/MIT"
+authors:
+  - name: "Jan Philipp Thiele"
+    orcid: "https://orcid.org/0000-0002-8901-6660"
+creator:
+  name: "Mahdi Jafarkhani"
+  orcid: "https://orcid.org/0009-0008-6162-8404"
+software-name: "ExtendableFEM.jl"
+software-version: "1.12.0"
+software-url: "https://zbmath.org/software/53664"
+crate-name: "linear-elastic-plate-with-hole provenance (ExtendableFEM.jl)"
+crate-description: "Provenance run of the benchmark for linear-elastic plate with a hole using ExtendableFEM.jl"

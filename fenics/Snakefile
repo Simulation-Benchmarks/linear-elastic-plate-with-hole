@@ -1,4 +1,7 @@
 import json
+import os
+
+PARAMETERS = os.path.relpath(workflow.configfiles[0])
 
 rule all:
     input:
@@ -8,7 +11,7 @@ rule all:
 rule create_mesh:    
     input:
         script = "create_mesh.py",
-        parameters = workflow.configfiles[0],
+        parameters = PARAMETERS,
     output:
         mesh = "mesh.msh",
     conda: "environment_mesh.yml"
@@ -20,7 +23,7 @@ rule create_mesh:
 rule run_simulation:
     input: 
         script = "run_simulation.py",
-        parameters = workflow.configfiles[0],
+        parameters = PARAMETERS,
         mesh = "mesh.msh",
     output:
         zip = "solution_field_data.zip",

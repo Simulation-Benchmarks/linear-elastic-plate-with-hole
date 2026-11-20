@@ -36,10 +36,10 @@ jobs:
         with:
           ref: ${{ inputs.checkout_ref }}
 
-      - name: Download ${{ inputs.display_name }} aggregate RO-Crate artifact
+      - name: Download ${{ inputs.display_name }} main RO-Crate artifact
         uses: actions/download-artifact@v7
         with:
-          name: ${{ inputs.software }}-aggregate-rocrate
+          name: ${{ inputs.software }}-main-rocrate
           path: artifacts/${{ inputs.software }}
 
       - name: Setup Mambaforge with provenance env

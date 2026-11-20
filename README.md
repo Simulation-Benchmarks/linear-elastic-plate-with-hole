@@ -34,7 +34,7 @@ The local `provenance/` scripts keep repository-specific configuration and comma
 
 The scheduled workflow and manual runs use the benchmark files in `benchmark/1.1.0/` by default.
 For a manual run, enable `download_from_rohub` to download the benchmark RO-Crate and JSON-LD
-from RoHub before the tools start. After all tool jobs succeed, their aggregate RO-Crates are
+from RoHub before the tools start. After all tool jobs succeed, their main RO-Crates are
 uploaded to RoHub one at a time.
 
 ## Interactive Benchmark Evaluation

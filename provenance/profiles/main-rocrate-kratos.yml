@@ -1,0 +1,12 @@
+crate-license: "https://opensource.org/licenses/MIT"
+authors:
+  - name: "Divyansh Tyagi"
+    orcid: "https://orcid.org/0009-0005-2483-3589"
+creator:
+  name: "Mahdi Jafarkhani"
+  orcid: "https://orcid.org/0009-0008-6162-8404"
+software-name: "KRATOS"
+software-version: "10.3.0"
+software-url: "https://zbmath.org/software/7804"
+crate-name: "linear-elastic-plate-with-hole provenance (KRATOS)"
+crate-description: "Provenance run of the benchmark for linear-elastic plate with a hole using KRATOS"
