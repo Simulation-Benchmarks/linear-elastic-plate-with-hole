@@ -124,7 +124,7 @@ jobs:
       software: kratos
       display_name: KRATOS
       checkout_ref: ${{ inputs.branch || github.ref_name }}
-      use_production_rohub: ${{ inputs.use_production_rohub }}
+      use_production_rohub: true
       benchmark_rohub_identifier: *benchmark_rohub_identifier
     secrets: inherit
 
@@ -135,7 +135,7 @@ jobs:
       software: extendablefem
       display_name: ExtendableFEM.jl
       checkout_ref: ${{ inputs.branch || github.ref_name }}
-      use_production_rohub: ${{ inputs.use_production_rohub }}
+      use_production_rohub: true
       benchmark_rohub_identifier: *benchmark_rohub_identifier
     secrets: inherit
 
@@ -146,6 +146,6 @@ jobs:
       software: edelweissFE
       display_name: EdelweissFE
       checkout_ref: ${{ inputs.branch || github.ref_name }}
-      use_production_rohub: ${{ inputs.use_production_rohub }}
+      use_production_rohub: true
       benchmark_rohub_identifier: *benchmark_rohub_identifier
     secrets: inherit
