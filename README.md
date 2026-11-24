@@ -43,7 +43,7 @@ Click the badge to open the pre-built notebook on the NFDI JupyterHub and explor
 
 [![NFDI](https://nfdi-jupyter.de/images/nfdi_badge.svg)](https://hub.nfdi-jupyter.de/hub/api/start?name=Plate%20with%20Hole%20Benchmark&option=custom&system=JSC-Cloud&custom.customimage=ghcr.io%2Fsimulation-benchmarks%2Flinear-elastic-plate-with-hole%3Alatest&flavor=xl1nfdi&profile=custom&service=jupyterlab&default_url=%2Flab%2Ftree%2Fnotebooks%2Fbenchmark-results.ipynb)
 
-The notebook fetches run data from RoHub and plots the three metrics against element size, grouped by tool and element degree. See [docs/notebook-pipeline.md](docs/notebook-pipeline.md) for details on how the notebook is built.
+The notebook fetches run data from RoHub and plots the maximum von Mises stress, the maximum displacement error and the L2 displacement error against element size, grouped by tool and element degree, and the L2 displacement error against the number of degrees of freedom. The notebook is meant as a starting point: change the selected parameters and metrics or the plotting code to answer your own questions. See [docs/notebook-pipeline.md](docs/notebook-pipeline.md) for details on how the notebook is built.
 
 ## License
 

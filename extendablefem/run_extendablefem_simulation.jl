@@ -19,7 +19,7 @@ struct PlateConfig
 end
 
 @tags struct Metrics
-    ndofs::Int64 & (json = (name = "numer_of_dofs[-]",),)
+    ndofs::Int64 & (json = (name = "number_of_dofs[-]",),)
     max_von_mises_stress::Float64 & (json = (name = "max_von_mises_stress[Pa]",),)
     L2_error::Float64 & (json = (name = "l2_error_displacement[m]",),)
     max_displacement_error::Float64 & (json = (name = "max_displacement_error[m]",),)
