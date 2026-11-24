@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Notebook: L2 displacement error plotted against the number of degrees of freedom, so that tools, element degrees and cell types are compared on one cost axis.
+
+### Fixed
+- ExtendableFEM.jl wrote the degree-of-freedom count under the misspelled key `numer_of_dofs[-]`, so the metric was never extracted.
+- Notebook: runs that do not report a plotted quantity are skipped instead of producing empty legend entries.
+
+### Removed
+- `scripts/postprocess_plate.py`, an unused and outdated predecessor of `notebooks/RoCrate.ipynb`.
+
 ## [0.1.0] - 2026-07-15
 
 ### Added
